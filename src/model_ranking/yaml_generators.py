@@ -354,6 +354,7 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                                 target_cfg.eval_dataloader_semantic.create_config(
                                     aug_name=aug_name,
                                     pred_path=pred_dir_path,
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
                         elif (
@@ -362,14 +363,16 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         ):
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_semantic.create_config(
-                                    img_paths=(pred_dir_path,)
+                                    img_paths=(pred_dir_path,),
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
 
                         else:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_semantic.create_config(
-                                    image_dir=(pred_dir_path,)
+                                    image_dir=(pred_dir_path,),
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
 
@@ -384,6 +387,7 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                                 target_cfg.eval_dataloader_instance.create_config(
                                     aug_name=aug_name,
                                     pred_path=pred_dir_path,
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
                         elif (
@@ -392,13 +396,15 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         ):
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
-                                    img_paths=(pred_dir_path,)
+                                    img_paths=(pred_dir_path,),
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
                         else:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
-                                    image_dir=(pred_dir_path,)
+                                    image_dir=(pred_dir_path,),
+                                    data_base_path=meta_cfg.data_base_path,
                                 )
                             )
 
@@ -427,7 +433,8 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         "S_BIAD1410_Dataset",
                     ):
                         pred_loader_cfg = pred_loader.create_config(
-                            output_dir=pred_dir_path
+                            output_dir=pred_dir_path,
+                            data_base_path=meta_cfg.data_base_path,
                         )
 
                     elif pred_loader.dataset in (
@@ -437,7 +444,8 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         "TIF_txt_Dataset",
                     ):
                         pred_loader_cfg = pred_loader.create_config(
-                            output_dir=pred_dir_path
+                            output_dir=pred_dir_path,
+                            data_base_path=meta_cfg.data_base_path,
                         )
 
                     else:

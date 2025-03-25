@@ -169,13 +169,18 @@ class EvalDataloaderMetaConfig(BaseModel):
     batch_size: int
     num_workers: int
 
-    def create_config(self, aug_name: str, pred_path: Sequence[str]):
+    def create_config(
+        self, aug_name: str, pred_path: Sequence[str], data_base_path: str
+    ):
+        gt_path: List[str] = []
+        for i in range(len(self.gt_path)):
+            gt_path.append(data_base_path + self.gt_path[i])
         return EvalDataloaderConfig(
             eval_dataset=EvalDatasetConfig(
                 name=self.name,
                 aug_name=aug_name,
                 pred_path=pred_path,
-                gt_path=self.gt_path,
+                gt_path=gt_path,
                 pred_key=self.pred_key,
                 gt_key=self.gt_key,
                 patch_key=self.patch_key,
@@ -203,13 +208,16 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
     batch_size: int
     num_workers: int
 
-    def create_config(self, img_paths: Sequence[str]):
+    def create_config(self, img_paths: Sequence[str], data_base_path: str):
+        mask_paths: List[str] = []
+        for i in range(len(self.eval.mask_paths)):
+            mask_paths.append(data_base_path + self.eval.mask_paths[i])
         return EvalDataloaderConfig(
             eval_dataset=SBIAD1410EvalDatasetConfig(
                 name=self.name,
                 eval=SBIAD1410PhaseConfig(
                     img_paths=img_paths,
-                    mask_paths=self.eval.mask_paths,
+                    mask_paths=mask_paths,
                     roi=self.eval.roi,
                     transformer=self.eval.transformer,
                     slice_builder=self.eval.slice_builder,
@@ -333,7 +341,10 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
     ]
     roi: Optional[Sequence[Sequence[int]]]
 
-    def create_config(self, output_dir: str):
+    def create_config(self, output_dir: str, data_base_path: str):
+        file_paths: List[str] = []
+        for i in range(len(self.file_paths)):
+            file_paths.append(data_base_path + self.file_paths[i])
         return Pytorch3DUnetLoaderConfig(
             dataset=self.dataset,
             output_dir=output_dir,
@@ -344,7 +355,7 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
             global_normalization=self.global_normalization,
             global_percentiles=self.global_percentiles,
             test=Pytorch3DUnetDatasetConfig(
-                file_paths=self.file_paths,
+                file_paths=file_paths,
                 slice_builder=self.slice_builder,
                 transformer=self.transformer,
                 roi=self.roi,
@@ -516,7 +527,12 @@ class LoaderMetaConfig(BaseModel):
 class TIFLoaderMetaConfig(LoaderMetaConfig):
     dataset: Literal["Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"]
 
-    def create_config(self, output_dir: str):
+    def create_config(self, output_dir: str, data_base_path: str):
+        mask_dir: List[str] = []
+        image_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+            image_dir.append(data_base_path + self.image_dir[i])
         return TIFPredictionLoadersConfig(
             dataset=self.dataset,
             output_dir=output_dir,
@@ -525,8 +541,8 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
             global_norm=self.global_norm,
             percentiles=self.percentiles,
             test=TIFPhaseConfig(
-                image_dir=self.image_dir,
-                mask_dir=self.mask_dir,
+                image_dir=image_dir,
+                mask_dir=mask_dir,
                 transformer=self.transformer,
             ),
         )
@@ -536,7 +552,12 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
     dataset: Literal["TIF_txt_Dataset"]
     filenames_path: str
 
-    def create_config(self, output_dir: str):
+    def create_config(self, output_dir: str, data_base_path: str):
+        mask_dir: List[str] = []
+        image_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+            image_dir.append(data_base_path + self.image_dir[i])
         return TIFPredictionLoadersConfig(
             dataset=self.dataset,
             output_dir=output_dir,
@@ -545,9 +566,9 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
             global_norm=self.global_norm,
             percentiles=self.percentiles,
             test=TIFtxtPhaseConfig(
-                image_dir=self.image_dir,
-                mask_dir=self.mask_dir,
-                filenames_path=self.filenames_path,
+                image_dir=image_dir,
+                mask_dir=mask_dir,
+                filenames_path=data_base_path + self.filenames_path,
                 transformer=self.transformer,
             ),
         )
@@ -569,14 +590,17 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
         str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
     ]
 
-    def create_config(self, image_dir: Sequence[str]):
+    def create_config(self, image_dir: Sequence[str], data_base_path: str):
+        mask_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
         return EvalDataloaderConfig(
             eval_dataset=TIFEvalDatasetConfig(
                 name=self.name,
                 eval=TIFtxtPhaseConfig(
                     image_dir=image_dir,
-                    mask_dir=self.mask_dir,
-                    filenames_path=self.filenames_path,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
                     transformer=self.transformer,
                 ),
                 expand_dims=self.expand_dims,
@@ -606,13 +630,16 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
         str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
     ]
 
-    def create_config(self, image_dir: Sequence[str]):
+    def create_config(self, image_dir: Sequence[str], data_base_path: str):
+        mask_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
         return EvalDataloaderConfig(
             eval_dataset=TIFEvalDatasetConfig(
                 name=self.name,
                 eval=TIFPhaseConfig(
                     image_dir=image_dir,
-                    mask_dir=self.mask_dir,
+                    mask_dir=mask_dir,
                     transformer=self.transformer,
                 ),
                 expand_dims=self.expand_dims,
@@ -1090,7 +1117,7 @@ class MetaConfig(BaseModel):
     ]
     segmentation_mode: Literal["instance", "semantic"]
     overwrite_yaml: bool
-    data_dir_path: str
+    data_base_path: str
     model_names: Dict[str, str]
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
