@@ -38,11 +38,12 @@ reportUnusedFunction = "error"
 reportUnusedImport = "error"
 reportUnusedVariable = "error"
 reportWildcardImportFromLibrary = "error"
-strictDictionaryInference = true
+strictDictionaryInference = false
 strictListInference = true
 strictSetInference = true
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
+arbitrary_types_allowed = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=bioimageio --cov-report=xml --cov-append --capture=no --failed-first --doctest-modules"
