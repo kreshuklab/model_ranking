@@ -241,11 +241,11 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         )
                         feature_str = f"_a{str(dropOut_rate).replace('.','')}"
                         model_cfgs[feature_abbrev + feature_str] = (
-                            Pytorch3DUnetModelConfig(
-                                architecture=source_model.model,
-                                feature_perturbation=feature_perturbation_config,
+                            source_model.create_config(
+                                feature_perturbation=feature_perturbation_config
                             )
                         )
+
                 elif feature_perturbation == "FeatureDropPerturbation":
                     assert (
                         feat_pert_cfg.featureDrop_thresholds is not None
@@ -260,9 +260,8 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                         )
                         feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
                         model_cfgs[feature_abbrev + feature_str] = (
-                            Pytorch3DUnetModelConfig(
-                                architecture=source_model.model,
-                                feature_perturbation=feature_perturbation_config,
+                            source_model.create_config(
+                                feature_perturbation=feature_perturbation_config
                             )
                         )
                 elif feature_perturbation == "FeatureNoisePerturbation":
@@ -279,18 +278,16 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
 
                         feature_str = f"_a{str(featureNoise_range).replace('.','')}"
                         model_cfgs[feature_abbrev + feature_str] = (
-                            Pytorch3DUnetModelConfig(
-                                architecture=source_model.model,
-                                feature_perturbation=feature_perturbation_config,
+                            source_model.create_config(
+                                feature_perturbation=feature_perturbation_config
                             )
                         )
                 else:
                     assert_never(feature_perturbation)
             else:
                 feature_name = feature_abbrev
-                model_cfgs[feature_name] = Pytorch3DUnetModelConfig(
-                    architecture=source_model.model,
-                    feature_perturbation=None,
+                model_cfgs[feature_name] = source_model.create_config(
+                    feature_perturbation=None
                 )
 
         for target_cfg in meta_cfg.target_datasets:

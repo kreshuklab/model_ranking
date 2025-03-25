@@ -398,8 +398,8 @@ class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
     is_segmentation: Optional[bool]
 
 
-class Pytorch3DUnetModelConfig(BaseModel):
-    architecture: Pytorch3DUnetModelMetaConfig
+class Pytorch3DUnetModelConfig(Pytorch3DUnetModelMetaConfig, frozen=True):
+    # architecture: Pytorch3DUnetModelMetaConfig
     feature_perturbation: Annotated[
         Optional[
             Union[
@@ -813,6 +813,28 @@ class Model3LayerSourceConfig(SourceModelConfigBase, frozen=True):
     model: Pytorch3DUnetModelMetaConfig = UNET2D_3LAYER_ARCHITECTURE
     model_name: str
 
+    def create_config(
+        self,
+        feature_perturbation: Optional[
+            Union[
+                DropOutPerturbationConfig,
+                FeatureDropPerturbationConfig,
+                FeatureNoisePerturbationConfig,
+            ]
+        ],
+    ):
+        return Pytorch3DUnetModelConfig(
+            name=self.model.name,
+            in_channels=self.model.in_channels,
+            out_channels=self.model.out_channels,
+            layer_order=self.model.layer_order,
+            f_maps=self.model.f_maps,
+            final_sigmoid=self.model.final_sigmoid,
+            feature_return=self.model.feature_return,
+            is_segmentation=self.model.is_segmentation,
+            feature_perturbation=feature_perturbation,
+        )
+
 
 class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
     source_name: Literal[
@@ -829,6 +851,28 @@ class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
     ]
     model: Pytorch3DUnetModelMetaConfig = UNET2D_4LAYER_ARCHITECTURE
     model_name: str
+
+    def create_config(
+        self,
+        feature_perturbation: Optional[
+            Union[
+                DropOutPerturbationConfig,
+                FeatureDropPerturbationConfig,
+                FeatureNoisePerturbationConfig,
+            ]
+        ],
+    ):
+        return Pytorch3DUnetModelConfig(
+            name=self.model.name,
+            in_channels=self.model.in_channels,
+            out_channels=self.model.out_channels,
+            layer_order=self.model.layer_order,
+            f_maps=self.model.f_maps,
+            final_sigmoid=self.model.final_sigmoid,
+            feature_return=self.model.feature_return,
+            is_segmentation=self.model.is_segmentation,
+            feature_perturbation=feature_perturbation,
+        )
 
 
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
