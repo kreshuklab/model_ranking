@@ -11,13 +11,6 @@ from typing import (
     Dict,
     Any,
 )
-from pathlib import Path
-
-
-class TTAugmentationsConfig(BaseModel):
-    transforms_list: Union[List[Any], None]
-    raw_transforms_list: Union[List[Any], None]
-    apply_no_transform: bool
 
 
 class ConsistencyMetricConfig(BaseModel):
@@ -94,9 +87,6 @@ class TIFEvalDatasetConfig(BaseModel):
     name: Literal[
         "TIF_txt_Dataset", "Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"
     ]
-    # eval: Annotated[
-    #    Union[TIFPhaseConfig, TIFtxtPhaseConfig], Discriminator("dataset_name")
-    # ]
     eval: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
     expand_dims: bool
     global_norm: bool
@@ -295,10 +285,6 @@ class Pytorch3DUnetPredictorConfig(Pytorch3DUnetPredictorMetaConfig):
     output_file_name: Optional[str]
 
 
-class Pytorch3DUnetEvalTransformerConfig(BaseModel):
-    raw: List[Any]
-
-
 class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
     file_paths: Sequence[str]
     slice_builder: Annotated[
@@ -363,14 +349,6 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
         )
 
 
-class NucleiEvalConfig(BaseModel):
-    name: str
-    pred_dir: Union[str, Path]
-    label_dir: Union[str, Path]
-    hard_eval_save_key: str
-    soft_eval_save_key: str
-
-
 class TIFNucleiSemanticPredictorConfig(BaseModel):
     name: Literal["DSB2018Predictor"]
 
@@ -423,48 +401,6 @@ class Pytorch3DUnetModelConfig(Pytorch3DUnetModelMetaConfig, frozen=True):
     ]
 
 
-class TIFPredictionConfig(BaseModel):
-    evaluation: EvaluateConfig
-    loaders: TIFPredictionLoadersConfig
-    predictor: TIFNucleiSemanticPredictorConfig
-    model: Pytorch3DUnetModelConfig
-    model_path: str
-    wandb: WandbConfig
-
-
-class InstanceTargetMetaConfig(BaseModel):
-    target: str
-    seg_model: Literal["instance"]
-    convert_to_binary_label: bool
-    roi: Optional[List[List[int]]]
-    patch_size: List[int]
-    pred_batch_size: int
-    ignore_index: Optional[int]
-    eval_relabel_background: bool
-    eval_pred_zero_background: bool
-    eval_zero_largest_instance: bool
-    pred_zero_largest_instance: bool
-    pred_no_adjust_background: bool
-    min_object_size: Optional[int]
-    f_maps: Union[int, List[int]]
-    predictor: TIFNucleiInstancePredictorConfig
-
-
-class SemanticTargetMetaConfig(BaseModel):
-    target: str
-    seg_model: Literal["semantic"]
-    convert_to_binary_label: bool
-    roi: Optional[List[List[int]]]
-    patch_size: List[int]
-    pred_batch_size: int
-    ignore_index: Optional[int]
-    eval_relabel_background: bool
-    eval_pred_zero_background: bool
-    eval_zero_largest_instance: bool
-    f_maps: Union[int, List[int]]
-    predictor: TIFNucleiSemanticPredictorConfig
-
-
 class FeaturePerturbationConfig(BaseModel):
     perturbation_types: Sequence[
         Literal[
@@ -485,31 +421,6 @@ class OutputSettingsConfig(BaseModel):
     result_dir: str
     approach: str
     base_dir_path: str
-
-
-class MetaConfig2(BaseModel):
-    segmentation_mode: Literal["instance", "semantic"]
-    data_dir_path: str
-    model_names: Dict[str, str]
-    feature_perturbations: FeaturePerturbationConfig
-    output_settings: OutputSettingsConfig
-    percentile_ranges: Dict[str, Optional[List[float]]]
-    input_augs: Dict[str, List[Tuple[float, float]]]
-
-
-class InputPerturbationConfig(BaseModel):
-    # name: Literal["RandomGamma", "RandomBrightness", "RandomContrast"]
-    name: str
-    execution_probability: float
-    alpha: Tuple[float, float]
-    clip_kwargs: Optional[Dict[str, float]]
-
-
-class InputGaussianConfig(BaseModel):
-    # name: Literal["AdditiveGaussianNoise"]
-    name: str
-    execution_probability: float
-    scale: Tuple[float, float]
 
 
 class LoaderMetaConfig(BaseModel):
@@ -664,9 +575,6 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 
 class TargetDatasetConfigBase(BaseModel, frozen=True):
     name: Literal["BBBC039", "DSB2018", "Go-Nuclear"]
-
-    # name: LiteralString
-    # name: str
     loader: Annotated[
         Union[
             Pytorch3DUnetLoaderMetaConfig, TIFLoaderMetaConfig, TIFtxtLoaderMetaConfig
