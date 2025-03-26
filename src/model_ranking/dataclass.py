@@ -271,6 +271,21 @@ class FeatureNoisePerturbationConfig(BaseModel):
     uniform_range: float
 
 
+class InputPerturbationConfig(BaseModel):
+    # name: Literal["RandomGamma", "RandomBrightness", "RandomContrast"]
+    name: str
+    execution_probability: float
+    alpha: Tuple[float, float]
+    clip_kwargs: Optional[Dict[str, float]]
+
+
+class InputGaussianConfig(BaseModel):
+    # name: Literal["AdditiveGaussianNoise"]
+    name: str
+    execution_probability: float
+    scale: Tuple[float, float]
+
+
 class Pytorch3DUnetPredictorMetaConfig(BaseModel):
     name: Literal["PatchWisePredictor"]
     save_segmentation: bool
