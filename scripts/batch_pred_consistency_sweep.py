@@ -27,7 +27,7 @@ def main(
 
         config_paths_with_NA = check_for_no_aug_configs(
             source_dataset=transfer_title.split("_")[0],
-            target_dataset=transfer_title.split("_")[1],
+            target_dataset=transfer_title.split("_")[-1],
             configs=config_paths,
         )
         calc_segmentation_model_consistency(config_paths_with_NA)
