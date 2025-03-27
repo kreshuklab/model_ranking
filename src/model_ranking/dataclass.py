@@ -14,8 +14,18 @@ from typing import (
 
 
 class ConsistencyMetricConfig(BaseModel):
-    metric: str
-    threshold: Optional[List[float]]
+    metric: Literal[
+        "Diff",
+        "EI",
+        "Entropy",
+        "Cross-Entropy",
+        "KL-Divergence",
+        "Hamming-Distance",
+        "Rand-Index",
+        "Adapted-Rand-Error",
+        "AdaRand-Error",
+    ]
+    threshold: List[float]
     pred_key: str
     save_key: str
     entr_base: Optional[int]

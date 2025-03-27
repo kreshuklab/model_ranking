@@ -5,6 +5,7 @@ from pathlib import Path
 from numpy.typing import NDArray
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
+import re
 
 from pytorch3dunet.datasets.utils import (
     _loader_classes,  # pyright: ignore[reportUnknownVariableType, reportPrivateUsage]
@@ -16,8 +17,8 @@ def loader_classes(class_name: str):
 
 
 def load_h5(
-    path: str,
-    key: str,
+    path: Union[str, Path],
+    key: Union[str, Path],
     roi: Optional[List[List[int]]] = None,
     select_index: Optional[Sequence[int]] = None,
 ) -> NDArray[Any]:
@@ -95,3 +96,31 @@ def check_for_no_aug_configs(
         no_aug_path = single_aug_path.parent.parent / "none" / "none.yml"
         configs_with_NA.append(no_aug_path)
     return configs_with_NA
+
+
+def extract_filename(
+    pred_path: Union[Path, str],
+    suffix_names: List[str] = [
+        "brt",
+        "ctr",
+        "gamma",
+        "gauss",
+        "none",
+        "predictions",
+        "DO",
+        "FN",
+        "FD",
+    ],
+) -> Optional[str]:
+    if isinstance(pred_path, str):
+        pred_path = Path(pred_path)
+    filename = pred_path.stem
+    # Create a regex pattern dynamically based on the aug_titles
+    aug_pattern = "|".join(
+        map(re.escape, suffix_names)
+    )  # Escape to handle special characters
+    pattern = rf"^(.*)_(?:{aug_pattern})(?:_.+)?$"
+
+    match = re.match(pattern, filename)
+    if match:
+        return match.group(1)
