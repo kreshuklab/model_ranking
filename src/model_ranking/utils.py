@@ -1,4 +1,5 @@
 import os
+import fnmatch
 from typing import Optional, List, Sequence, Any, TypeGuard, Union
 from pathlib import Path
 from numpy.typing import NDArray
@@ -64,3 +65,33 @@ def get_roi_slice(roi: Sequence[Sequence[int]]) -> tuple[slice, ...]:
 
 def is_ndarray(v: Any) -> TypeGuard[NDArray[Any]]:
     return isinstance(v, np.ndarray)
+
+
+def check_for_no_aug_configs(
+    source_dataset: str,
+    target_dataset: str,
+    configs: List[Path],
+) -> List[Path]:
+    configs_with_NA = configs.copy()
+    # check if configs already contains no_aug_config for this transfer
+    NA_config_exists = False
+    for config in configs:
+        pattern = f"*/{source_dataset}_to_{target_dataset}_gap/*/none/none.yml"
+        if fnmatch.fnmatch(str(config), pattern):
+            NA_config_exists = True
+            break
+    if not NA_config_exists:
+        # find single path in configs containing pattern f"{source_dataset}_to_{target_dataset}
+        single_aug_path = next(
+            (
+                config
+                for config in configs
+                if f"{source_dataset}_to_{target_dataset}" in str(config)
+            ),
+            None,
+        )
+        assert single_aug_path is not None, "No single_aug_path found"
+        # remove aug section and replace with none from single_aug_path
+        no_aug_path = single_aug_path.parent.parent / "none" / "none.yml"
+        configs_with_NA.append(no_aug_path)
+    return configs_with_NA
