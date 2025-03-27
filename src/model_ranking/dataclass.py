@@ -598,6 +598,103 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
     zero_largest_instance: bool
 
 
+class SourceModelConfigBase(BaseModel, frozen=True):
+    model: Pytorch3DUnetModelMetaConfig
+    model_name: str
+
+
+UNET2D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
+    name="UNet2D",
+    in_channels=1,
+    out_channels=1,
+    layer_order="bcr",
+    f_maps=(32, 64, 128),
+    final_sigmoid=True,
+    feature_return=False,
+    is_segmentation=True,
+)
+
+UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
+    name="UNet2D",
+    in_channels=1,
+    out_channels=1,
+    layer_order="bcr",
+    f_maps=32,
+    final_sigmoid=True,
+    feature_return=False,
+    is_segmentation=True,
+)
+
+
+class Model3LayerSourceConfig(SourceModelConfigBase, frozen=True):
+    source_name: Literal[
+        "BBBC039", "DSB2018", "HeLaNuc", "Hoechst", "S_BIAD634", "S_BIAD895"
+    ]
+    model: Pytorch3DUnetModelMetaConfig = UNET2D_3LAYER_ARCHITECTURE
+    model_name: str
+
+    def create_config(
+        self,
+        feature_perturbation: Optional[
+            Union[
+                DropOutPerturbationConfig,
+                FeatureDropPerturbationConfig,
+                FeatureNoisePerturbationConfig,
+            ]
+        ],
+    ):
+        return Pytorch3DUnetModelConfig(
+            name=self.model.name,
+            in_channels=self.model.in_channels,
+            out_channels=self.model.out_channels,
+            layer_order=self.model.layer_order,
+            f_maps=self.model.f_maps,
+            final_sigmoid=self.model.final_sigmoid,
+            feature_return=self.model.feature_return,
+            is_segmentation=self.model.is_segmentation,
+            feature_perturbation=feature_perturbation,
+        )
+
+
+class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
+    source_name: Literal[
+        "Go-Nuclear",
+        "S_BIAD1196",
+        "S_BIAD1410",
+        "FlyWing",
+        "Ovules",
+        "PNAS",
+        "EPFL",
+        "Hmito",
+        "Rmito",
+        "VNC",
+    ]
+    model: Pytorch3DUnetModelMetaConfig = UNET2D_4LAYER_ARCHITECTURE
+    model_name: str
+
+    def create_config(
+        self,
+        feature_perturbation: Optional[
+            Union[
+                DropOutPerturbationConfig,
+                FeatureDropPerturbationConfig,
+                FeatureNoisePerturbationConfig,
+            ]
+        ],
+    ):
+        return Pytorch3DUnetModelConfig(
+            name=self.model.name,
+            in_channels=self.model.in_channels,
+            out_channels=self.model.out_channels,
+            layer_order=self.model.layer_order,
+            f_maps=self.model.f_maps,
+            final_sigmoid=self.model.final_sigmoid,
+            feature_return=self.model.feature_return,
+            is_segmentation=self.model.is_segmentation,
+            feature_perturbation=feature_perturbation,
+        )
+
+
 class TargetDatasetConfigBase(BaseModel, frozen=True):
     name: Literal["BBBC039", "DSB2018", "Go-Nuclear"]
     loader: Annotated[
@@ -640,43 +737,12 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
     ]
     consistency: ConsistencyMetricMetaConfig
 
-    class Config:
-        arbitrary_types_allowed = True
-
-
-class SourceModelConfigBase(BaseModel, frozen=True):
-    model: Pytorch3DUnetModelMetaConfig
-    model_name: str
-
-
-UNET2D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
-    name="UNet2D",
-    in_channels=1,
-    out_channels=1,
-    layer_order="bcr",
-    f_maps=(32, 64, 128),
-    final_sigmoid=True,
-    feature_return=False,
-    is_segmentation=True,
-)
-
-UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
-    name="UNet2D",
-    in_channels=1,
-    out_channels=1,
-    layer_order="bcr",
-    f_maps=32,
-    final_sigmoid=True,
-    feature_return=False,
-    is_segmentation=True,
-)
-
 
 class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["BBBC039"] = "BBBC039"
     # name = "BBBC039"
     loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
-        batch_size=32,
+        batch_size=2,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 98),
@@ -766,75 +832,6 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
-class Model3LayerSourceConfig(SourceModelConfigBase, frozen=True):
-    source_name: Literal[
-        "BBBC039", "DSB2018", "HeLaNuc", "Hoechst", "S_BIAD634", "S_BIAD895"
-    ]
-    model: Pytorch3DUnetModelMetaConfig = UNET2D_3LAYER_ARCHITECTURE
-    model_name: str
-
-    def create_config(
-        self,
-        feature_perturbation: Optional[
-            Union[
-                DropOutPerturbationConfig,
-                FeatureDropPerturbationConfig,
-                FeatureNoisePerturbationConfig,
-            ]
-        ],
-    ):
-        return Pytorch3DUnetModelConfig(
-            name=self.model.name,
-            in_channels=self.model.in_channels,
-            out_channels=self.model.out_channels,
-            layer_order=self.model.layer_order,
-            f_maps=self.model.f_maps,
-            final_sigmoid=self.model.final_sigmoid,
-            feature_return=self.model.feature_return,
-            is_segmentation=self.model.is_segmentation,
-            feature_perturbation=feature_perturbation,
-        )
-
-
-class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
-    source_name: Literal[
-        "Go-Nuclear",
-        "S_BIAD1196",
-        "S_BIAD1410",
-        "FlyWing",
-        "Ovules",
-        "PNAS",
-        "EPFL",
-        "Hmito",
-        "Rmito",
-        "VNC",
-    ]
-    model: Pytorch3DUnetModelMetaConfig = UNET2D_4LAYER_ARCHITECTURE
-    model_name: str
-
-    def create_config(
-        self,
-        feature_perturbation: Optional[
-            Union[
-                DropOutPerturbationConfig,
-                FeatureDropPerturbationConfig,
-                FeatureNoisePerturbationConfig,
-            ]
-        ],
-    ):
-        return Pytorch3DUnetModelConfig(
-            name=self.model.name,
-            in_channels=self.model.in_channels,
-            out_channels=self.model.out_channels,
-            layer_order=self.model.layer_order,
-            f_maps=self.model.f_maps,
-            final_sigmoid=self.model.final_sigmoid,
-            feature_return=self.model.feature_return,
-            is_segmentation=self.model.is_segmentation,
-            feature_perturbation=feature_perturbation,
-        )
-
-
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["DSB2018"] = "DSB2018"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
@@ -874,7 +871,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             expand_dims=True,
             global_norm=False,
             percentiles=(5, 98),
-            image_key="segmentation",
+            image_key="predictions",
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/dsb2018_fluorescence/test/masks",),
