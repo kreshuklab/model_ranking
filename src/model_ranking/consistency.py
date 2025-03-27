@@ -35,7 +35,7 @@ from model_ranking.evaluation import (
 )
 
 
-def nuclei_segmentation_consistency_analysis(paths: List[Path]):
+def calc_segmentation_model_consistency(paths: List[Path]):
     # find none augmentation path
     no_aug_dirs = [path.parent for path in paths if "none" in path.stem]
     for no_aug_dir in tqdm(no_aug_dirs):
