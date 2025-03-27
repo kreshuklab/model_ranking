@@ -1,5 +1,8 @@
 __pycache__/
+wandb/
+.vscode/
 *.egg-info/
 
 *.yaml
 *.yml
+*.h5
