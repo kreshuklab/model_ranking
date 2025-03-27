@@ -1051,7 +1051,6 @@ class MetaConfig(BaseModel):
     segmentation_mode: Literal["instance", "semantic"]
     overwrite_yaml: bool
     data_base_path: str
-    model_names: Dict[str, str]
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
     # percentile_ranges: Dict[str, Optional[List[float]]]
