@@ -212,10 +212,10 @@ FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
 }
 
 
-def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
+def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
     config, _ = load_config_direct(config_path)
     meta_cfg = MetaConfig.model_validate(config)
-    yaml_paths: List[Path] = []
+    yaml_paths: Dict[str, List[Path]] = {}
     for source_model in meta_cfg.source_models:
         source_model_path = get_seg_model_path(
             source_model.source_name,
@@ -291,7 +291,8 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                 )
 
         for target_cfg in meta_cfg.target_datasets:
-            transfer_title = (
+            transfer_title = f"{source_model.source_name}_to_{target_cfg.name}"
+            transfer_title_abbrev = (
                 DATASET_TO_MODEL_ABBREVIATIONS[source_model.source_name]
                 + "to"
                 + DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]
@@ -413,7 +414,7 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
 
                     wandb_cfg = WandbConfig(
                         project=project_name,
-                        name=f"{source_model.model_name}_{transfer_title}_{save_name}",
+                        name=f"{source_model.model_name}_{transfer_title_abbrev}_{save_name}",
                         mode="online",
                     )
 
@@ -465,7 +466,7 @@ def generate_yaml(config_path: Union[str, Path]) -> List[Path]:
                     )
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
                     yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
-                    yaml_paths.append(yaml_save_path)
+                    yaml_paths.setdefault(transfer_title, []).append(yaml_save_path)
                     yaml_dict_order = [
                         {"wandb": wandb_cfg.model_dump()},
                         {"model_path": source_model_path},
