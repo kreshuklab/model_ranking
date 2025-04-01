@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from typing import Any, Literal, Optional, Dict, assert_never, List, Union
+from typing import Any, Optional, List, Union
 from numpy.typing import NDArray
 from pathlib import Path
 from tqdm import tqdm
@@ -21,7 +21,6 @@ from pytorch3dunet.datasets.dsb import (
 
 from pytorch3dunet.unet3d.metrics import (
     DiceCoefficient,
-    InstanceAveragePrecision,
 )
 
 from model_ranking.dataclass import (
@@ -62,16 +61,10 @@ def run_evaluation(
     eval_scores: List[NDArray[Any]] = []
     for dataloader in get_evaluation_loaders(config_data.eval_dataloader):
         eval_scores.append(
-            evaluate_prediction(
-                dataloader,
-                device,
-                metric=config_data.eval_metric.name,
-                threshold=config_data.eval_metric.threshold,
-                eval_parameters=getattr(
-                    config_data.eval_metric,
-                    "eval_parameters",
-                    None,
-                ),
+            calc_evaluation_score(
+                dataloader=dataloader,
+                device=device,
+                config=config_data,
             )
         )
 
@@ -115,113 +108,33 @@ def run_evaluation(
     return eval_scores
 
 
-def evaluate_prediction(
+def calc_evaluation_score(
     dataloader: DataLoader[Any],
     device: str,
-    metric: Literal[
-        "BinaryF1",
-        "MultiClassF1",
-        "SoftF1",
-        "RandError",
-        "AdaptedRandError",
-        "MeanAvgPrecision",
-    ] = "MultiClassF1",
-    threshold: Optional[float] = 0.5,
-    eval_parameters: Optional[Dict[str, int]] = None,
+    config: EvaluateConfig,
 ) -> NDArray[Any]:
-    # assert dataloader.shuffle == False, "dataloader must not shuffle during evaluation"
-    if metric == "MultiClassF1":
-        scores = torch.zeros((dataloader.dataset.__len__(), 2))  # type: ignore
-    elif (
-        (metric == "BinaryF1") or (metric == "SoftF1") or (metric == "MeanAvgPrecision")
-    ):
-        scores = torch.zeros(dataloader.dataset.__len__())  # type: ignore
-    elif (metric == "RandError") or (metric == "AdaptedRandError"):
-        scores = torch.zeros((dataloader.dataset.__len__(), 3))  # type: ignore
+    metric_cfg = config.eval_metric
+    if metric_cfg.name == "AdaptedRandError":
+        metric = metric_cfg.initialise_metric(
+            dataset_name=dataloader.dataset.__class__.__name__
+        )
+    else:
+        metric = metric_cfg.initialise_metric()
+
+    # Intialise Tensor to score eval scores
+    scores = metric_cfg.initialise_score(
+        dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+    )
+
     eval_scores: NDArray[Any] = np.array([])
+    assert isinstance(dataloader.batch_size, int), "batch_size must be provided"
     for i, (pred, gt) in enumerate(tqdm(dataloader)):
         pred = pred.to(device)
         gt = gt.to(device)
-        if metric == "MultiClassF1":
-            batch_perf_scores = torch.zeros((pred.shape[0], 2))
-            for j in range(pred.shape[0]):
-                pred_th = (pred[j] > threshold).type(torch.int64)
-                if gt[j].sum() == 0:
-                    # Prevent warning from empty GT patches
-                    batch_perf_scores[j, 1] = 0
-                    batch_perf_scores[j, 0] = binary_f1_score(
-                        (1 - pred[j]).flatten(),
-                        (1 - gt[j].type(torch.int64)).flatten(),
-                        threshold=0.5,
-                    )
-                else:
-                    batch_perf_scores[j] = multiclass_f1_score(
-                        pred_th.flatten(),
-                        gt[j].flatten().type(torch.int64),
-                        num_classes=2,
-                        average=None,
-                    )
-        elif metric == "BinaryF1":
-            assert threshold is not None, "Threshold must be provided for BinaryF1"
-            batch_perf_scores = torch.zeros(pred.shape[0])
-            for j in range(pred.shape[0]):
-                if gt[j].sum() == 0:
-                    # Prevent warning from empty GT patches
-                    batch_perf_scores[j] = 0
-                else:
-                    batch_perf_scores[j] = binary_f1_score(
-                        pred[j].flatten(), gt[j].flatten(), threshold=threshold
-                    )
-        elif metric == "SoftF1":
-            batch_perf_scores = torch.zeros(pred.shape[0])
-            for j in range(pred.shape[0]):
-                # add channel dimension to gt if needed
-                if len(gt.shape) == 4:
-                    gt_patch = torch.unsqueeze(gt[j : j + 1], 1)
-                else:
-                    gt_patch = gt[j : j + 1]
-                batch_perf_scores[j] = DiceCoefficient()(pred[j : j + 1], gt_patch)
-
-        elif metric == "RandError":
-            batch_perf_scores = torch.zeros((pred.shape[0], 3))
-            for j in range(pred.shape[0]):
-                if gt[j].sum() == 0:
-                    # Prevent warning from empty GT patches
-                    batch_perf_scores[j, 0] = float("nan")
-                    batch_perf_scores[j, 1] = float("nan")
-                    batch_perf_scores[j, 2] = float("nan")
-                else:
-                    are: float
-                    prec: float
-                    rec: float
-                    are, prec, rec = adapted_rand_error(  # type: ignore
-                        gt[j].cpu().numpy().astype("uint16"),
-                        pred[j].cpu().numpy().astype("uint16"),
-                    )
-                    batch_perf_scores[j, 0] = are
-                    batch_perf_scores[j, 1] = prec
-                    batch_perf_scores[j, 2] = rec
-
-        elif metric == "AdaptedRandError":
-            batch_perf_scores = adaRandError_eval(
-                pred.cpu().numpy().astype("uint16"),
-                gt.cpu().numpy().astype("uint16"),
-                dataloader.dataset.__class__.__name__,
-                border_params=eval_parameters,
-            )
-
-        elif metric == "MeanAvgPrecision":
-            assert eval_parameters is not None, "eval_parameters must be provided"
-            batch_perf_scores = InstanceAveragePrecision(**eval_parameters)(pred, gt)
-
-        else:
-            assert_never(metric)
-
-        assert dataloader.batch_size is not None, "batch_size must be provided"
         scores[
             i * dataloader.batch_size : i * dataloader.batch_size + pred.shape[0]
-        ] = batch_perf_scores
-        eval_scores = scores.cpu().numpy()
+        ] = metric(pred, gt)
+    eval_scores = scores.cpu().numpy()
     return eval_scores
 
 
@@ -229,8 +142,14 @@ def adaRandError_eval(
     pred: NDArray[Any],
     gt: NDArray[Any],
     dataset_name: str,
-    border_params: Optional[Dict[str, int]] = {"num_dilations": 1, "num_erosions": 1},
+    num_dilations: Optional[int] = 1,
+    num_erosions: Optional[int] = 1,
+    # border_params: Optional[Dict[str, int]] = {"num_dilations": 1, "num_erosions": 1},
 ):
+    # check that either both or neither num_dilations and num_erosions are provided
+    assert (num_dilations is not None and num_erosions is not None) or (
+        num_dilations is None and num_erosions is None
+    ), "Either both num_dilations and num_erosions must be provided or neither"
     batch_scores = torch.zeros((pred.shape[0], 3))
     for j in range(len(pred)):
         if gt[j].sum() == 0:
@@ -244,8 +163,11 @@ def adaRandError_eval(
                 mask = get_mask_incomplete_gt(gt[j], pred[j])
             else:
                 mask = get_mask(gt[j], pred[j], 0)
-            if border_params is not None:
-                border_mask = get_border_mask(img=gt[j], **border_params)
+            if (num_dilations is not None) and (num_erosions is not None):
+                # border_mask = get_border_mask(img=gt[j], **border_params)
+                border_mask = get_border_mask(
+                    img=gt[j], num_dilations=num_dilations, num_erosions=num_erosions
+                )
                 mask = np.logical_and(mask, ~border_mask)
             if np.sum(mask) == 0:
                 are = float("nan")
@@ -259,9 +181,9 @@ def adaRandError_eval(
                         ignore_labels=None,
                     )
                 )
-                # assert are is float, f"are is not a float: {are}"
-                ##assert prec is float, f"prec is not a float: {prec}"
-                # assert rec is float, f"rec is not a float: {rec}"
+                assert isinstance(are, float), f"are is not a float: {are}"
+                assert isinstance(prec, float), f"prec is not a float: {prec}"
+                assert isinstance(rec, float), f"rec is not a float: {rec}"
         batch_scores[j, 0] = are
         batch_scores[j, 1] = prec
         batch_scores[j, 2] = rec
@@ -325,3 +247,86 @@ def assign_unique_ids_to_value(data: NDArray[Any], value: int = 0):
         assert np.iinfo(data.dtype).max >= max_id_assigned, "Overflow error"
     data[data == value] = np.arange(max_val + 1, max_id_assigned)
     return data
+
+
+class MultiClassF1:
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        batch_perf_scores = torch.zeros((pred.shape[0], 2))
+        # Loop over batch dimension
+        for j in range(pred.shape[0]):
+            pred_th = (pred[j] > self.threshold).type(torch.int64)
+            if gt[j].sum() == 0:
+                # Prevent warning from empty GT patches
+                batch_perf_scores[j, 1] = 0
+                batch_perf_scores[j, 0] = binary_f1_score(
+                    (1 - pred[j]).flatten(),
+                    (1 - gt[j].type(torch.int64)).flatten(),
+                    threshold=self.threshold,
+                )
+            else:
+                batch_perf_scores[j] = multiclass_f1_score(
+                    pred_th.flatten(),
+                    gt[j].flatten().type(torch.int64),
+                    num_classes=2,
+                    average=None,
+                )
+        return batch_perf_scores
+
+
+class BinaryF1:
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        batch_perf_scores = torch.zeros(pred.shape[0])
+        # Loop over batch dimension
+        for j in range(pred.shape[0]):
+            if gt[j].sum() == 0:
+                # Prevent warning from empty GT patches
+                batch_perf_scores[j] = 0
+            else:
+                batch_perf_scores[j] = binary_f1_score(
+                    pred[j].flatten(), gt[j].flatten(), threshold=self.threshold
+                )
+        return batch_perf_scores
+
+
+class SoftF1:
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        batch_perf_scores = torch.zeros(pred.shape[0])
+        # Loop over batch dimension
+        for j in range(pred.shape[0]):
+            # add channel dimension to gt if needed
+            if len(gt.shape) == 4:
+                gt_patch = torch.unsqueeze(gt[j : j + 1], 1)
+            else:
+                gt_patch = gt[j : j + 1]
+            batch_perf_scores[j] = DiceCoefficient()(pred[j : j + 1], gt_patch)
+        return batch_perf_scores
+
+
+class AdaptedRandError:
+    def __init__(
+        self,
+        dataset_name: str,
+        num_dilations: Optional[int] = 1,
+        num_erosions: Optional[int] = 1,
+    ):
+        super().__init__()
+        self.dataset_name = dataset_name
+        self.num_dilations = num_dilations
+        self.num_erosions = num_erosions
+
+    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> torch.Tensor:
+        return adaRandError_eval(
+            pred,
+            gt,
+            self.dataset_name,
+            num_dilations=self.num_dilations,
+            num_erosions=self.num_erosions,
+        )

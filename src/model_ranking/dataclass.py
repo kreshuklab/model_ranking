@@ -11,6 +11,16 @@ from typing import (
     Dict,
     Any,
 )
+import torch
+from model_ranking.metrics import (
+    MultiClassF1Eval,
+    BinaryF1Eval,
+    SoftF1Eval,
+    AdaptedRandErrorEval,
+)
+from pytorch3dunet.unet3d.metrics import (
+    InstanceAveragePrecision,
+)
 
 
 class ConsistencyMetricConfig(BaseModel):
@@ -37,6 +47,11 @@ class ConsistencyMetricConfig(BaseModel):
     border_parameters: Optional[Dict[str, int]]
     remove_background: bool
     zero_largest_instance: bool
+
+
+class ConsistencyMetaConfig(BaseModel):
+    save_key: str
+    save_mask: bool
 
 
 class EvalDatasetConfig(BaseModel):
@@ -245,10 +260,115 @@ class EvalMetricConfig(BaseModel, frozen=True):
     eval_parameters: Optional[Dict[str, Any]]
 
 
+"""
 class EvaluateConfig(BaseModel, frozen=True):
     eval_dataloader: EvalDataloaderConfig
     eval_metric: EvalMetricConfig
     eval_save_key: str
+    consistency_dataloader: EvalDataloaderConfig
+    consistency: ConsistencyMetricConfig
+"""
+
+
+class AdaptedRandErrorConfig2(EvalMetricConfig, frozen=True):
+    name: Literal["AdaptedRandError"] = "AdaptedRandError"
+    threshold: Optional[float] = None
+    eval_parameters: Dict[str, Any] = {
+        "num_dilations": 1,
+        "num_erosions": 1,
+    }
+
+
+class AdaptedRandErrorConfig(BaseModel, frozen=True):
+    name: Literal["AdaptedRandError"] = "AdaptedRandError"
+    num_dilations: Optional[int] = 1
+    num_erosions: Optional[int] = 1
+
+    def initialise_metric(self, dataset_name: str) -> AdaptedRandErrorEval:
+        return AdaptedRandErrorEval(
+            dataset_name=dataset_name,
+            num_dilations=self.num_dilations,
+            num_erosions=self.num_erosions,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros((num_samples, 3), dtype=torch.float32)
+
+
+class MeanAvgPrecisionConfig2(EvalMetricConfig, frozen=True):
+    name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
+    threshold: Optional[float] = None
+    eval_parameters: Dict[str, Any] = {
+        "iou_range": [0.5, 0.95, 10],
+        "min_instance_size": None,
+    }
+
+
+class MeanAvgPrecisionConfig(BaseModel, frozen=True):
+    name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
+    iou_range: Optional[List[float]] = [0.5, 0.95, 10]
+    min_instance_size: Optional[int] = None
+
+    def initialise_metric(self) -> InstanceAveragePrecision:
+        return InstanceAveragePrecision(
+            min_instance_size=self.min_instance_size,
+            iou_range=self.iou_range,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros(num_samples, dtype=torch.float32)
+
+
+class MultiClassF1Config(BaseModel, frozen=True):
+    name: Literal["MultiClassF1"] = "MultiClassF1"
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> MultiClassF1Eval:
+        return MultiClassF1Eval(
+            threshold=self.threshold,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros((num_samples, 2), dtype=torch.float32)
+
+
+class BinaryF1Config(BaseModel, frozen=True):
+    name: Literal["BinaryF1"] = "BinaryF1"
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> BinaryF1Eval:
+        return BinaryF1Eval(
+            threshold=self.threshold,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros(num_samples, dtype=torch.float32)
+
+
+class SoftF1Config(BaseModel, frozen=True):
+    name: Literal["SoftF1"] = "SoftF1"
+
+    def initialise_metric(self) -> SoftF1Eval:
+        return SoftF1Eval()
+
+    def initialise_score(self, num: int) -> torch.Tensor:
+        return torch.zeros(num, dtype=torch.float32)
+
+
+class EvaluateConfig(BaseModel, frozen=True):
+    eval_dataloader: EvalDataloaderConfig
+    eval_metric: Annotated[
+        Union[
+            MultiClassF1Config,
+            BinaryF1Config,
+            SoftF1Config,
+            AdaptedRandErrorConfig,
+            MeanAvgPrecisionConfig,
+        ],
+        Discriminator("name"),
+    ]
+    eval_save_key: str
+    consistency_dataloader: EvalDataloaderConfig
     consistency: ConsistencyMetricConfig
 
 
@@ -2044,31 +2164,6 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
-class ConsistencyMetaConfig(BaseModel):
-    metric: str
-    threshold: Optional[List[float]]
-    save_key: str
-    pred_key: str
-
-
-class AdaptedRandErrorConfig(EvalMetricConfig, frozen=True):
-    name: Literal["AdaptedRandError"] = "AdaptedRandError"
-    threshold: Optional[float] = None
-    eval_parameters: Dict[str, Any] = {
-        "num_dilations": 1,
-        "num_erosions": 1,
-    }
-
-
-class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
-    name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
-    threshold: Optional[float] = None
-    eval_parameters: Dict[str, Any] = {
-        "iou_range": [0.5, 0.95, 10],
-        "min_instance_size": None,
-    }
-
-
 class MetaConfig(BaseModel):
     target_datasets: Sequence[
         Annotated[
@@ -2107,7 +2202,14 @@ class MetaConfig(BaseModel):
     # percentile_ranges: Dict[str, Optional[List[float]]]
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Annotated[
-        Union[AdaptedRandErrorConfig, MeanAvgPrecisionConfig], Discriminator("name")
+        Union[
+            AdaptedRandErrorConfig,
+            MeanAvgPrecisionConfig,
+            MultiClassF1Config,
+            BinaryF1Config,
+            SoftF1Config,
+        ],
+        Discriminator("name"),
     ]
     eval_save_key: str
     consistency_settings: ConsistencyMetricConfig
