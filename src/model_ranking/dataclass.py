@@ -75,7 +75,7 @@ class Pytorch3DUnetFilterSliceBuilderConfig(BaseModel):
 
 
 class TIFPhaseConfig(BaseModel):
-    # dataset_name: Literal["Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"]
+    # dataset_name: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
     image_dir: Sequence[str]
     mask_dir: Sequence[str]
     transformer: Mapping[
@@ -95,7 +95,7 @@ class TIFtxtPhaseConfig(BaseModel, frozen=True):
 
 class TIFEvalDatasetConfig(BaseModel):
     name: Literal[
-        "TIF_txt_Dataset", "Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"
+        "TIF_txt_Dataset", "Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"
     ]
     eval: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
     expand_dims: bool
@@ -323,7 +323,7 @@ class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
 
 
 class Pytorch3DUnetLoaderConfig(BaseModel, frozen=True):
-    dataset: Literal["StandardHDF5Dataset", "S_BIAD1410_Dataset"]
+    dataset: Literal["StandardHDF5Dataset"]
     output_dir: str
     batch_size: int
     num_workers: int
@@ -334,8 +334,49 @@ class Pytorch3DUnetLoaderConfig(BaseModel, frozen=True):
     test: Pytorch3DUnetDatasetConfig
 
 
+class SBIAD1410LoaderConfig(BaseModel, frozen=True):
+    dataset: Literal["S_BIAD1410_Dataset"]
+    output_dir: str
+    batch_size: int
+    num_workers: int
+    global_normalization: bool
+    global_percentiles: Optional[Sequence[Union[float, int]]]
+    test: SBIAD1410PhaseConfig
+
+
+class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
+    dataset: Literal["S_BIAD1410_Dataset"]
+    batch_size: int
+    num_workers: int
+    global_normalization: bool
+    global_percentiles: Optional[Sequence[Union[float, int]]]
+    test: SBIAD1410PhaseConfig
+
+    def create_config(self, output_dir: str, data_base_path: str):
+        img_paths: List[str] = []
+        mask_paths: List[str] = []
+        for i in range(len(self.test.img_paths)):
+            img_paths.append(data_base_path + self.test.img_paths[i])
+            mask_paths.append(data_base_path + self.test.mask_paths[i])
+        return SBIAD1410LoaderConfig(
+            dataset=self.dataset,
+            output_dir=output_dir,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            global_normalization=self.global_normalization,
+            global_percentiles=self.global_percentiles,
+            test=SBIAD1410PhaseConfig(
+                img_paths=img_paths,
+                mask_paths=mask_paths,
+                roi=self.test.roi,
+                transformer=self.test.transformer,
+                slice_builder=self.test.slice_builder,
+            ),
+        )
+
+
 class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
-    dataset: Literal["StandardHDF5Dataset", "S_BIAD1410_Dataset"]
+    dataset: Literal["StandardHDF5Dataset"]
     batch_size: int
     num_workers: int
     raw_internal_path: str
@@ -388,7 +429,7 @@ class TIFNucleiInstancePredictorConfig(BaseModel):
 
 class TIFPredictionLoadersConfig(BaseModel, frozen=True):
     dataset: Literal[
-        "Standard_TIF_Dataset", "TIF_txt_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"
+        "Standard_TIF_Dataset", "TIF_txt_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"
     ]
     output_dir: str
     batch_size: int
@@ -461,7 +502,7 @@ class LoaderMetaConfig(BaseModel):
 
 
 class TIFLoaderMetaConfig(LoaderMetaConfig):
-    dataset: Literal["Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"]
+    dataset: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
 
     def create_config(self, output_dir: str, data_base_path: str):
         mask_dir: List[str] = []
@@ -552,7 +593,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
 
 
 class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
-    name: Literal["Standard_TIF_Dataset", "HelaNuc_Dataset", "Hoechst_Dataset"]
+    name: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
     expand_dims: bool
     global_norm: bool
     percentiles: Optional[Sequence[float]]
@@ -696,44 +737,72 @@ class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
 
 
 class TargetDatasetConfigBase(BaseModel, frozen=True):
-    name: Literal["BBBC039", "DSB2018", "Go-Nuclear"]
+    name: Literal[
+        "BBBC039",
+        "DSB2018",
+        "HeLaNuc",
+        "Hoechst",
+        "S_BIAD634",
+        "S_BIAD895",
+        "S_BIAD1196",
+        "S_BIAD1410",
+        "Go-Nuclear",
+        "FlyWing",
+        "Ovules",
+        "PNAS",
+        "EPFL",
+        "Hmito",
+        "Rmito",
+        "VNC",
+    ]
     loader: Annotated[
         Union[
-            Pytorch3DUnetLoaderMetaConfig, TIFLoaderMetaConfig, TIFtxtLoaderMetaConfig
+            Pytorch3DUnetLoaderMetaConfig,
+            TIFLoaderMetaConfig,
+            TIFtxtLoaderMetaConfig,
+            SBIAD1410LoaderMetaConfig,
         ],
         Discriminator("dataset"),
     ]
-    predictor_semantic: Annotated[
-        Union[
-            Pytorch3DUnetPredictorMetaConfig,
-            TIFNucleiSemanticPredictorConfig,
-        ],
-        Discriminator("name"),
+    predictor_semantic: Optional[
+        Annotated[
+            Union[
+                Pytorch3DUnetPredictorMetaConfig,
+                TIFNucleiSemanticPredictorConfig,
+            ],
+            Discriminator("name"),
+        ]
     ]
-    predictor_instance: Annotated[
-        Union[
-            Pytorch3DUnetPredictorMetaConfig,
-            TIFNucleiInstancePredictorConfig,
-        ],
-        Discriminator("name"),
+    predictor_instance: Optional[
+        Annotated[
+            Union[
+                Pytorch3DUnetPredictorMetaConfig,
+                TIFNucleiInstancePredictorConfig,
+            ],
+            Discriminator("name"),
+        ]
     ]
-    eval_dataloader_instance: Annotated[
-        Union[
-            Eval_TIF_TxtDataloaderMetaConfig,
-            Eval_TIF_DataloaderMetaConfig,
-            EvalDataloaderMetaConfig,
-            EvalSB1410DataloaderMetaConfig,
-        ],
-        Discriminator("name"),
+    eval_dataloader_instance: Optional[
+        Annotated[
+            Union[
+                Eval_TIF_TxtDataloaderMetaConfig,
+                Eval_TIF_DataloaderMetaConfig,
+                EvalDataloaderMetaConfig,
+                EvalSB1410DataloaderMetaConfig,
+            ],
+            Discriminator("name"),
+        ]
     ]
-    eval_dataloader_semantic: Annotated[
-        Union[
-            Eval_TIF_TxtDataloaderMetaConfig,
-            Eval_TIF_DataloaderMetaConfig,
-            EvalDataloaderMetaConfig,
-            EvalSB1410DataloaderMetaConfig,
-        ],
-        Discriminator("name"),
+    eval_dataloader_semantic: Optional[
+        Annotated[
+            Union[
+                Eval_TIF_TxtDataloaderMetaConfig,
+                Eval_TIF_DataloaderMetaConfig,
+                EvalDataloaderMetaConfig,
+                EvalSB1410DataloaderMetaConfig,
+            ],
+            Discriminator("name"),
+        ]
     ]
     consistency: ConsistencyMetricMetaConfig
 
@@ -781,7 +850,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             expand_dims=True,
             global_norm=False,
             percentiles=None,
-            image_key="segmentation",
+            image_key="predictions",
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/BBBC039/instance_annotations/instance_labels",),
@@ -832,6 +901,533 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
+class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["HeLaNuc"] = "HeLaNuc"
+    loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
+        dataset="HeLaNuc_Dataset",
+        batch_size=2,
+        num_workers=8,
+        global_norm=True,
+        percentiles=(5, 99.6),
+        image_dir=("/HeLaCytoNuc/test/images",),
+        mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "FixedClipping", "min_value": None, "max_value": 2},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+    )
+    predictor_semantic: TIFNucleiSemanticPredictorConfig = (
+        TIFNucleiSemanticPredictorConfig(
+            name="DSB2018Predictor",
+        )
+    )
+    predictor_instance: TIFNucleiInstancePredictorConfig = (
+        TIFNucleiInstancePredictorConfig(
+            name="NucleiInstancePredictor",
+            save_segmentation=True,
+            min_size=50,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="HeLaNuc_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [{"name": "ToTensor", "expand_dims": True}],
+            },
+        )
+    )
+    eval_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="HeLaNuc_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "BlobsToMask", "append_label": False},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["Hoechst"] = "Hoechst"
+    loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
+        dataset="Hoechst_Dataset",
+        batch_size=2,
+        num_workers=8,
+        global_norm=True,
+        percentiles=(5, 98),
+        image_dir=("/Hoechst/test_nuclei/images/png",),
+        mask_dir=("/Hoechst/test_nuclei/annotations",),
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+    )
+    predictor_semantic: TIFNucleiSemanticPredictorConfig = (
+        TIFNucleiSemanticPredictorConfig(
+            name="DSB2018Predictor",
+        )
+    )
+    predictor_instance: TIFNucleiInstancePredictorConfig = (
+        TIFNucleiInstancePredictorConfig(
+            name="NucleiInstancePredictor",
+            save_segmentation=True,
+            min_size=80,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="Hoechst_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=("/Hoechst/test_nuclei/annotations",),
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "BlobsToMask", "append_label": False},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    eval_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="Hoechst_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=80,
+            instance_zero_background=False,
+            mask_dir=("/Hoechst/test_nuclei/annotations",),
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["S_BIAD634"] = "S_BIAD634"
+    loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
+        dataset="TIF_txt_Dataset",
+        batch_size=2,
+        num_workers=8,
+        global_norm=False,
+        percentiles=(5, 98),
+        image_dir=("/S-BIAD634/dataset/rawimages",),
+        mask_dir=("/S-BIAD634/dataset/groundtruth",),
+        filenames_path="/S-BIAD634/dataset/test.txt",
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+    )
+    predictor_semantic: TIFNucleiSemanticPredictorConfig = (
+        TIFNucleiSemanticPredictorConfig(
+            name="DSB2018Predictor",
+        )
+    )
+    predictor_instance: TIFNucleiInstancePredictorConfig = (
+        TIFNucleiInstancePredictorConfig(
+            name="NucleiInstancePredictor",
+            save_segmentation=True,
+            min_size=0,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=("/S-BIAD634/dataset/groundtruth",),
+            filenames_path="/S-BIAD634/dataset/test.txt",
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "BlobsToMask", "append_label": False},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    eval_dataloader_instance: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=1,
+            instance_zero_background=False,
+            mask_dir=("/S-BIAD634/dataset/groundtruth",),
+            filenames_path="/S-BIAD634/dataset/test.txt",
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["S_BIAD895"] = "S_BIAD895"
+    loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
+        dataset="Standard_TIF_Dataset",
+        batch_size=5,
+        num_workers=8,
+        global_norm=False,
+        percentiles=(5, 98),
+        image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Raw",),
+        mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "FixedClipping", "min_value": None, "max_value": 2},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+    )
+    predictor_semantic: TIFNucleiSemanticPredictorConfig = (
+        TIFNucleiSemanticPredictorConfig(
+            name="DSB2018Predictor",
+        )
+    )
+    predictor_instance: TIFNucleiInstancePredictorConfig = (
+        TIFNucleiInstancePredictorConfig(
+            name="NucleiInstancePredictor",
+            save_segmentation=True,
+            min_size=50,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "BlobsToMask", "append_label": False},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    eval_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [{"name": "ToTensor", "expand_dims": True}],
+            },
+        )
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["S_BIAD1196"] = "S_BIAD1196"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="label",
+        global_normalization=True,
+        global_percentiles=(5, 98),
+        file_paths=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 200, 200),
+            stride_shape=(1, 200, 200),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=True,
+            min_size=1,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        pred_key="predictions",
+        gt_key="label",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
+    )
+    eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        pred_key="segmentation",
+        gt_key="label",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=1,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["S_BIAD1410"] = "S_BIAD1410"
+    loader: SBIAD1410LoaderMetaConfig = SBIAD1410LoaderMetaConfig(
+        dataset="S_BIAD1410_Dataset",
+        batch_size=32,
+        num_workers=8,
+        global_normalization=True,
+        global_percentiles=(5, 98),
+        test=SBIAD1410PhaseConfig(
+            img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+            mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+            roi=None,
+            transformer={
+                "raw": [
+                    {"name": "PercentileNormalizer"},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+            slice_builder=Pytorch3DUnetSliceBuilderConfig(
+                name="SliceBuilder",
+                patch_shape=(1, 256, 256),
+                stride_shape=(1, 256, 256),
+                halo_shape=(0, 32, 32),
+            ),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=True,
+            min_size=1,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: EvalSB1410DataloaderMetaConfig = (
+        EvalSB1410DataloaderMetaConfig(
+            name="S_BIAD1410_Dataset",
+            eval=SBIAD1410PhaseMetaConfig(
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                roi=None,
+                transformer={
+                    "raw": [{"name": "ToTensor", "expand_dims": True}],
+                    "label": [
+                        {"name": "Relabel"},
+                        {"name": "BlobsToMask", "append_label": False},
+                        {"name": "ToTensor", "expand_dims": True},
+                    ],
+                },
+                slice_builder=Pytorch3DUnetSliceBuilderConfig(
+                    name="SliceBuilder",
+                    patch_shape=(1, 256, 256),
+                    stride_shape=(1, 256, 256),
+                    halo_shape=(0, 32, 32),
+                ),
+            ),
+            global_normalization=False,
+            global_percentiles=None,
+            image_key="predictions",
+            instance_zero_background=False,
+            batch_size=1,
+            num_workers=8,
+        )
+    )
+    eval_dataloader_instance: EvalSB1410DataloaderMetaConfig = (
+        EvalSB1410DataloaderMetaConfig(
+            name="S_BIAD1410_Dataset",
+            eval=SBIAD1410PhaseMetaConfig(
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                roi=None,
+                transformer={
+                    "raw": [{"name": "ToTensor", "expand_dims": True}],
+                    "label": [{"name": "ToTensor", "expand_dims": True}],
+                },
+                slice_builder=Pytorch3DUnetSliceBuilderConfig(
+                    name="SliceBuilder",
+                    patch_shape=(1, 256, 256),
+                    stride_shape=(1, 256, 256),
+                    halo_shape=(0, 32, 32),
+                ),
+            ),
+            global_normalization=False,
+            global_percentiles=None,
+            image_key="segmentation",
+            instance_zero_background=False,
+            batch_size=1,
+            num_workers=8,
+        )
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["DSB2018"] = "DSB2018"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
@@ -858,7 +1454,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
         TIFNucleiInstancePredictorConfig(
             name="NucleiInstancePredictor",
             save_segmentation=True,
-            min_size=50,
+            min_size=1,
             zero_largest_instance=False,
             no_adjust_background=False,
         )
@@ -870,7 +1466,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             name="Standard_TIF_Dataset",
             expand_dims=True,
             global_norm=False,
-            percentiles=(5, 98),
+            percentiles=None,
             image_key="predictions",
             min_object_size=None,
             instance_zero_background=False,
@@ -894,7 +1490,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             name="Standard_TIF_Dataset",
             expand_dims=True,
             global_norm=False,
-            percentiles=(5, 98),
+            percentiles=None,
             image_key="segmentation",
             min_object_size=None,
             instance_zero_background=False,
@@ -967,7 +1563,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/Go-Nuclear/3d_all_in_one/1170.h5",),
-        pred_key="segmentation",
+        pred_key="predictions",
         gt_key="label/gold",
         patch_key="patch_index",
         roi=[[50, 170]],
@@ -1007,6 +1603,447 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
+class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["FlyWing"] = "FlyWing"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="volumes/raw",
+        label_internal_path="volumes/labels/cells_with_ignore",
+        global_normalization=True,
+        global_percentiles=(5, 95),
+        file_paths=("/FlyWing/GT/test/per03.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic = None
+    predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=True,
+            min_size=50,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=True,
+        )
+    )
+    eval_dataloader_semantic = None
+    eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/FlyWing/GT/test/per03.h5",),
+        pred_key="segmentation",
+        gt_key="volumes/labels/cells_with_ignore",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=-1,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=True,
+        batch_size=32,
+        num_workers=8,
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path="/g/kreshuk/talks/data/FlyWing/GT/test/per03.h5",
+        ignore_key="volumes/labels/ignore_per_patch",
+        remove_background=False,
+        zero_largest_instance=True,
+    )
+
+
+class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["Ovules"] = "Ovules"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="label_with_ignore",
+        global_normalization=True,
+        global_percentiles=(5, 95),
+        file_paths=("/Ovules/GT2x/test/N_294_final_crop_ds2.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic = None
+    predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=True,
+            min_size=50,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=True,
+        )
+    )
+    eval_dataloader_semantic = None
+    eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/Ovules/GT2x/test/N_294_final_crop_ds2.h5",),
+        pred_key="segmentation",
+        gt_key="label_with_ignore",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=-1,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=True,
+        batch_size=32,
+        num_workers=8,
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path="/g/kreshuk/talks/data/Ovules/GT2x/test/N_294_final_crop_ds2.h5",
+        ignore_key="ignore_per_patch",
+        remove_background=False,
+        zero_largest_instance=True,
+    )
+
+
+class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["PNAS"] = "PNAS"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="label",
+        global_normalization=True,
+        global_percentiles=(5, 95),
+        file_paths=("/PNAS/test/12hrs_plant1_trim-acylYFP.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic = None
+    predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=True,
+            min_size=50,
+            layer_id=None,
+            zero_largest_instance=True,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic = None
+    eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/PNAS/test/12hrs_plant1_trim-acylYFP.h5",),
+        pred_key="segmentation",
+        gt_key="label",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=True,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
+    )
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["EPFL"] = "EPFL"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/EPFL/test.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance = None
+    eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/EPFL/test.h5",),
+        pred_key="predictions",
+        gt_key="labels",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
+    )
+    eval_dataloader_instance = None
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["Hmito"] = "Hmito"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/Hmito/test_converted.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance = None
+    eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/Hmito/test_converted.h5",),
+        pred_key="predictions",
+        gt_key="labels",
+        patch_key="patch_index",
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
+    )
+    eval_dataloader_instance = None
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["Rmito"] = "Rmito"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/Rmito/test_converted.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance = None
+    eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/Rmito/test_converted.h5",),
+        pred_key="predictions",
+        gt_key="labels",
+        patch_key="patch_index",
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
+    )
+    eval_dataloader_instance = None
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
+class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["VNC"] = "VNC"
+    loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="label",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/VNC/data_labeled_mito.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
+        Pytorch3DUnetPredictorMetaConfig(
+            name="PatchWisePredictor",
+            save_segmentation=False,
+            min_size=None,
+            layer_id=None,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    predictor_instance = None
+    eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=("/VNC/data_labeled_mito.h5",),
+        pred_key="predictions",
+        gt_key="label",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=True,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
+    )
+    eval_dataloader_instance = None
+    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+        save_mask=True,
+        ignore_path=None,
+        ignore_key=None,
+        remove_background=False,
+        zero_largest_instance=False,
+    )
+
+
 class ConsistencyMetaConfig(BaseModel):
     metric: str
     threshold: Optional[List[float]]
@@ -1035,7 +2072,24 @@ class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
 class MetaConfig(BaseModel):
     target_datasets: Sequence[
         Annotated[
-            Union[BBBC039TargetConfig, DSB2018TargetConfig, GoNuclearTargetConfig],
+            Union[
+                BBBC039TargetConfig,
+                DSB2018TargetConfig,
+                GoNuclearTargetConfig,
+                HeLaNucTargetConfig,
+                HoechstTargetConfig,
+                SBIAD634TargetConfig,
+                SBIAD895TargetConfig,
+                SBIAD1196TargetConfig,
+                SBIAD1410TargetConfig,
+                FlyWingTargetConfig,
+                OvulesTargetConfig,
+                PNASTargetConfig,
+                EPFLTargetConfig,
+                HmitoTargetConfig,
+                RmitoTargetConfig,
+                VNCTargetConfig,
+            ],
             Discriminator("name"),
         ]
     ]
