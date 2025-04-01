@@ -12,6 +12,8 @@ from sklearn.metrics import adjusted_rand_score
 from skimage.metrics import (
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
+import torch
+from torch.utils.data import DataLoader
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
@@ -26,13 +28,48 @@ from plantseg.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
     set_background_to_value,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.dataclass import ConsistencyMetricConfig
-from model_ranking.utils import extract_filename, load_h5, save_h5, is_ndarray
+from model_ranking.dataclass import (
+    ConsistencyMetricConfig,
+    EvaluateConfig,
+    EvalDataloaderConfig,
+)
+from model_ranking.utils import (
+    extract_filename,
+    load_h5,
+    save_h5,
+    is_ndarray,
+    loader_classes,
+)
 from model_ranking.evaluation import (
     assign_unique_ids_to_value,
     get_border_mask,
     get_mask,
 )
+
+
+def get_consistency_loaders(config: EvalDataloaderConfig):
+    if config.eval_dataset.name == "StandardEvalDataset":
+        dataset_class = loader_classes(config.eval_dataset.name)
+        eval_datasets = dataset_class.create_datasets(config.eval_dataset)
+    else:
+        dataset_class = loader_classes(config.eval_dataset.name)
+        eval_datasets = dataset_class.create_datasets(
+            config.eval_dataset.model_dump(), phase="eval"
+        )
+
+    for dataset in eval_datasets:
+        yield DataLoader(
+            dataset,
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+        )
+
+
+def run_consistency_evaluation(
+    config_data: EvaluateConfig,
+):
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    for dataloader in get_consistency_loaders(config_data.consistency_dataloader):
 
 
 def calc_segmentation_model_consistency(paths: List[Path]):
@@ -392,6 +429,7 @@ def adapted_rand_consis_metric(
     return metric_result, consis_mask
 
 
+
 def calculate_EI_binary(
     preds: NDArray[Any],
     soft_preds: NDArray[Any],
@@ -411,3 +449,5 @@ def calculate_EI_binary(
     EI_result[mask0] = 1 - soft_preds[1:][mask0]
     EI_result = np.sqrt(zero_inverted_None_pred[np.newaxis, :] * EI_result)
     return EI_result, EI_result.mean(axis=1), mask0, mask1
+
+
