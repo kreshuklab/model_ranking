@@ -1,8 +1,12 @@
 import torch
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 import numpy as np
 from numpy.typing import NDArray
 from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
+from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
+    entropy,  # pyright: ignore[reportUnknownVariableType]
+)
+from scipy.spatial.distance import hamming
 from skimage.morphology import (
     erosion,  # pyright: ignore[reportUnknownVariableType]
     dilation,  # pyright: ignore[reportUnknownVariableType]
@@ -89,14 +93,139 @@ class AdaptedRandErrorEval:
         self.num_dilations = num_dilations
         self.num_erosions = num_erosions
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> torch.Tensor:
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        pred_converted = pred.cpu().numpy().astype("uint16")
+        gt_converted = gt.cpu().numpy().astype("uint16")
         return adaRandError_eval(
-            pred,
-            gt,
+            pred_converted,
+            gt_converted,
             self.dataset_name,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
         )
+
+
+class DifferenceImageEval:
+    def __init__(self, diff_alpha: float = 0.5):
+
+        super().__init__()
+        self.diff_alpha = diff_alpha
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        return torch.abs(pred**self.diff_alpha - gt**self.diff_alpha)
+
+
+class EffectiveInvarianceEval:
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        cmb_pred = torch.stack([gt, pred], dim=0)
+        hard_pred = cmb_pred > self.threshold
+        metric_result, _, _, _ = calculate_EI_binary_tensors(hard_pred, cmb_pred)
+        return metric_result
+
+
+class EntropyEval:
+    def __init__(self, entr_base: float = 2.0):
+        super().__init__()
+        self.entr_base = entr_base
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        pred_converted = pred.cpu().numpy().astype("float32")
+        gt_converted = gt.cpu().numpy().astype("float32")
+        cmb_pred = np.stack([gt_converted, pred_converted], axis=0)
+        mean_pred = np.mean(cmb_pred, axis=0)
+        probs = np.stack([1 - mean_pred, mean_pred], axis=0)
+        metric_result = entropy(  # pyright: ignore[reportUnknownVariableType]
+            probs, base=self.entr_base
+        )
+        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
+        return torch.from_numpy(metric_result).to(pred.device).float()
+
+
+class KLDivergenceEval:
+    def __init__(self, eps: float = 1e-7, entr_base: float = 2.0):
+        super().__init__()
+        self.eps = eps
+        self.entr_base = entr_base
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        pred_converted = pred.cpu().numpy().astype("float32")
+        gt_converted = gt.cpu().numpy().astype("float32")
+        probs_NA = np.clip(
+            np.stack([1 - gt_converted, gt_converted], axis=0), self.eps, 1 - self.eps
+        )
+        probs_A = np.clip(
+            np.stack([1 - pred_converted, pred_converted], axis=0),
+            self.eps,
+            1 - self.eps,
+        )
+        metric_result = entropy(  # pyright: ignore[reportUnknownVariableType]
+            probs_NA, probs_A, base=self.entr_base
+        )
+        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
+        return torch.from_numpy(metric_result).to(pred.device).float()
+
+
+class CrossEntropyEval:
+    def __init__(self, eps: float = 1e-7, entr_base: float = 2.0):
+        super().__init__()
+        self.eps = eps
+        self.entr_base = entr_base
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        pred_converted = pred.cpu().numpy().astype("float32")
+        gt_converted = gt.cpu().numpy().astype("float32")
+        probs_NA = np.clip(
+            np.stack([1 - gt_converted, gt_converted], axis=0), self.eps, 1 - self.eps
+        )
+        probs_A = np.clip(
+            np.stack([1 - pred_converted, pred_converted], axis=0),
+            self.eps,
+            1 - self.eps,
+        )
+        metric_result = entropy(probs_NA, base=self.entr_base) + entropy(
+            probs_NA, probs_A, base=self.entr_base
+        )
+        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
+        return torch.from_numpy(metric_result).to(pred.device).float()
+
+
+class HammingDistanceEval:
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def __call__(
+        self, pred: torch.Tensor, gt: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
+        pred_converted = pred.cpu().numpy().astype("uint16")
+        gt_converted = gt.cpu().numpy().astype("uint16")
+        if pred_converted.ndim == 2:
+            if np.sum(mask) == 0:
+                metric_result = np.array([np.nan])
+            else:
+                metric_result = np.array(
+                    hamming(
+                        pred_converted[mask] > self.threshold,
+                        gt_converted[mask] > self.threshold,
+                    )
+                )
+        else:
+            metric_result = np.zeros(len(pred_converted))
+            for i in range(len(pred_converted)):
+                # if mask empty set to None
+                if np.sum(mask[i]) == 0:
+                    metric_result[i] = np.array([np.nan])
+                else:
+                    metric_result[i] = hamming(
+                        (pred_converted[i][mask[i]] > self.threshold),
+                        (gt_converted[i][mask[i]] > self.threshold),
+                    )
+        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
+        return torch.from_numpy(metric_result).to(pred.device).float()
 
 
 def adaRandError_eval(
@@ -208,3 +337,25 @@ def assign_unique_ids_to_value(data: NDArray[Any], value: int = 0):
         assert np.iinfo(data.dtype).max >= max_id_assigned, "Overflow error"
     data[data == value] = np.arange(max_val + 1, max_id_assigned)
     return data
+
+
+def calculate_EI_binary_tensors(
+    preds: torch.Tensor,
+    soft_preds: torch.Tensor,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    # Mask for change in classification prediction relative to No Aug
+    mask_same_pred = preds[1:] == preds[0]
+    mask0 = preds[1:] == 0
+    mask1 = preds[1:] == 1
+    mask0 = torch.logical_and(mask0, mask_same_pred)
+    mask1 = torch.logical_and(mask1, mask_same_pred)
+
+    EI_result = torch.zeros_like(soft_preds[1:])
+    zero_inverted_None_pred = torch.where(
+        preds[0] == 0, 1 - soft_preds[0], soft_preds[0]
+    )
+    EI_result[mask1] = soft_preds[1:][mask1]
+    EI_result[mask0] = 1 - soft_preds[1:][mask0]
+    EI_result = torch.sqrt(zero_inverted_None_pred.unsqueeze(0) * EI_result)
+
+    return EI_result, EI_result.mean(dim=1), mask0, mask1
