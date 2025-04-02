@@ -93,15 +93,21 @@ class AdaptedRandErrorEval:
         self.num_dilations = num_dilations
         self.num_erosions = num_erosions
 
-    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, pred: torch.Tensor, gt: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         pred_converted = pred.cpu().numpy().astype("uint16")
         gt_converted = gt.cpu().numpy().astype("uint16")
-        return adaRandError_eval(
+        metric_result, mask = adaRandError_eval(
             pred_converted,
             gt_converted,
             self.dataset_name,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
+        )
+        return (
+            torch.from_numpy(metric_result).to(pred.device).float(),
+            torch.from_numpy(mask).to(pred.device).float(),
         )
 
 
@@ -128,7 +134,7 @@ class EffectiveInvarianceEval:
 
 
 class EntropyEval:
-    def __init__(self, entr_base: float = 2.0):
+    def __init__(self, entr_base: int = 2):
         super().__init__()
         self.entr_base = entr_base
 
@@ -146,7 +152,7 @@ class EntropyEval:
 
 
 class KLDivergenceEval:
-    def __init__(self, eps: float = 1e-7, entr_base: float = 2.0):
+    def __init__(self, eps: float = 1e-7, entr_base: int = 2):
         super().__init__()
         self.eps = eps
         self.entr_base = entr_base
@@ -203,26 +209,27 @@ class HammingDistanceEval:
     ) -> torch.Tensor:
         pred_converted = pred.cpu().numpy().astype("uint16")
         gt_converted = gt.cpu().numpy().astype("uint16")
+        mask_converted = mask.cpu().numpy().astype("bool")
         if pred_converted.ndim == 2:
-            if np.sum(mask) == 0:
+            if np.sum(mask_converted) == 0:
                 metric_result = np.array([np.nan])
             else:
                 metric_result = np.array(
                     hamming(
-                        pred_converted[mask] > self.threshold,
-                        gt_converted[mask] > self.threshold,
+                        pred_converted[mask_converted] > self.threshold,
+                        gt_converted[mask_converted] > self.threshold,
                     )
                 )
         else:
             metric_result = np.zeros(len(pred_converted))
             for i in range(len(pred_converted)):
                 # if mask empty set to None
-                if np.sum(mask[i]) == 0:
+                if np.sum(mask_converted[i]) == 0:
                     metric_result[i] = np.array([np.nan])
                 else:
                     metric_result[i] = hamming(
-                        (pred_converted[i][mask[i]] > self.threshold),
-                        (gt_converted[i][mask[i]] > self.threshold),
+                        (pred_converted[i][mask_converted[i]] > self.threshold),
+                        (gt_converted[i][mask_converted[i]] > self.threshold),
                     )
         assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
         return torch.from_numpy(metric_result).to(pred.device).float()
@@ -235,20 +242,29 @@ def adaRandError_eval(
     num_dilations: Optional[int] = 1,
     num_erosions: Optional[int] = 1,
     # border_params: Optional[Dict[str, int]] = {"num_dilations": 1, "num_erosions": 1},
-):
+) -> Tuple[NDArray[Any], NDArray[Any]]:
     # check that either both or neither num_dilations and num_erosions are provided
     assert (num_dilations is not None and num_erosions is not None) or (
         num_dilations is None and num_erosions is None
     ), "Either both num_dilations and num_erosions must be provided or neither"
-    batch_scores = torch.zeros((pred.shape[0], 3))
+    batch_scores = np.zeros((pred.shape[0], 3), dtype=np.float32)
+    consis_mask = np.zeros_like(pred)
+    if pred.ndim == 2:
+        pred = np.expand_dims(pred, axis=0)
+        gt = np.expand_dims(gt, axis=0)
+    # check that pred and gt have the same shape
+    assert (
+        pred.shape == gt.shape
+    ), f"pred and gt have different shapes: {pred.shape} {gt.shape}"
     for j in range(len(pred)):
         if gt[j].sum() == 0:
             # Prevent warning from empty GT patches
             are = float("nan")
             prec = float("nan")
             rec = float("nan")
-        else:
+            consis_mask[j] = get_mask(gt[j], pred[j], 0)
 
+        else:
             if dataset_name == "S_BIAD1410_Dataset":
                 mask = get_mask_incomplete_gt(gt[j], pred[j])
             else:
@@ -259,6 +275,7 @@ def adaRandError_eval(
                     img=gt[j], num_dilations=num_dilations, num_erosions=num_erosions
                 )
                 mask = np.logical_and(mask, ~border_mask)
+            consis_mask[j] = mask
             if np.sum(mask) == 0:
                 are = float("nan")
                 prec = float("nan")
@@ -277,7 +294,7 @@ def adaRandError_eval(
         batch_scores[j, 0] = are
         batch_scores[j, 1] = prec
         batch_scores[j, 2] = rec
-    return batch_scores
+    return batch_scores, consis_mask
 
 
 def get_mask_incomplete_gt(
