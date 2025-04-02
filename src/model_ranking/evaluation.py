@@ -133,7 +133,8 @@ def calc_evaluation_score(
         pred = pred.to(device)
         gt = gt.to(device)
         if isinstance(metric, AdaptedRandErrorEval):
-            metric_scores, _ = metric(pred, gt)
+            metric_scores, _ = metric(pred.cpu().numpy(), gt.cpu().numpy())
+            metric_scores = torch.tensor(metric_scores, device=device)
         else:
             metric_scores = metric(pred, gt)
         scores[
