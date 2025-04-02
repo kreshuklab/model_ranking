@@ -11,6 +11,8 @@ from typing import (
     Dict,
     Any,
 )
+import numpy as np
+from numpy.typing import NDArray
 import torch
 from model_ranking.metrics import (
     MultiClassF1Eval,
@@ -313,6 +315,9 @@ class AdaptedRandErrorConfig(BaseModel, frozen=True):
     def initialise_score(self, num_samples: int) -> torch.Tensor:
         return torch.zeros((num_samples, 3), dtype=torch.float32)
 
+    def initialise_score_array(self, num_samples: int) -> NDArray[Any]:
+        return np.zeros((num_samples, 3), dtype=np.float32)
+
 
 class MeanAvgPrecisionConfig2(EvalMetricConfig, frozen=True):
     name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
@@ -386,8 +391,8 @@ class DifferenceImageConfig(BaseModel, frozen=True):
 
     def initialise_score(
         self, num_samples: int, sample_shape: Sequence[int]
-    ) -> torch.Tensor:
-        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+    ) -> NDArray[Any]:
+        return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
 class EffectiveInvarianceConfig(BaseModel, frozen=True):
@@ -401,8 +406,8 @@ class EffectiveInvarianceConfig(BaseModel, frozen=True):
 
     def initialise_score(
         self, num_samples: int, sample_shape: Sequence[int]
-    ) -> torch.Tensor:
-        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+    ) -> NDArray[Any]:
+        return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
 class EntropyConfig(BaseModel, frozen=True):
@@ -417,8 +422,8 @@ class EntropyConfig(BaseModel, frozen=True):
 
     def initialise_score(
         self, num_samples: int, sample_shape: Sequence[int]
-    ) -> torch.Tensor:
-        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+    ) -> NDArray[Any]:
+        return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
 class KLDivergenceConfig(BaseModel, frozen=True):
@@ -435,8 +440,8 @@ class KLDivergenceConfig(BaseModel, frozen=True):
 
     def initialise_score(
         self, num_samples: int, sample_shape: Sequence[int]
-    ) -> torch.Tensor:
-        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+    ) -> NDArray[Any]:
+        return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
 class CrossEntropyConfig(BaseModel, frozen=True):
@@ -453,8 +458,8 @@ class CrossEntropyConfig(BaseModel, frozen=True):
 
     def initialise_score(
         self, num_samples: int, sample_shape: Sequence[int]
-    ) -> torch.Tensor:
-        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+    ) -> NDArray[Any]:
+        return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
 class HammingDistanceConfig(BaseModel, frozen=True):
@@ -466,8 +471,8 @@ class HammingDistanceConfig(BaseModel, frozen=True):
             threshold=self.threshold,
         )
 
-    def initialise_score(self, num_samples: int) -> torch.Tensor:
-        return torch.zeros(num_samples, dtype=torch.float32)
+    def initialise_score(self, num_samples: int) -> NDArray[Any]:
+        return np.zeros(num_samples, dtype=np.float32)
 
 
 class EvaluateConfig(BaseModel, frozen=True):
