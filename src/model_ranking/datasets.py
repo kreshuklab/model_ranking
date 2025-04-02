@@ -46,6 +46,8 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         roi: Optional[List[List[int]]] = None,
         patch_key: str = "patch_index",
         ignore_index: Optional[int] = None,
+        ignore_path: Optional[str] = None,
+        ignore_key: Optional[str] = None,
         convert_to_binary_label: bool = False,
         convert_to_boundary_label: bool = False,
         relabel_background: bool = False,
@@ -70,6 +72,8 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             self.roi = None
         self.pred_patches = load_h5(self.pred_path, patch_key)
         self.ignore_index = ignore_index
+        self.ignore_path = ignore_path
+        self.ignore_key = ignore_key
 
         with h5py.File(self.gt_path, "r") as f:
             assert (
@@ -92,6 +96,29 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             self._pred: NDArray[Any] = ds[:]
             assert is_ndarray(self._pred), f"Data is not a numpy array: {self._pred}"
 
+        if self.ignore_path is not None:
+            assert (
+                self.ignore_index is None
+            ), "ignore_index is not allowed when ignore_path is provided"
+            assert (
+                self.ignore_key is not None
+            ), f"ignore_key is required for ignore_path {self.ignore_path} is provided"
+            with h5py.File(self.ignore_path, "r") as f:
+                assert (
+                    self.ignore_key in f
+                ), f"Dataset {self.ignore_key} not found in {self.ignore_path}"
+                ds = f[self.ignore_key]
+                assert isinstance(ds, h5py.Dataset)
+                if self.roi is not None:
+                    self._ignore: Optional[NDArray[Any]] = ds[self.roi]
+                else:
+                    self._ignore: Optional[NDArray[Any]] = ds[:]
+                assert is_ndarray(
+                    self._ignore
+                ), f"Data is not a numpy array: {self._ignore}"
+        else:
+            self._ignore = None
+
     def get_gt_patch(self, idx: tuple[slice, ...]) -> NDArray[Any]:
         # gt_patch = self._gt[0][idx]
         gt_patch = self._gt[idx].copy()
@@ -108,7 +135,12 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         pred = self.get_pred_patch(index)
         patch_slice = get_roi_slice(self.pred_patches[index])
         gt = self.get_gt_patch(patch_slice)
-        if self.ignore_index is not None:
+        if self._ignore is not None:
+            # zero out ignore_index
+            mask = self._ignore[patch_slice] == 1
+            pred[mask] = 0
+            gt[mask] = 0
+        elif self.ignore_index is not None:
             # zero out ignore_index
             mask = gt == self.ignore_index
             pred[mask] = 0
