@@ -17,6 +17,12 @@ from model_ranking.metrics import (
     BinaryF1Eval,
     SoftF1Eval,
     AdaptedRandErrorEval,
+    DifferenceImageEval,
+    EffectiveInvarianceEval,
+    EntropyEval,
+    KLDivergenceEval,
+    CrossEntropyEval,
+    HammingDistanceEval,
 )
 from pytorch3dunet.unet3d.metrics import (
     InstanceAveragePrecision,
@@ -49,9 +55,12 @@ class ConsistencyMetricConfig(BaseModel):
     zero_largest_instance: bool
 
 
-class ConsistencyMetaConfig(BaseModel):
+class ConsistencyMetaConfig(BaseModel, frozen=True):
     save_key: str
     save_mask: bool
+    mask_threshold: float
+    ignore_path: Optional[str]
+    ignore_key: Optional[str]
 
 
 class EvalDatasetConfig(BaseModel):
@@ -64,6 +73,8 @@ class EvalDatasetConfig(BaseModel):
     patch_key: str
     roi: Optional[Sequence[Sequence[int]]]
     ignore_index: Optional[int]
+    ignore_path: Optional[str]
+    ignore_key: Optional[str]
     convert_to_binary_label: bool
     convert_to_boundary_label: bool
     relabel_background: bool
@@ -175,6 +186,8 @@ class EvalDataloaderMetaConfig(BaseModel):
     patch_key: str
     roi: Optional[Sequence[Sequence[int]]]
     ignore_index: Optional[int]
+    ignore_path: Optional[str]
+    ignore_key: Optional[str]
     convert_to_boundary_label: bool
     convert_to_binary_label: bool
     min_object_size: Optional[int]
@@ -190,6 +203,10 @@ class EvalDataloaderMetaConfig(BaseModel):
         gt_path: List[str] = []
         for i in range(len(self.gt_path)):
             gt_path.append(data_base_path + self.gt_path[i])
+        if self.ignore_path is not None:
+            ignore_path = data_base_path + self.ignore_path
+        else:
+            ignore_path = None
         return EvalDataloaderConfig(
             eval_dataset=EvalDatasetConfig(
                 name=self.name,
@@ -201,6 +218,8 @@ class EvalDataloaderMetaConfig(BaseModel):
                 patch_key=self.patch_key,
                 roi=self.roi,
                 ignore_index=self.ignore_index,
+                ignore_path=ignore_path,
+                ignore_key=self.ignore_key,
                 convert_to_boundary_label=self.convert_to_boundary_label,
                 convert_to_binary_label=self.convert_to_binary_label,
                 min_object_size=self.min_object_size,
@@ -351,8 +370,104 @@ class SoftF1Config(BaseModel, frozen=True):
     def initialise_metric(self) -> SoftF1Eval:
         return SoftF1Eval()
 
-    def initialise_score(self, num: int) -> torch.Tensor:
-        return torch.zeros(num, dtype=torch.float32)
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros(num_samples, dtype=torch.float32)
+
+
+class DifferenceImageConfig(BaseModel, frozen=True):
+    name: Literal["Diff"] = "Diff"
+    diff_alpha: float = 1
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> DifferenceImageEval:
+        return DifferenceImageEval(
+            diff_alpha=self.diff_alpha,
+        )
+
+    def initialise_score(
+        self, num_samples: int, sample_shape: Sequence[int]
+    ) -> torch.Tensor:
+        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+
+
+class EffectiveInvarianceConfig(BaseModel, frozen=True):
+    name: Literal["EI"] = "EI"
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> EffectiveInvarianceEval:
+        return EffectiveInvarianceEval(
+            threshold=self.threshold,
+        )
+
+    def initialise_score(
+        self, num_samples: int, sample_shape: Sequence[int]
+    ) -> torch.Tensor:
+        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+
+
+class EntropyConfig(BaseModel, frozen=True):
+    name: Literal["Entropy"] = "Entropy"
+    entr_base: int = 2
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> EntropyEval:
+        return EntropyEval(
+            entr_base=self.entr_base,
+        )
+
+    def initialise_score(
+        self, num_samples: int, sample_shape: Sequence[int]
+    ) -> torch.Tensor:
+        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+
+
+class KLDivergenceConfig(BaseModel, frozen=True):
+    name: Literal["KL-Divergence"] = "KL-Divergence"
+    eps: float = 1e-7
+    entr_base: int = 2
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> KLDivergenceEval:
+        return KLDivergenceEval(
+            eps=self.eps,
+            entr_base=self.entr_base,
+        )
+
+    def initialise_score(
+        self, num_samples: int, sample_shape: Sequence[int]
+    ) -> torch.Tensor:
+        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+
+
+class CrossEntropyConfig(BaseModel, frozen=True):
+    name: Literal["Cross-Entropy"] = "Cross-Entropy"
+    eps: float = 1e-7
+    entr_base: int = 2
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> CrossEntropyEval:
+        return CrossEntropyEval(
+            eps=self.eps,
+            entr_base=self.entr_base,
+        )
+
+    def initialise_score(
+        self, num_samples: int, sample_shape: Sequence[int]
+    ) -> torch.Tensor:
+        return torch.zeros((num_samples, *sample_shape), dtype=torch.float32)
+
+
+class HammingDistanceConfig(BaseModel, frozen=True):
+    name: Literal["Hamming-Distance"] = "Hamming-Distance"
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> HammingDistanceEval:
+        return HammingDistanceEval(
+            threshold=self.threshold,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros(num_samples, dtype=torch.float32)
 
 
 class EvaluateConfig(BaseModel, frozen=True):
@@ -369,7 +484,18 @@ class EvaluateConfig(BaseModel, frozen=True):
     ]
     eval_save_key: str
     consistency_dataloader: EvalDataloaderConfig
-    consistency: ConsistencyMetricConfig
+    consistency_metric: Annotated[
+        Union[
+            DifferenceImageConfig,
+            EffectiveInvarianceConfig,
+            KLDivergenceConfig,
+            CrossEntropyConfig,
+            HammingDistanceConfig,
+            AdaptedRandErrorConfig,
+        ],
+        Discriminator("name"),
+    ]
+    consistency_settings: ConsistencyMetaConfig
 
 
 class WandbConfig(BaseModel):
@@ -1404,6 +1530,8 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
@@ -1421,6 +1549,8 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=1,
@@ -1688,6 +1818,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=[[50, 170]],
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=True,
         min_object_size=None,
@@ -1705,6 +1837,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=[[50, 170]],
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
@@ -1768,6 +1902,8 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=-1,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
@@ -1831,6 +1967,8 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=-1,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
@@ -1894,6 +2032,8 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
@@ -1956,6 +2096,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
@@ -2019,6 +2161,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=[[0, 150], [0, 1280], [0, 1280]],
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
@@ -2082,6 +2226,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=[[0, 150], [0, 1280], [0, 1280]],
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
@@ -2145,6 +2291,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=True,
         min_object_size=None,
