@@ -29,6 +29,7 @@ from model_ranking.dataclass import (
     TIFEvalDatasetConfig,
 )
 from model_ranking.datasets import StandardEvalDataset
+from model_ranking.metrics import AdaptedRandErrorEval
 from model_ranking.utils import save_h5, is_ndarray, loader_classes
 
 
@@ -131,9 +132,13 @@ def calc_evaluation_score(
     for i, (pred, gt) in enumerate(tqdm(dataloader)):
         pred = pred.to(device)
         gt = gt.to(device)
+        if isinstance(metric, AdaptedRandErrorEval):
+            metric_scores, _ = metric(pred, gt)
+        else:
+            metric_scores = metric(pred, gt)
         scores[
             i * dataloader.batch_size : i * dataloader.batch_size + pred.shape[0]
-        ] = metric(pred, gt)
+        ] = metric_scores
     eval_scores = scores.cpu().numpy()
     return eval_scores
 
