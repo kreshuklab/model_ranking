@@ -1,5 +1,5 @@
 import h5py  # pyright: ignore[reportMissingTypeStubs]
-from typing import List, Any, Union, Dict, Literal, Optional, Tuple
+from typing import List, Any, Union, Dict, Literal, Optional, Tuple, Sequence
 from numpy.typing import NDArray
 from pathlib import Path
 from tqdm import tqdm
@@ -29,9 +29,19 @@ from plantseg.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
 )
 
 from model_ranking.dataclass import (
+    AdaptedRandErrorConfig,
     ConsistencyMetricConfig,
     EvaluateConfig,
     EvalDataloaderConfig,
+)
+from model_ranking.evaluation import (
+    assign_unique_ids_to_value,
+    get_border_mask,
+    get_mask,
+)
+from model_ranking.metrics import (
+    AdaptedRandErrorEval,
+    HammingDistanceEval,
 )
 from model_ranking.utils import (
     extract_filename,
@@ -39,11 +49,6 @@ from model_ranking.utils import (
     save_h5,
     is_ndarray,
     loader_classes,
-)
-from model_ranking.evaluation import (
-    assign_unique_ids_to_value,
-    get_border_mask,
-    get_mask,
 )
 
 
@@ -65,11 +70,65 @@ def get_consistency_loaders(config: EvalDataloaderConfig):
         )
 
 
+def calc_consistency_score(
+    dataloader: DataLoader[Any],
+    device: str,
+    config: EvaluateConfig,
+) -> Tuple[NDArray[Any], NDArray[Any]]:
+    metric_cfg = config.consistency_metric
+    consis_cfg = config.consistency_settings
+    if metric_cfg.name == "AdaptedRandError":
+        metric = metric_cfg.initialise_metric(
+            dataset_name=dataloader.dataset.__class__.__name__
+        )
+        scores = metric_cfg.initialise_score(
+            dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+        )
+
+    else:
+        metric = metric_cfg.initialise_metric()
+
+        if metric_cfg.name == "Hamming-Distance":
+            scores = metric_cfg.initialise_score(
+                dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+            )
+        else:
+            scores = metric_cfg.initialise_score(
+                dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+                dataloader.dataset[0][0].shape,
+            )
+    assert isinstance(
+        dataloader.batch_size, int
+    ), "dataloader.batch_size must be provided"
+    for i, (perturbed_pred, unperturbed_pred) in enumerate(tqdm(dataloader)):
+        perturbed_pred = perturbed_pred.to(device)
+        unperturbed_pred = unperturbed_pred.to(device)
+        if isinstance(metric, AdaptedRandErrorEval):
+            batch_scores, consis_mask = metric(perturbed_pred, unperturbed_pred)
+
+        else:
+            consis_mask = get_mask(
+                unperturbed_pred, perturbed_pred, consis_cfg.mask_threshold
+            )
+            # mask to device
+            consis_mask = torch.from_numpy(consis_mask).to(device)
+            if isinstance(metric, HammingDistanceEval):
+                batch_scores = metric(perturbed_pred, unperturbed_pred, consis_mask)
+            else:
+                batch_scores = metric(perturbed_pred, unperturbed_pred)
+
+        scores[
+            i * dataloader.batch_size : i * dataloader.batch_size
+            + perturbed_pred.shape[0]
+        ] = batch_scores
+
+
 def run_consistency_evaluation(
     config_data: EvaluateConfig,
 ):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     for dataloader in get_consistency_loaders(config_data.consistency_dataloader):
+        pass
 
 
 def calc_segmentation_model_consistency(paths: List[Path]):
@@ -429,7 +488,6 @@ def adapted_rand_consis_metric(
     return metric_result, consis_mask
 
 
-
 def calculate_EI_binary(
     preds: NDArray[Any],
     soft_preds: NDArray[Any],
@@ -449,5 +507,3 @@ def calculate_EI_binary(
     EI_result[mask0] = 1 - soft_preds[1:][mask0]
     EI_result = np.sqrt(zero_inverted_None_pred[np.newaxis, :] * EI_result)
     return EI_result, EI_result.mean(axis=1), mask0, mask1
-
-
