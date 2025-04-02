@@ -1,5 +1,5 @@
 import h5py  # pyright: ignore[reportMissingTypeStubs]
-from typing import List, Any, Union, Dict, Literal, Optional, Tuple, Sequence
+from typing import List, Any, Union, Dict, Literal, Optional, Tuple
 from numpy.typing import NDArray
 from pathlib import Path
 from tqdm import tqdm
@@ -29,7 +29,6 @@ from plantseg.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
 )
 
 from model_ranking.dataclass import (
-    AdaptedRandErrorConfig,
     ConsistencyMetricConfig,
     EvaluateConfig,
     EvalDataloaderConfig,
@@ -72,7 +71,6 @@ def get_consistency_loaders(config: EvalDataloaderConfig):
 
 def calc_consistency_score(
     dataloader: DataLoader[Any],
-    device: str,
     config: EvaluateConfig,
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     metric_cfg = config.consistency_metric
@@ -81,7 +79,7 @@ def calc_consistency_score(
         metric = metric_cfg.initialise_metric(
             dataset_name=dataloader.dataset.__class__.__name__
         )
-        scores = metric_cfg.initialise_score(
+        scores = metric_cfg.initialise_score_array(
             dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
         )
 
@@ -97,30 +95,42 @@ def calc_consistency_score(
                 dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
                 dataloader.dataset[0][0].shape,
             )
+    consis_mask = np.zeros(
+        (
+            dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+            dataloader.dataset[0][0].shape,
+        ),
+        dtype=bool,
+    )
     assert isinstance(
         dataloader.batch_size, int
     ), "dataloader.batch_size must be provided"
     for i, (perturbed_pred, unperturbed_pred) in enumerate(tqdm(dataloader)):
-        perturbed_pred = perturbed_pred.to(device)
-        unperturbed_pred = unperturbed_pred.to(device)
         if isinstance(metric, AdaptedRandErrorEval):
-            batch_scores, consis_mask = metric(perturbed_pred, unperturbed_pred)
+            batch_scores, batch_consis_mask = metric(perturbed_pred, unperturbed_pred)
 
         else:
-            consis_mask = get_mask(
+            batch_consis_mask = get_mask(
                 unperturbed_pred, perturbed_pred, consis_cfg.mask_threshold
             )
-            # mask to device
-            consis_mask = torch.from_numpy(consis_mask).to(device)
             if isinstance(metric, HammingDistanceEval):
-                batch_scores = metric(perturbed_pred, unperturbed_pred, consis_mask)
+                batch_scores = metric(
+                    perturbed_pred, unperturbed_pred, batch_consis_mask
+                )
             else:
                 batch_scores = metric(perturbed_pred, unperturbed_pred)
+                mask_inverted = np.logical_not(batch_consis_mask)
+                batch_scores[mask_inverted] = None
 
         scores[
             i * dataloader.batch_size : i * dataloader.batch_size
             + perturbed_pred.shape[0]
         ] = batch_scores
+        consis_mask[
+            i * dataloader.batch_size : i * dataloader.batch_size
+            + perturbed_pred.shape[0]
+        ] = batch_consis_mask
+    return scores, consis_mask
 
 
 def run_consistency_evaluation(
