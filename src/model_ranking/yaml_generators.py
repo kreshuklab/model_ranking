@@ -343,6 +343,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                     pred_dir_path = (
                         output_folder_path + "/" + save_name + "/predictions"
                     )
+                    none_pred_path = (
+                        output_folder_path + "/" + "none" + "/predictions"
+                    )
                     # make directory if needed
                     Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
 
@@ -382,6 +385,12 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+
+                            if target_cfg.eval_dataloader_semantic.name == "TIF_txt_Dataset":
+                                consis_loader_cfg = (
+                                    target_cfg.consis_dataloader_instance.create_consis_config(
+                                        perturbed_dir=(pred_dir_path,),
+                                )
 
                     elif meta_cfg.segmentation_mode == "instance":
                         assert (
