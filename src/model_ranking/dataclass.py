@@ -61,8 +61,7 @@ class ConsistencyMetaConfig(BaseModel, frozen=True):
     save_key: str
     save_mask: bool
     mask_threshold: float
-    ignore_path: Optional[str]
-    ignore_key: Optional[str]
+    overwrite_score: bool
 
 
 class EvalDatasetConfig(BaseModel):
