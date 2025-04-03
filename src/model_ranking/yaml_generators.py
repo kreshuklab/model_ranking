@@ -16,6 +16,7 @@ from model_ranking.dataclass import (
     EvaluateConfig,
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
+    SBIAD1410LoaderMetaConfig,
     WandbConfig,
     ConsistencyMetricConfig,
     # TIFPredictionLoadersConfig,
@@ -298,7 +299,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                 + DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]
             )
 
-            if isinstance(target_cfg.loader, Pytorch3DUnetLoaderMetaConfig):
+            if isinstance(
+                target_cfg.loader, Pytorch3DUnetLoaderMetaConfig
+            ) or isinstance(target_cfg.loader, SBIAD1410LoaderMetaConfig):
                 if target_cfg.loader.global_percentiles is not None:
                     percentiles_save_name = (
                         f'{str(target_cfg.loader.global_percentiles[0]).replace(".", "")}_'
@@ -345,6 +348,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
 
                     # Get Predictor config
                     if meta_cfg.segmentation_mode == "semantic":
+                        assert (
+                            target_cfg.eval_dataloader_semantic is not None
+                        ), f"Eval dataloader semantic is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_predictions"
                         predictor_cfg = target_cfg.predictor_semantic
                         if (
@@ -378,6 +384,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             )
 
                     elif meta_cfg.segmentation_mode == "instance":
+                        assert (
+                            target_cfg.eval_dataloader_instance is not None
+                        ), f"Eval dataloader instance is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_IN_predictions"
                         predictor_cfg = target_cfg.predictor_instance
                         if (
@@ -440,7 +449,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
 
                     elif pred_loader.dataset in (
                         "Standard_TIF_Dataset",
-                        "HelaNuc_Dataset",
+                        "HeLaNuc_Dataset",
                         "Hoechst_Dataset",
                         "TIF_txt_Dataset",
                     ):
@@ -454,15 +463,15 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
 
                     eval_metric_cfg = meta_cfg.eval_settings
 
-                    consis_cfg = ConsistencyMetricConfig.model_validate(
-                        meta_cfg.consistency_settings
-                    )
+                    consis_metric_cfg = meta_cfg.consistency_metric
 
                     eval_cfg = EvaluateConfig(
                         eval_dataloader=eval_loader_cfg,
                         eval_metric=eval_metric_cfg,
                         eval_save_key=save_name,
-                        consistency=consis_cfg,
+                        consistency_dataloader=,
+                        consistency_metric=consis_metric_cfg,
+                        consistency_settings=meta_cfg.consistency_settings,
                     )
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
                     yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
