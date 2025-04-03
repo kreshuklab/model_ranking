@@ -131,10 +131,16 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
     def get_pred_patch(self, idx: int) -> NDArray[Any]:
         return self._pred[idx].copy()
 
+    def get_gt_from_patchwise(self, index: int) -> NDArray[Any]:
+        return self._gt[index].copy()
+
     def __getitem__(self, index: int) -> Tuple[NDArray[Any], NDArray[Any]]:
         pred = self.get_pred_patch(index)
         patch_slice = get_roi_slice(self.pred_patches[index])
-        gt = self.get_gt_patch(patch_slice)
+        if self._gt.shape == self._pred.shape:
+            gt = self.get_gt_from_patchwise(index)
+        else:
+            gt = self.get_gt_patch(patch_slice)
         if self._ignore is not None:
             # zero out ignore_index
             mask = self._ignore[patch_slice] == 1
