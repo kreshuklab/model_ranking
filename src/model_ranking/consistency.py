@@ -30,8 +30,8 @@ from plantseg.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
 )
 
 from model_ranking.dataclass import (
+    ConsistencyConfig,
     ConsistencyMetricConfig,
-    EvaluateConfig,
     EvalDataloaderConfig,
     TIFEvalDatasetConfig,
 )
@@ -74,7 +74,7 @@ def get_consistency_loaders(config: EvalDataloaderConfig):
 
 def calc_consistency_score(
     dataloader: DataLoader[Any],
-    config: EvaluateConfig,
+    config: ConsistencyConfig,
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     metric_cfg = config.consistency_metric
     consis_cfg = config.consistency_settings
@@ -137,7 +137,7 @@ def calc_consistency_score(
 
 
 def run_consistency_evaluation(
-    config_data: EvaluateConfig,
+    config_data: ConsistencyConfig,
 ):
     paths: List[Union[Path, str]] = []
     consis_scores: List[NDArray[Any]] = []
@@ -157,8 +157,10 @@ def run_consistency_evaluation(
         elif isinstance(dataloader.dataset, StandardEvalDataset):
             paths.append(dataloader.dataset.pred_path)
 
-    if isinstance(config_data.eval_dataloader.eval_dataset, TIFEvalDatasetConfig):
-        pred_dir = config_data.eval_dataloader.eval_dataset.eval.image_dir[0]
+    if isinstance(
+        config_data.consistency_dataloader.eval_dataset, TIFEvalDatasetConfig
+    ):
+        pred_dir = config_data.consistency_dataloader.eval_dataset.eval.image_dir[0]
         pred_paths = sorted(list(Path(pred_dir).glob("*.h5")))
         assert consis_scores[0] is not None, "Scores are not available"
         assert len(pred_paths) == len(
@@ -179,7 +181,7 @@ def run_consistency_evaluation(
             print(f"saving scores to {path}")
             save_h5(
                 path,
-                config_data.eval_save_key,
+                config_data.consistency_settings.save_key,
                 scores,
                 overwrite=config_data.consistency_settings.overwrite_score,
             )
