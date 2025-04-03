@@ -1886,7 +1886,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
-    predictor_semantic = None
+    predictor_semantic: None = None
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -1897,7 +1897,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=True,
         )
     )
-    eval_dataloader_semantic = None
+    eval_dataloader_semantic: None = None
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/FlyWing/GT/test/per03.h5",),
@@ -1951,7 +1951,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
-    predictor_semantic = None
+    predictor_semantic: None = None
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -1962,7 +1962,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=True,
         )
     )
-    eval_dataloader_semantic = None
+    eval_dataloader_semantic: None = None
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/Ovules/GT2x/test/N_294_final_crop_ds2.h5",),
@@ -2016,7 +2016,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
-    predictor_semantic = None
+    predictor_semantic: None = None
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -2027,7 +2027,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=False,
         )
     )
-    eval_dataloader_semantic = None
+    eval_dataloader_semantic: None = None
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/PNAS/test/12hrs_plant1_trim-acylYFP.h5",),
@@ -2091,7 +2091,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=False,
         )
     )
-    predictor_instance = None
+    predictor_instance: None = None
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/EPFL/test.h5",),
@@ -2111,7 +2111,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    eval_dataloader_instance = None
+    eval_dataloader_instance: None = None
     consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
         save_mask=True,
         ignore_path=None,
@@ -2156,7 +2156,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=False,
         )
     )
-    predictor_instance = None
+    predictor_instance: None = None
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/Hmito/test_converted.h5",),
@@ -2176,7 +2176,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    eval_dataloader_instance = None
+    eval_dataloader_instance: None = None
     consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
         save_mask=True,
         ignore_path=None,
@@ -2221,7 +2221,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=False,
         )
     )
-    predictor_instance = None
+    predictor_instance: None = None
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/Rmito/test_converted.h5",),
@@ -2241,7 +2241,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    eval_dataloader_instance = None
+    eval_dataloader_instance: None = None
     consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
         save_mask=True,
         ignore_path=None,
@@ -2286,7 +2286,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             no_adjust_background=False,
         )
     )
-    predictor_instance = None
+    predictor_instance: None = None
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         gt_path=("/VNC/data_labeled_mito.h5",),
@@ -2306,7 +2306,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    eval_dataloader_instance = None
+    eval_dataloader_instance: None = None
     consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
         save_mask=True,
         ignore_path=None,
