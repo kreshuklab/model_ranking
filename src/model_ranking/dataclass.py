@@ -129,6 +129,7 @@ class TIFEvalDatasetConfig(BaseModel):
     global_norm: bool
     percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
+    mask_key: Optional[str]
     min_object_size: Optional[int]
     instance_zero_background: bool
 
@@ -278,16 +279,6 @@ class EvalMetricConfig(BaseModel, frozen=True):
     ]
     threshold: Optional[float]
     eval_parameters: Optional[Dict[str, Any]]
-
-
-"""
-class EvaluateConfig(BaseModel, frozen=True):
-    eval_dataloader: EvalDataloaderConfig
-    eval_metric: EvalMetricConfig
-    eval_save_key: str
-    consistency_dataloader: EvalDataloaderConfig
-    consistency: ConsistencyMetricConfig
-"""
 
 
 class AdaptedRandErrorConfig2(EvalMetricConfig, frozen=True):
@@ -502,6 +493,22 @@ class EvaluateConfig(BaseModel, frozen=True):
     consistency_settings: ConsistencyMetaConfig
 
 
+class ConsistencyConfig(BaseModel, frozen=True):
+    consistency_dataloader: EvalDataloaderConfig
+    consistency_metric: Annotated[
+        Union[
+            DifferenceImageConfig,
+            EffectiveInvarianceConfig,
+            KLDivergenceConfig,
+            CrossEntropyConfig,
+            HammingDistanceConfig,
+            AdaptedRandErrorConfig,
+        ],
+        Discriminator("name"),
+    ]
+    consistency_settings: ConsistencyMetaConfig
+
+
 class WandbConfig(BaseModel):
     project: str
     name: str
@@ -600,14 +607,22 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
     num_workers: int
     global_normalization: bool
     global_percentiles: Optional[Sequence[Union[float, int]]]
-    test: SBIAD1410PhaseConfig
+    img_paths: Sequence[str]
+    mask_paths: Sequence[str]
+    roi: Optional[Sequence[Sequence[int]]]
+    transformer: Mapping[
+        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
+    ]
+    slice_builder: Optional[
+        Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
+    ]
 
     def create_config(self, output_dir: str, data_base_path: str):
         img_paths: List[str] = []
         mask_paths: List[str] = []
-        for i in range(len(self.test.img_paths)):
-            img_paths.append(data_base_path + self.test.img_paths[i])
-            mask_paths.append(data_base_path + self.test.mask_paths[i])
+        for i in range(len(self.img_paths)):
+            img_paths.append(data_base_path + self.img_paths[i])
+            mask_paths.append(data_base_path + self.mask_paths[i])
         return SBIAD1410LoaderConfig(
             dataset=self.dataset,
             output_dir=output_dir,
@@ -618,9 +633,9 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
             test=SBIAD1410PhaseConfig(
                 img_paths=img_paths,
                 mask_paths=mask_paths,
-                roi=self.test.roi,
-                transformer=self.test.transformer,
-                slice_builder=self.test.slice_builder,
+                roi=self.roi,
+                transformer=self.transformer,
+                slice_builder=self.slice_builder,
             ),
         )
 
@@ -810,6 +825,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     min_object_size: Optional[int]
     instance_zero_background: bool
     mask_dir: Sequence[str]
+    mask_key: Optional[str]
     filenames_path: str
     batch_size: int
     num_workers: int
@@ -818,9 +834,12 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     ]
 
     def create_config(self, image_dir: Sequence[str], data_base_path: str):
-        mask_dir: List[str] = []
-        for i in range(len(self.mask_dir)):
-            mask_dir.append(data_base_path + self.mask_dir[i])
+        if self.mask_key is None:
+            mask_dir: List[str] = []
+            for i in range(len(self.mask_dir)):
+                mask_dir.append(data_base_path + self.mask_dir[i])
+        else:
+            mask_dir = list(self.mask_dir)
         return EvalDataloaderConfig(
             eval_dataset=TIFEvalDatasetConfig(
                 name=self.name,
@@ -834,6 +853,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
                 image_key=self.image_key,
+                mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
                 instance_zero_background=self.instance_zero_background,
             ),
@@ -851,6 +871,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
     min_object_size: Optional[int]
     instance_zero_background: bool
     mask_dir: Sequence[str]
+    mask_key: Optional[str]
     batch_size: int
     num_workers: int
     transformer: Mapping[
@@ -873,6 +894,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
                 image_key=self.image_key,
+                mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
                 instance_zero_background=self.instance_zero_background,
             ),
@@ -1104,6 +1126,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/BBBC039/instance_annotations/instance_labels",),
+            mask_key=None,
             filenames_path="/BBBC039/test.txt",
             transformer={
                 "raw": [
@@ -1130,6 +1153,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=50,
             instance_zero_background=False,
             mask_dir=("/BBBC039/instance_annotations/instance_labels",),
+            mask_key=None,
             filenames_path="/BBBC039/test.txt",
             transformer={
                 "raw": [
@@ -1193,6 +1217,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=50,
             instance_zero_background=False,
             mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+            mask_key=None,
             batch_size=1,
             num_workers=8,
             transformer={
@@ -1211,6 +1236,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+            mask_key=None,
             batch_size=1,
             num_workers=8,
             transformer={
@@ -1273,6 +1299,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/Hoechst/test_nuclei/annotations",),
+            mask_key=None,
             batch_size=1,
             num_workers=8,
             transformer={
@@ -1295,6 +1322,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=80,
             instance_zero_background=False,
             mask_dir=("/Hoechst/test_nuclei/annotations",),
+            mask_key=None,
             batch_size=1,
             num_workers=8,
             transformer={
@@ -1359,6 +1387,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/S-BIAD634/dataset/groundtruth",),
+            mask_key=None,
             filenames_path="/S-BIAD634/dataset/test.txt",
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1382,6 +1411,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=1,
             instance_zero_background=False,
             mask_dir=("/S-BIAD634/dataset/groundtruth",),
+            mask_key=None,
             filenames_path="/S-BIAD634/dataset/test.txt",
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1444,6 +1474,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            mask_key=None,
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
                 "label": [
@@ -1466,6 +1497,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=50,
             instance_zero_background=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            mask_key=None,
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
                 "label": [{"name": "ToTensor", "expand_dims": True}],
@@ -1581,22 +1613,20 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_normalization=True,
         global_percentiles=(5, 98),
-        test=SBIAD1410PhaseConfig(
-            img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
-            mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
-            roi=None,
-            transformer={
-                "raw": [
-                    {"name": "PercentileNormalizer"},
-                    {"name": "ToTensor", "expand_dims": True},
-                ],
-            },
-            slice_builder=Pytorch3DUnetSliceBuilderConfig(
-                name="SliceBuilder",
-                patch_shape=(1, 256, 256),
-                stride_shape=(1, 256, 256),
-                halo_shape=(0, 32, 32),
-            ),
+        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "PercentileNormalizer"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
         ),
     )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
@@ -1725,6 +1755,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/dsb2018_fluorescence/test/masks",),
+            mask_key=None,
             transformer={
                 "raw": [
                     {"name": "ToTensor", "expand_dims": True},
@@ -1749,6 +1780,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             instance_zero_background=False,
             mask_dir=("/dsb2018_fluorescence/test/masks",),
+            mask_key=None,
             transformer={
                 "raw": [
                     {"name": "ToTensor", "expand_dims": True},
@@ -2364,4 +2396,15 @@ class MetaConfig(BaseModel):
         Discriminator("name"),
     ]
     eval_save_key: str
-    consistency_settings: ConsistencyMetricConfig
+    consistency_metric: Annotated[
+        Union[
+            DifferenceImageConfig,
+            EffectiveInvarianceConfig,
+            KLDivergenceConfig,
+            CrossEntropyConfig,
+            HammingDistanceConfig,
+            AdaptedRandErrorConfig,
+        ],
+        Discriminator("name"),
+    ]
+    consistency_settings: ConsistencyMetaConfig
