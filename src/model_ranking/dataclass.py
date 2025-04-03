@@ -147,7 +147,7 @@ class SBIAD1410PhaseConfig(BaseModel):
 
 
 class SBIAD1410PhaseMetaConfig(BaseModel):
-    mask_paths: Sequence[str]
+    mask_paths: Optional[Sequence[str]]
     roi: Optional[Sequence[Sequence[int]]]
     transformer: Mapping[
         str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
@@ -168,6 +168,7 @@ class SBIAD1410EvalDatasetConfig(BaseModel):
     global_normalization: bool
     global_percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
+    mask_key: Optional[str]
     instance_zero_background: bool = True
 
 
@@ -182,7 +183,7 @@ class EvalDataloaderConfig(BaseModel):
 
 class EvalDataloaderMetaConfig(BaseModel):
     name: Literal["StandardEvalDataset"]
-    gt_path: Sequence[str]
+    gt_path: Optional[Sequence[str]]
     pred_key: str
     gt_key: str
     patch_key: str
@@ -203,6 +204,7 @@ class EvalDataloaderMetaConfig(BaseModel):
         self, aug_name: str, pred_path: Sequence[str], data_base_path: str
     ):
         gt_path: List[str] = []
+        assert self.gt_path is not None, "gt_path is None"
         for i in range(len(self.gt_path)):
             gt_path.append(data_base_path + self.gt_path[i])
         if self.ignore_path is not None:
@@ -233,6 +235,41 @@ class EvalDataloaderMetaConfig(BaseModel):
             num_workers=self.num_workers,
         )
 
+    def create_consis_config(
+        self,
+        aug_name: str,
+        perturbed_path: Sequence[str],
+        unperturbed_path: Sequence[str],
+        data_base_path: str,
+    ):
+        if self.ignore_path is not None:
+            ignore_path = data_base_path + self.ignore_path
+        else:
+            ignore_path = None
+        return EvalDataloaderConfig(
+            eval_dataset=EvalDatasetConfig(
+                name=self.name,
+                aug_name=aug_name,
+                pred_path=perturbed_path,
+                gt_path=unperturbed_path,
+                pred_key=self.pred_key,
+                gt_key=self.gt_key,
+                patch_key=self.patch_key,
+                roi=self.roi,
+                ignore_index=self.ignore_index,
+                ignore_path=ignore_path,
+                ignore_key=self.ignore_key,
+                convert_to_boundary_label=self.convert_to_boundary_label,
+                convert_to_binary_label=self.convert_to_binary_label,
+                min_object_size=self.min_object_size,
+                relabel_background=self.relabel_background,
+                instance_zero_background=self.instance_zero_background,
+                zero_largest_instance=self.zero_largest_instance,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
 
 class EvalSB1410DataloaderMetaConfig(BaseModel):
     name: Literal["S_BIAD1410_Dataset"]
@@ -240,12 +277,14 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
     global_normalization: bool
     global_percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
+    mask_key: Optional[str]
     instance_zero_background: bool
     batch_size: int
     num_workers: int
 
     def create_config(self, img_paths: Sequence[str], data_base_path: str):
         mask_paths: List[str] = []
+        assert self.eval.mask_paths is not None, "mask_paths is None"
         for i in range(len(self.eval.mask_paths)):
             mask_paths.append(data_base_path + self.eval.mask_paths[i])
         return EvalDataloaderConfig(
@@ -261,6 +300,33 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
                 global_normalization=self.global_normalization,
                 global_percentiles=self.global_percentiles,
                 image_key=self.image_key,
+                mask_key=self.mask_key,
+                instance_zero_background=self.instance_zero_background,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+    def create_consis_config(
+        self,
+        perturbed_paths: Sequence[str],
+        unperturbed_paths: Sequence[str],
+    ):
+
+        return EvalDataloaderConfig(
+            eval_dataset=SBIAD1410EvalDatasetConfig(
+                name=self.name,
+                eval=SBIAD1410PhaseConfig(
+                    img_paths=perturbed_paths,
+                    mask_paths=unperturbed_paths,
+                    roi=self.eval.roi,
+                    transformer=self.eval.transformer,
+                    slice_builder=self.eval.slice_builder,
+                ),
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
                 instance_zero_background=self.instance_zero_background,
             ),
             batch_size=self.batch_size,
@@ -372,7 +438,6 @@ class SoftF1Config(BaseModel, frozen=True):
 class DifferenceImageConfig(BaseModel, frozen=True):
     name: Literal["Diff"] = "Diff"
     diff_alpha: float = 1
-    threshold: float = 0.5
 
     def initialise_metric(self) -> DifferenceImageEval:
         return DifferenceImageEval(
@@ -403,7 +468,6 @@ class EffectiveInvarianceConfig(BaseModel, frozen=True):
 class EntropyConfig(BaseModel, frozen=True):
     name: Literal["Entropy"] = "Entropy"
     entr_base: int = 2
-    threshold: float = 0.5
 
     def initialise_metric(self) -> EntropyEval:
         return EntropyEval(
@@ -420,7 +484,6 @@ class KLDivergenceConfig(BaseModel, frozen=True):
     name: Literal["KL-Divergence"] = "KL-Divergence"
     eps: float = 1e-7
     entr_base: int = 2
-    threshold: float = 0.5
 
     def initialise_metric(self) -> KLDivergenceEval:
         return KLDivergenceEval(
@@ -438,7 +501,6 @@ class CrossEntropyConfig(BaseModel, frozen=True):
     name: Literal["Cross-Entropy"] = "Cross-Entropy"
     eps: float = 1e-7
     entr_base: int = 2
-    threshold: float = 0.5
 
     def initialise_metric(self) -> CrossEntropyEval:
         return CrossEntropyEval(
@@ -824,7 +886,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     image_key: Optional[str]
     min_object_size: Optional[int]
     instance_zero_background: bool
-    mask_dir: Sequence[str]
+    mask_dir: Optional[Sequence[str]]
     mask_key: Optional[str]
     filenames_path: str
     batch_size: int
@@ -834,18 +896,43 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     ]
 
     def create_config(self, image_dir: Sequence[str], data_base_path: str):
-        if self.mask_key is None:
-            mask_dir: List[str] = []
-            for i in range(len(self.mask_dir)):
-                mask_dir.append(data_base_path + self.mask_dir[i])
-        else:
-            mask_dir = list(self.mask_dir)
+        mask_dir: List[str] = []
+        assert self.mask_dir is not None, "mask_dir must be given"
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
         return EvalDataloaderConfig(
             eval_dataset=TIFEvalDatasetConfig(
                 name=self.name,
                 eval=TIFtxtPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                instance_zero_background=self.instance_zero_background,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+    def create_consis_config(
+        self,
+        perturbed_dir: Sequence[str],
+        unperturbed_dir: Sequence[str],
+        data_base_path: str,
+    ):
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFtxtPhaseConfig(
+                    image_dir=perturbed_dir,
+                    mask_dir=unperturbed_dir,
                     filenames_path=data_base_path + self.filenames_path,
                     transformer=self.transformer,
                 ),
@@ -870,7 +957,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
     image_key: Optional[str]
     min_object_size: Optional[int]
     instance_zero_background: bool
-    mask_dir: Sequence[str]
+    mask_dir: Optional[Sequence[str]]
     mask_key: Optional[str]
     batch_size: int
     num_workers: int
@@ -880,6 +967,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
 
     def create_config(self, image_dir: Sequence[str], data_base_path: str):
         mask_dir: List[str] = []
+        assert self.mask_dir is not None, "mask_dir must be given"
         for i in range(len(self.mask_dir)):
             mask_dir.append(data_base_path + self.mask_dir[i])
         return EvalDataloaderConfig(
@@ -888,6 +976,31 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
                 eval=TIFPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                instance_zero_background=self.instance_zero_background,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+    def create_consis_config(
+        self,
+        perturbed_dir: Sequence[str],
+        unperturbed_dir: Sequence[str],
+    ):
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFPhaseConfig(
+                    image_dir=perturbed_dir,
+                    mask_dir=unperturbed_dir,
                     transformer=self.transformer,
                 ),
                 expand_dims=self.expand_dims,
@@ -1076,7 +1189,30 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
             Discriminator("name"),
         ]
     ]
-    consistency: ConsistencyMetricMetaConfig
+    consistency_dataloader_instance: Optional[
+        Annotated[
+            Union[
+                Eval_TIF_TxtDataloaderMetaConfig,
+                Eval_TIF_DataloaderMetaConfig,
+                EvalDataloaderMetaConfig,
+                EvalSB1410DataloaderMetaConfig,
+            ],
+            Discriminator("name"),
+        ]
+    ]
+    consistency_dataloader_semantic: Optional[
+        Annotated[
+            Union[
+                Eval_TIF_TxtDataloaderMetaConfig,
+                Eval_TIF_DataloaderMetaConfig,
+                EvalDataloaderMetaConfig,
+                EvalSB1410DataloaderMetaConfig,
+            ],
+            Discriminator("name"),
+        ]
+    ]
+
+    # consistency: ConsistencyMetricMetaConfig
 
 
 class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1166,6 +1302,47 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    consis_dataloader_semantic: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            filenames_path="/BBBC039/test.txt",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    consis_dataloader_instance: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key=None,
+            filenames_path="/BBBC039/test.txt",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    """
     consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
         save_mask=True,
         ignore_path=None,
@@ -1173,6 +1350,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         remove_background=False,
         zero_largest_instance=False,
     )
+    """
 
 
 class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1673,6 +1851,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_normalization=False,
             global_percentiles=None,
             image_key="predictions",
+            mask_key=None,
             instance_zero_background=False,
             batch_size=1,
             num_workers=8,
@@ -1698,6 +1877,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_normalization=False,
             global_percentiles=None,
             image_key="segmentation",
+            mask_key=None,
             instance_zero_background=False,
             batch_size=1,
             num_workers=8,
