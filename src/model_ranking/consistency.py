@@ -12,6 +12,7 @@ from sklearn.metrics import adjusted_rand_score
 from skimage.metrics import (
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
+import torch
 from torch.utils.data import DataLoader
 
 from pytorch3dunet.unet3d.config import (
@@ -96,12 +97,14 @@ def calc_consistency_score(
         else:
             scores = metric_cfg.initialise_score(
                 dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
-                dataloader.dataset[0][0].shape,
+                tuple(dataloader.dataset[0][0].shape),
             )
     consis_mask = np.zeros(
         (
-            dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
-            dataloader.dataset[0][0].shape,
+            (
+                dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+            )
+            + tuple(dataloader.dataset[0][0].shape)
         ),
         dtype=bool,
     )
@@ -109,6 +112,13 @@ def calc_consistency_score(
         dataloader.batch_size, int
     ), "dataloader.batch_size must be provided"
     for i, (perturbed_pred, unperturbed_pred) in enumerate(tqdm(dataloader)):
+
+        if isinstance(perturbed_pred, torch.Tensor):
+            assert isinstance(
+                unperturbed_pred, torch.Tensor
+            ), "unperturbed_pred is not a torch.Tensor"
+            perturbed_pred: NDArray[Any] = perturbed_pred.numpy()
+            unperturbed_pred: NDArray[Any] = unperturbed_pred.numpy()
         if isinstance(metric, AdaptedRandErrorEval):
             batch_scores, batch_consis_mask = metric(perturbed_pred, unperturbed_pred)
 
