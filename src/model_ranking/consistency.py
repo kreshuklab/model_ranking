@@ -12,12 +12,13 @@ from sklearn.metrics import adjusted_rand_score
 from skimage.metrics import (
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
-import torch
 from torch.utils.data import DataLoader
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
+from pytorch3dunet.datasets.dsb import S_BIAD1410_Dataset
+from pytorch3dunet.datasets.hdf5 import StandardHDF5Dataset
 from pytorch3dunet.unet3d.utils import (
     remove_background_seg,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -32,7 +33,9 @@ from model_ranking.dataclass import (
     ConsistencyMetricConfig,
     EvaluateConfig,
     EvalDataloaderConfig,
+    TIFEvalDatasetConfig,
 )
+from model_ranking.datasets import StandardEvalDataset
 from model_ranking.evaluation import (
     assign_unique_ids_to_value,
     get_border_mask,
@@ -136,9 +139,52 @@ def calc_consistency_score(
 def run_consistency_evaluation(
     config_data: EvaluateConfig,
 ):
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    paths: List[Union[Path, str]] = []
+    consis_scores: List[NDArray[Any]] = []
+    consis_masks: List[NDArray[Any]] = []
     for dataloader in get_consistency_loaders(config_data.consistency_dataloader):
-        pass
+        scores, masks = calc_consistency_score(dataloader, config_data)
+        consis_scores.append(scores)
+        consis_masks.append(masks)
+
+        if isinstance(dataloader.dataset, S_BIAD1410_Dataset) | isinstance(
+            dataloader.dataset, StandardHDF5Dataset
+        ):
+            paths.append(
+                dataloader.dataset.file_path  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+            )
+
+        elif isinstance(dataloader.dataset, StandardEvalDataset):
+            paths.append(dataloader.dataset.pred_path)
+
+    if isinstance(config_data.eval_dataloader.eval_dataset, TIFEvalDatasetConfig):
+        pred_dir = config_data.eval_dataloader.eval_dataset.eval.image_dir[0]
+        pred_paths = sorted(list(Path(pred_dir).glob("*.h5")))
+        assert consis_scores[0] is not None, "Scores are not available"
+        assert len(pred_paths) == len(
+            consis_scores[0]
+        ), "Number of predictions and scores differ"
+        for i, pred_path in enumerate(pred_paths):
+            # save scores in pred_file
+            print(f"saving scores to {pred_path}")
+            save_h5(
+                pred_path,
+                config_data.consistency_settings.save_key,
+                consis_scores[0][i],
+                overwrite=config_data.consistency_settings.overwrite_score,
+            )
+
+    else:
+        for path, scores in zip(paths, consis_scores):
+            print(f"saving scores to {path}")
+            save_h5(
+                path,
+                config_data.eval_save_key,
+                scores,
+                overwrite=config_data.consistency_settings.overwrite_score,
+            )
+
+    return consis_scores
 
 
 def calc_segmentation_model_consistency(paths: List[Path]):
