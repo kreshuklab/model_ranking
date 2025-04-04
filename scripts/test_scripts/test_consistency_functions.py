@@ -1,7 +1,6 @@
 from model_ranking.consistency import (
     get_consistency_loaders,
     calc_consistency_score,
-    run_consistency_evaluation,
 )
 from model_ranking.dataclass import (
     AdaptedRandErrorConfig,
