@@ -13,12 +13,15 @@ from typing import (
     assert_never,
 )
 from model_ranking.dataclass import (
+    ConsistencyConfig,
+    Eval_TIF_DataloaderMetaConfig,
+    EvalDataloaderMetaConfig,
+    EvalSB1410DataloaderMetaConfig,
     EvaluateConfig,
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
     SBIAD1410LoaderMetaConfig,
     WandbConfig,
-    ConsistencyMetricConfig,
     # TIFPredictionLoadersConfig,
     FeatureNoisePerturbationConfig,
     FeatureDropPerturbationConfig,
@@ -343,9 +346,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                     pred_dir_path = (
                         output_folder_path + "/" + save_name + "/predictions"
                     )
-                    none_pred_path = (
-                        output_folder_path + "/" + "none" + "/predictions"
-                    )
+                    none_pred_path = output_folder_path + "/" + "none" + "/predictions"
                     # make directory if needed
                     Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
 
@@ -367,6 +368,16 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+                            assert isinstance(
+                                target_cfg.consis_dataloader_semantic,
+                                EvalDataloaderMetaConfig,
+                            )
+                            consis_loader_cfg = target_cfg.consis_dataloader_semantic.create_consis_config(
+                                aug_name=aug_name,
+                                perturbed_path=(pred_dir_path,),
+                                unperturbed_path=(none_pred_path,),
+                                data_base_path=meta_cfg.data_base_path,
+                            )
                         elif (
                             target_cfg.eval_dataloader_semantic.name
                             == "S_BIAD1410_Dataset"
@@ -377,6 +388,14 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+                            assert isinstance(
+                                target_cfg.consis_dataloader_semantic,
+                                EvalSB1410DataloaderMetaConfig,
+                            )
+                            consis_loader_cfg = target_cfg.consis_dataloader_semantic.create_consis_config(
+                                perturbed_paths=(pred_dir_path,),
+                                unperturbed_paths=(none_pred_path,),
+                            )
 
                         else:
                             eval_loader_cfg = (
@@ -386,10 +405,23 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                 )
                             )
 
-                            if target_cfg.eval_dataloader_semantic.name == "TIF_txt_Dataset":
-                                consis_loader_cfg = (
-                                    target_cfg.consis_dataloader_instance.create_consis_config(
-                                        perturbed_dir=(pred_dir_path,),
+                            if (
+                                target_cfg.consis_dataloader_semantic.name
+                                == "TIF_txt_Dataset"
+                            ):
+                                consis_loader_cfg = target_cfg.consis_dataloader_semantic.create_consis_config(
+                                    perturbed_dir=(pred_dir_path,),
+                                    unperturbed_dir=(none_pred_path,),
+                                    data_base_path=meta_cfg.data_base_path,
+                                )
+                            else:
+                                assert isinstance(
+                                    target_cfg.consis_dataloader_semantic,
+                                    Eval_TIF_DataloaderMetaConfig,
+                                )
+                                consis_loader_cfg = target_cfg.consis_dataloader_semantic.create_consis_config(
+                                    perturbed_dir=(pred_dir_path,),
+                                    unperturbed_dir=(none_pred_path,),
                                 )
 
                     elif meta_cfg.segmentation_mode == "instance":
@@ -409,6 +441,16 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+                            assert isinstance(
+                                target_cfg.consis_dataloader_instance,
+                                EvalDataloaderMetaConfig,
+                            )
+                            consis_loader_cfg = target_cfg.consis_dataloader_instance.create_consis_config(
+                                aug_name=aug_name,
+                                perturbed_path=(pred_dir_path,),
+                                unperturbed_path=(none_pred_path,),
+                                data_base_path=meta_cfg.data_base_path,
+                            )
                         elif (
                             target_cfg.eval_dataloader_instance.name
                             == "S_BIAD1410_Dataset"
@@ -419,6 +461,14 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+                            assert isinstance(
+                                target_cfg.consis_dataloader_instance,
+                                EvalSB1410DataloaderMetaConfig,
+                            )
+                            consis_loader_cfg = target_cfg.consis_dataloader_instance.create_consis_config(
+                                perturbed_paths=(pred_dir_path,),
+                                unperturbed_paths=(none_pred_path,),
+                            )
                         else:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
@@ -426,6 +476,24 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
+                            if (
+                                target_cfg.consis_dataloader_instance.name
+                                == "TIF_txt_Dataset"
+                            ):
+                                consis_loader_cfg = target_cfg.consis_dataloader_instance.create_consis_config(
+                                    perturbed_dir=(pred_dir_path,),
+                                    unperturbed_dir=(none_pred_path,),
+                                    data_base_path=meta_cfg.data_base_path,
+                                )
+                            else:
+                                assert isinstance(
+                                    target_cfg.consis_dataloader_instance,
+                                    Eval_TIF_DataloaderMetaConfig,
+                                )
+                                consis_loader_cfg = target_cfg.consis_dataloader_instance.create_consis_config(
+                                    perturbed_dir=(pred_dir_path,),
+                                    unperturbed_dir=(none_pred_path,),
+                                )
 
                     else:
                         assert_never(meta_cfg.segmentation_mode)
@@ -478,7 +546,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                         eval_dataloader=eval_loader_cfg,
                         eval_metric=eval_metric_cfg,
                         eval_save_key=save_name,
-                        consistency_dataloader=,
+                    )
+                    consis_cfg = ConsistencyConfig(
+                        consistency_dataloader=consis_loader_cfg,
                         consistency_metric=consis_metric_cfg,
                         consistency_settings=meta_cfg.consistency_settings,
                     )
@@ -492,6 +562,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                         {"predictor": predictor_cfg.model_dump()},
                         {"loaders": pred_loader_cfg.model_dump()},
                         {"evaluation": eval_cfg.model_dump()},
+                        {"consistency": consis_cfg.model_dump()},
                     ]
                     save_yaml(
                         yaml_order=yaml_dict_order,
