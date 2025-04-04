@@ -312,7 +312,6 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
         perturbed_paths: Sequence[str],
         unperturbed_paths: Sequence[str],
     ):
-
         return EvalDataloaderConfig(
             eval_dataset=SBIAD1410EvalDatasetConfig(
                 name=self.name,
