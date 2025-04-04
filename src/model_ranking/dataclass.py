@@ -540,19 +540,6 @@ class EvaluateConfig(BaseModel, frozen=True):
         Discriminator("name"),
     ]
     eval_save_key: str
-    consistency_dataloader: EvalDataloaderConfig
-    consistency_metric: Annotated[
-        Union[
-            DifferenceImageConfig,
-            EffectiveInvarianceConfig,
-            KLDivergenceConfig,
-            CrossEntropyConfig,
-            HammingDistanceConfig,
-            AdaptedRandErrorConfig,
-        ],
-        Discriminator("name"),
-    ]
-    consistency_settings: ConsistencyMetaConfig
 
 
 class ConsistencyConfig(BaseModel, frozen=True):
@@ -1189,7 +1176,7 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
             Discriminator("name"),
         ]
     ]
-    consistency_dataloader_instance: Optional[
+    consis_dataloader_instance: Optional[
         Annotated[
             Union[
                 Eval_TIF_TxtDataloaderMetaConfig,
@@ -1200,7 +1187,7 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
             Discriminator("name"),
         ]
     ]
-    consistency_dataloader_semantic: Optional[
+    consis_dataloader_semantic: Optional[
         Annotated[
             Union[
                 Eval_TIF_TxtDataloaderMetaConfig,
@@ -1334,7 +1321,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=50,
             instance_zero_background=False,
             mask_dir=None,
-            mask_key=None,
+            mask_key="segmentation",
             filenames_path="/BBBC039/test.txt",
             transformer={
                 "raw": [],
@@ -1427,13 +1414,51 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="HeLaNuc_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="segmentation",
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
     )
+    consis_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="HeLaNuc_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1512,13 +1537,51 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="Hoechst_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
     )
+    consis_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            name="Hoechst_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=80,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="segmentation",
+            batch_size=1,
+            num_workers=8,
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1599,13 +1662,53 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_semantic: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            filenames_path="/S-BIAD634/dataset/test.txt",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
     )
+    consis_dataloader_instance: Eval_TIF_TxtDataloaderMetaConfig = (
+        Eval_TIF_TxtDataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="TIF_txt_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=1,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="segmentation",
+            filenames_path="/S-BIAD634/dataset/test.txt",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1682,13 +1785,51 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
     )
+    consis_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="segmentation",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1774,13 +1915,51 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=1,
         num_workers=8,
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
     )
+    consis_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="segmentation",
+        gt_key="segmentation",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=1,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1883,13 +2062,65 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             num_workers=8,
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_semantic: EvalSB1410DataloaderMetaConfig = (
+        EvalSB1410DataloaderMetaConfig(
+            name="S_BIAD1410_Dataset",
+            eval=SBIAD1410PhaseMetaConfig(
+                mask_paths=None,
+                roi=None,
+                transformer={
+                    "raw": [],
+                    "label": [],
+                },
+                slice_builder=Pytorch3DUnetSliceBuilderConfig(
+                    name="SliceBuilder",
+                    patch_shape=(1, 256, 256),
+                    stride_shape=(1, 256, 256),
+                    halo_shape=(0, 32, 32),
+                ),
+            ),
+            global_normalization=False,
+            global_percentiles=None,
+            image_key="predictions",
+            mask_key=None,
+            instance_zero_background=False,
+            batch_size=1,
+            num_workers=8,
+        )
     )
+    consis_dataloader_instance: EvalSB1410DataloaderMetaConfig = (
+        EvalSB1410DataloaderMetaConfig(
+            name="S_BIAD1410_Dataset",
+            eval=SBIAD1410PhaseMetaConfig(
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                roi=None,
+                transformer={
+                    "raw": [{"name": "ToTensor", "expand_dims": True}],
+                    "label": [{"name": "ToTensor", "expand_dims": True}],
+                },
+                slice_builder=Pytorch3DUnetSliceBuilderConfig(
+                    name="SliceBuilder",
+                    patch_shape=(1, 256, 256),
+                    stride_shape=(1, 256, 256),
+                    halo_shape=(0, 32, 32),
+                ),
+            ),
+            global_normalization=False,
+            global_percentiles=None,
+            image_key="segmentation",
+            mask_key=None,
+            instance_zero_background=False,
+            batch_size=1,
+            num_workers=8,
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1971,13 +2202,51 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
+    consis_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="predictions",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="predictions",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
     )
+    consis_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="segmentation",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="segmentation",
+            transformer={
+                "raw": [],
+                "label": [],
+            },
+        )
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2064,13 +2333,51 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=1,
         num_workers=8,
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=[[50, 170]],
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
     )
+    consis_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="segmentation",
+        gt_key="segmentation",
+        patch_key="patch_index",
+        roi=[[50, 170]],
+        ignore_index=None,
+        ignore_path=None,
+        ignore_key=None,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
+        zero_largest_instance=False,
+        batch_size=1,
+        num_workers=8,
+    )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #     save_mask=True,
+    #     ignore_path=None,
+    #     ignore_key=None,
+    #     remove_background=False,
+    #     zero_largest_instance=False,
+    # )
 
 
 class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2129,13 +2436,33 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path="/g/kreshuk/talks/data/FlyWing/GT/test/per03.h5",
-        ignore_key="volumes/labels/ignore_per_patch",
-        remove_background=False,
+    consis_dataloader_semantic: None = None
+    consis_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="segmentation",
+        gt_key="segmentation",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        ignore_path="/FlyWing/GT/test/per03.h5",
+        ignore_key="volumes/labels/ignore",
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=True,
+        batch_size=32,
+        num_workers=8,
     )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path="/g/kreshuk/talks/data/FlyWing/GT/test/per03.h5",
+    #    ignore_key="volumes/labels/ignore_per_patch",
+    #    remove_background=False,
+    #    zero_largest_instance=True,
+    # )
 
 
 class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2194,13 +2521,33 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path="/g/kreshuk/talks/data/Ovules/GT2x/test/N_294_final_crop_ds2.h5",
-        ignore_key="ignore_per_patch",
-        remove_background=False,
+    consis_dataloader_semantic: None = None
+    consis_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="segmentation",
+        gt_key="segmentation",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
+        ignore_path="/Ovules/GT2x/test/N_294_final_crop_ds2.h5",
+        ignore_key="ignore_mask",
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=True,
+        batch_size=32,
+        num_workers=8,
     )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path="/g/kreshuk/talks/data/Ovules/GT2x/test/N_294_final_crop_ds2.h5",
+    #    ignore_key="ignore_per_patch",
+    #    remove_background=False,
+    #    zero_largest_instance=True,
+    # )
 
 
 class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2259,13 +2606,33 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: None = None
+    consis_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="segmentation",
+        gt_key="segmentation",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=50,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
     )
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path=None,
+    #    ignore_key=None,
+    #    remove_background=False,
+    #    zero_largest_instance=False,
+    # )
 
 
 class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2324,13 +2691,33 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     eval_dataloader_instance: None = None
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
     )
+    consis_dataloader_instance: None = None
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path=None,
+    #    ignore_key=None,
+    #    remove_background=False,
+    #    zero_largest_instance=False,
+    # )
 
 
 class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2389,13 +2776,33 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     eval_dataloader_instance: None = None
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
     )
+    consis_dataloader_instance: None = None
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path=None,
+    #    ignore_key=None,
+    #    remove_background=False,
+    #    zero_largest_instance=False,
+    # )
 
 
 class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2454,13 +2861,33 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     eval_dataloader_instance: None = None
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=False,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
     )
+    consis_dataloader_instance: None = None
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path=None,
+    #    ignore_key=None,
+    #    remove_background=False,
+    #    zero_largest_instance=False,
+    # )
 
 
 class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2519,13 +2946,33 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     eval_dataloader_instance: None = None
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
+    consis_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
+        name="StandardEvalDataset",
+        gt_path=None,
+        pred_key="predictions",
+        gt_key="predictions",
+        patch_key="patch_index",
+        roi=None,
+        ignore_index=None,
         ignore_path=None,
         ignore_key=None,
-        remove_background=False,
+        convert_to_boundary_label=False,
+        convert_to_binary_label=True,
+        min_object_size=None,
+        relabel_background=False,
+        instance_zero_background=False,
         zero_largest_instance=False,
+        batch_size=32,
+        num_workers=8,
     )
+    consis_dataloader_instance: None = None
+    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
+    #    save_mask=True,
+    #    ignore_path=None,
+    #    ignore_key=None,
+    #    remove_background=False,
+    #    zero_largest_instance=False,
+    # )
 
 
 class MetaConfig(BaseModel):
