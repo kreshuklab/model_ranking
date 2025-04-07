@@ -569,6 +569,8 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                         yaml_path=yaml_save_path,
                         overwrite=meta_cfg.overwrite_yaml,
                     )
+            # for yaml_paths at key transfer_title if path contains "none" then ensure it is at index zero
+            yaml_paths[transfer_title].sort(key=lambda x: 0 if "none" in str(x) else 1)
     return yaml_paths
 
 
