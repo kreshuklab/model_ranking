@@ -6,10 +6,11 @@ from pytorch3dunet.unet3d.config import (
 )
 from pytorch3dunet.predict import predict  # pyright: ignore[reportUnknownVariableType]
 
-from model_ranking.consistency import calc_segmentation_model_consistency
-from model_ranking.dataclass import EvaluateConfig
+from model_ranking.consistency import (
+    run_consistency_evaluation,
+)
+from model_ranking.dataclass import EvaluateConfig, ConsistencyConfig
 from model_ranking.evaluation import run_evaluation
-from model_ranking.utils import check_for_no_aug_configs
 from model_ranking.yaml_generators import generate_yaml
 
 
@@ -25,12 +26,11 @@ def main(
             eval_config = EvaluateConfig.model_validate(cfg["evaluation"])
             _ = run_evaluation(eval_config)
 
-        config_paths_with_NA = check_for_no_aug_configs(
-            source_dataset=transfer_title.split("_")[0],
-            target_dataset=transfer_title.split("_")[-1],
-            configs=config_paths,
-        )
-        calc_segmentation_model_consistency(config_paths_with_NA)
+            if "none" in str(config_path.stem):
+                print(f"Skipping consistency evaluation for {config_path.stem}")
+            else:
+                consis_config = ConsistencyConfig.model_validate(cfg["consistency"])
+                _, _ = run_consistency_evaluation(consis_config)
 
 
 if __name__ == "__main__":
