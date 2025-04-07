@@ -91,7 +91,7 @@ def run_evaluation(
             print(f"saving scores to {pred_path}")
             save_h5(
                 pred_path,
-                config_data.eval_save_key,
+                config_data.eval_metric.eval_save_key,
                 eval_scores[0][i],
                 overwrite=overwrite_score,
             )
@@ -101,7 +101,7 @@ def run_evaluation(
             print(f"saving scores to {path}")
             save_h5(
                 path,
-                config_data.eval_save_key,
+                config_data.eval_metric.eval_save_key,
                 scores,
                 overwrite=overwrite_score,
             )
