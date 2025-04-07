@@ -1,0 +1,27 @@
+from typing import Annotated
+import typer
+
+from pytorch3dunet.unet3d.config import (
+    load_config_direct,  # pyright: ignore[reportUnknownVariableType]
+)
+
+from model_ranking.dataclass import EvaluateConfig
+from model_ranking.evaluation import run_performance_evaluation
+from model_ranking.yaml_generators import generate_yaml
+
+
+def main(
+    config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
+):
+    run_config_paths = generate_yaml(config)
+
+    for transfer_title, config_paths in run_config_paths.items():
+        print(f"Running transfer {transfer_title}")
+        for config_path in config_paths:
+            cfg, _ = load_config_direct(config_path)
+            eval_config = EvaluateConfig.model_validate(cfg["evaluation"])
+            _ = run_performance_evaluation(eval_config)
+
+
+if __name__ == "__main__":
+    typer.run(main)
