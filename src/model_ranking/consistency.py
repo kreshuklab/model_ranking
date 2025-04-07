@@ -189,7 +189,7 @@ def run_consistency_evaluation(
                 save_h5(
                     pred_path,
                     f"consistency_mask_{config_data.consistency_settings.save_key}",
-                    consis_masks[0][i],
+                    consis_masks[0][i].squeeze(),
                 )
 
     else:
