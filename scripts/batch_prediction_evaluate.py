@@ -10,7 +10,7 @@ from model_ranking.consistency import (
     run_consistency_evaluation,
 )
 from model_ranking.dataclass import EvaluateConfig, ConsistencyConfig
-from model_ranking.evaluation import run_evaluation
+from model_ranking.evaluation import run_performance_evaluation
 from model_ranking.yaml_generators import generate_yaml
 
 
@@ -25,7 +25,7 @@ def main(
             cfg, _ = load_config_direct(config_path)
             predict(cfg)
             eval_config = EvaluateConfig.model_validate(cfg["evaluation"])
-            _ = run_evaluation(eval_config)
+            _ = run_performance_evaluation(eval_config)
 
             if "none" in str(config_path.stem):
                 print(f"Skipping consistency evaluation for {config_path.stem}")
