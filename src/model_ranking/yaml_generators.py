@@ -222,9 +222,9 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
     yaml_paths: Dict[str, List[Path]] = {}
     for source_model in meta_cfg.source_models:
         source_model_path = get_seg_model_path(
-            source_model.source_name,
-            source_model.model_name,
-            meta_cfg.segmentation_mode,
+            source_data=source_model.source_name,
+            model_name=source_model.model_name,
+            seg_mode=meta_cfg.segmentation_mode,
         )
         feat_pert_cfg = meta_cfg.feature_perturbations
         model_cfgs: Dict[str, Pytorch3DUnetModelConfig] = {}
