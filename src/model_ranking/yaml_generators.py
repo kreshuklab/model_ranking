@@ -545,7 +545,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                     eval_cfg = EvaluateConfig(
                         eval_dataloader=eval_loader_cfg,
                         eval_metric=eval_metric_cfg,
-                        eval_save_key=save_name,
+                        eval_save_key=meta_cfg.eval_save_key,
                     )
                     consis_cfg = ConsistencyConfig(
                         consistency_dataloader=consis_loader_cfg,
