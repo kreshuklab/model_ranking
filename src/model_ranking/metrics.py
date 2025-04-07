@@ -1,5 +1,5 @@
 import torch
-from typing import Optional, Any, Tuple
+from typing import Optional, Any, Tuple, Union
 import numpy as np
 from numpy.typing import NDArray
 from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
@@ -17,7 +17,7 @@ from skimage.metrics import (
 from pytorch3dunet.unet3d.metrics import (
     DiceCoefficient,
 )
-from model_ranking.utils import is_ndarray
+from model_ranking.utils import is_ndarray, avoid_int_overflow
 
 
 class MultiClassF1Eval:
@@ -96,11 +96,13 @@ class AdaptedRandErrorEval:
     def __call__(
         self, pred: NDArray[Any], gt: NDArray[Any]
     ) -> Tuple[NDArray[Any], NDArray[Any]]:
+        pred_converted = avoid_int_overflow(pred.astype(np.uint16), np.max(pred))
+        gt_converted = avoid_int_overflow(gt.astype(np.uint16), np.max(gt))
         # pred_converted = pred.cpu().numpy().astype("uint16")
         # gt_converted = gt.cpu().numpy().astype("uint16")
         metric_result, mask = adaRandError_eval(
-            pred,
-            gt,
+            pred_converted,
+            gt_converted,
             self.dataset_name,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
@@ -238,8 +240,8 @@ class HammingDistanceEval:
 
 
 def adaRandError_eval(
-    pred: NDArray[Any],
-    gt: NDArray[Any],
+    pred: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
+    gt: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
     dataset_name: str,
     num_dilations: Optional[int] = 1,
     num_erosions: Optional[int] = 1,
@@ -347,13 +349,7 @@ def assign_unique_ids_to_value(data: NDArray[Any], value: int = 0):
     max_val = np.max(data)
     max_id_assigned = max_val + np.sum(data == value) + 1
     # check for overflow error
-    if np.iinfo(data.dtype).max < max_id_assigned:
-        for dtype in [np.uint16, np.uint32, np.uint64]:
-            if np.iinfo(dtype).max >= max_id_assigned:
-                # incease dtype size by one
-                data = data.astype(dtype)
-                break
-        assert np.iinfo(data.dtype).max >= max_id_assigned, "Overflow error"
+    data = avoid_int_overflow(data, max_id_assigned)
     data[data == value] = np.arange(max_val + 1, max_id_assigned)
     return data
 
