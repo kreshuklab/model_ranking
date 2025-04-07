@@ -333,19 +333,6 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
         )
 
 
-# class EvalMetricConfig(BaseModel, frozen=True):
-#     name: Literal[
-#         "BinaryF1",
-#         "MultiClassF1",
-#         "SoftF1",
-#         "RandError",
-#         "AdaptedRandError",
-#         "MeanAvgPrecision",
-#     ]
-#     threshold: Optional[float]
-#     eval_parameters: Optional[Dict[str, Any]]
-
-
 class EvalMetricConfig(BaseModel, frozen=True):
     eval_save_key: str
     overwrite_score: bool
@@ -1193,12 +1180,9 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
         ]
     ]
 
-    # consistency: ConsistencyMetricMetaConfig
-
 
 class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["BBBC039"] = "BBBC039"
-    # name = "BBBC039"
     loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
         batch_size=2,
         num_workers=8,
@@ -1323,15 +1307,6 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    """
-    consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-        save_mask=True,
-        ignore_path=None,
-        ignore_key=None,
-        remove_background=False,
-        zero_largest_instance=False,
-    )
-    """
 
 
 class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1446,13 +1421,6 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1569,13 +1537,6 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1696,13 +1657,6 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1817,13 +1771,6 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1947,13 +1894,6 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=1,
         num_workers=8,
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2108,13 +2048,6 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             num_workers=8,
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2234,13 +2167,6 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2365,13 +2291,6 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=1,
         num_workers=8,
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #     save_mask=True,
-    #     ignore_path=None,
-    #     ignore_key=None,
-    #     remove_background=False,
-    #     zero_largest_instance=False,
-    # )
 
 
 class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2450,13 +2369,6 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path="/g/kreshuk/talks/data/FlyWing/GT/test/per03.h5",
-    #    ignore_key="volumes/labels/ignore_per_patch",
-    #    remove_background=False,
-    #    zero_largest_instance=True,
-    # )
 
 
 class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2535,13 +2447,6 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path="/g/kreshuk/talks/data/Ovules/GT2x/test/N_294_final_crop_ds2.h5",
-    #    ignore_key="ignore_per_patch",
-    #    remove_background=False,
-    #    zero_largest_instance=True,
-    # )
 
 
 class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2620,13 +2525,6 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path=None,
-    #    ignore_key=None,
-    #    remove_background=False,
-    #    zero_largest_instance=False,
-    # )
 
 
 class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2705,13 +2603,6 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path=None,
-    #    ignore_key=None,
-    #    remove_background=False,
-    #    zero_largest_instance=False,
-    # )
 
 
 class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2790,13 +2681,6 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path=None,
-    #    ignore_key=None,
-    #    remove_background=False,
-    #    zero_largest_instance=False,
-    # )
 
 
 class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2875,13 +2759,6 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path=None,
-    #    ignore_key=None,
-    #    remove_background=False,
-    #    zero_largest_instance=False,
-    # )
 
 
 class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2960,13 +2837,6 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
-    # consistency: ConsistencyMetricMetaConfig = ConsistencyMetricMetaConfig(
-    #    save_mask=True,
-    #    ignore_path=None,
-    #    ignore_key=None,
-    #    remove_background=False,
-    #    zero_largest_instance=False,
-    # )
 
 
 class MetaConfig(BaseModel):
@@ -3005,7 +2875,6 @@ class MetaConfig(BaseModel):
     data_base_path: str
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
-    # percentile_ranges: Dict[str, Optional[List[float]]]
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Optional[
         Annotated[
@@ -3019,7 +2888,6 @@ class MetaConfig(BaseModel):
             Discriminator("name"),
         ]
     ]
-    # eval_save_key: str
     consistency_settings: Optional[
         Annotated[
             Union[
@@ -3033,4 +2901,3 @@ class MetaConfig(BaseModel):
             Discriminator("name"),
         ]
     ]
-    # consistency_settings: ConsistencyMetaConfig
