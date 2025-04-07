@@ -78,7 +78,7 @@ def calc_consistency_score(
     config: ConsistencyConfig,
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     metric_cfg = config.consistency_metric
-    consis_cfg = config.consistency_settings
+    # consis_cfg = config.consistency_settings
     if metric_cfg.name == "AdaptedRandError":
         metric = metric_cfg.initialise_metric(
             dataset_name=dataloader.dataset.__class__.__name__
@@ -124,7 +124,7 @@ def calc_consistency_score(
 
         else:
             batch_consis_mask = get_mask(
-                unperturbed_pred, perturbed_pred, consis_cfg.mask_threshold
+                unperturbed_pred, perturbed_pred, metric_cfg.mask_threshold
             )
             if isinstance(metric, HammingDistanceEval):
                 batch_scores = metric(
@@ -181,14 +181,14 @@ def run_consistency_evaluation(
             print(f"saving scores to {pred_path}")
             save_h5(
                 pred_path,
-                config_data.consistency_settings.save_key,
+                config_data.consistency_metric.save_key,
                 consis_scores[0][i],
-                overwrite=config_data.consistency_settings.overwrite_score,
+                overwrite=config_data.consistency_metric.overwrite_score,
             )
-            if config_data.consistency_settings.save_mask:
+            if config_data.consistency_metric.save_mask:
                 save_h5(
                     pred_path,
-                    f"consistency_mask_{config_data.consistency_settings.save_key}",
+                    f"consistency_mask_{config_data.consistency_metric.save_key}",
                     consis_masks[0][i].squeeze(),
                 )
 
@@ -197,14 +197,14 @@ def run_consistency_evaluation(
             print(f"saving scores to {path}")
             save_h5(
                 path,
-                config_data.consistency_settings.save_key,
+                config_data.consistency_metric.save_key,
                 scores,
-                overwrite=config_data.consistency_settings.overwrite_score,
+                overwrite=config_data.consistency_metric.overwrite_score,
             )
-            if config_data.consistency_settings.save_mask:
+            if config_data.consistency_metric.save_mask:
                 save_h5(
                     path,
-                    f"consistency_mask_{config_data.consistency_settings.save_key}",
+                    f"consistency_mask_{config_data.consistency_metric.save_key}",
                     mask,
                 )
 

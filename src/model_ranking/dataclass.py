@@ -333,26 +333,21 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
         )
 
 
+# class EvalMetricConfig(BaseModel, frozen=True):
+#     name: Literal[
+#         "BinaryF1",
+#         "MultiClassF1",
+#         "SoftF1",
+#         "RandError",
+#         "AdaptedRandError",
+#         "MeanAvgPrecision",
+#     ]
+#     threshold: Optional[float]
+#     eval_parameters: Optional[Dict[str, Any]]
+
+
 class EvalMetricConfig(BaseModel, frozen=True):
-    name: Literal[
-        "BinaryF1",
-        "MultiClassF1",
-        "SoftF1",
-        "RandError",
-        "AdaptedRandError",
-        "MeanAvgPrecision",
-    ]
-    threshold: Optional[float]
-    eval_parameters: Optional[Dict[str, Any]]
-
-
-class AdaptedRandErrorConfig2(EvalMetricConfig, frozen=True):
-    name: Literal["AdaptedRandError"] = "AdaptedRandError"
-    threshold: Optional[float] = None
-    eval_parameters: Dict[str, Any] = {
-        "num_dilations": 1,
-        "num_erosions": 1,
-    }
+    eval_save_key: str
 
 
 class AdaptedRandErrorConfig(BaseModel, frozen=True):
@@ -374,16 +369,11 @@ class AdaptedRandErrorConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, 3), dtype=np.float32)
 
 
-class MeanAvgPrecisionConfig2(EvalMetricConfig, frozen=True):
-    name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
-    threshold: Optional[float] = None
-    eval_parameters: Dict[str, Any] = {
-        "iou_range": [0.5, 0.95, 10],
-        "min_instance_size": None,
-    }
+class AdaptedRandErrorEvalConfig(AdaptedRandErrorConfig, EvalMetricConfig, frozen=True):
+    pass
 
 
-class MeanAvgPrecisionConfig(BaseModel, frozen=True):
+class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
     name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
     iou_range: Optional[List[float]] = [0.5, 0.95, 10]
     min_instance_size: Optional[int] = None
@@ -398,7 +388,7 @@ class MeanAvgPrecisionConfig(BaseModel, frozen=True):
         return torch.zeros(num_samples, dtype=torch.float32)
 
 
-class MultiClassF1Config(BaseModel, frozen=True):
+class MultiClassF1Config(EvalMetricConfig, frozen=True):
     name: Literal["MultiClassF1"] = "MultiClassF1"
     threshold: float = 0.5
 
@@ -411,7 +401,7 @@ class MultiClassF1Config(BaseModel, frozen=True):
         return torch.zeros((num_samples, 2), dtype=torch.float32)
 
 
-class BinaryF1Config(BaseModel, frozen=True):
+class BinaryF1Config(EvalMetricConfig, frozen=True):
     name: Literal["BinaryF1"] = "BinaryF1"
     threshold: float = 0.5
 
@@ -424,7 +414,7 @@ class BinaryF1Config(BaseModel, frozen=True):
         return torch.zeros(num_samples, dtype=torch.float32)
 
 
-class SoftF1Config(BaseModel, frozen=True):
+class SoftF1Config(EvalMetricConfig, frozen=True):
     name: Literal["SoftF1"] = "SoftF1"
 
     def initialise_metric(self) -> SoftF1Eval:
@@ -434,7 +424,13 @@ class SoftF1Config(BaseModel, frozen=True):
         return torch.zeros(num_samples, dtype=torch.float32)
 
 
-class DifferenceImageConfig(BaseModel, frozen=True):
+class AdaptedRandErrorConsisConfig(
+    AdaptedRandErrorConfig, ConsistencyMetaConfig, frozen=True
+):
+    pass
+
+
+class DifferenceImageConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["Diff"] = "Diff"
     diff_alpha: float = 1
 
@@ -449,7 +445,7 @@ class DifferenceImageConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
-class EffectiveInvarianceConfig(BaseModel, frozen=True):
+class EffectiveInvarianceConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["EI"] = "EI"
     threshold: float = 0.5
 
@@ -464,7 +460,7 @@ class EffectiveInvarianceConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
-class EntropyConfig(BaseModel, frozen=True):
+class EntropyConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["Entropy"] = "Entropy"
     entr_base: int = 2
 
@@ -479,7 +475,7 @@ class EntropyConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
-class KLDivergenceConfig(BaseModel, frozen=True):
+class KLDivergenceConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["KL-Divergence"] = "KL-Divergence"
     eps: float = 1e-7
     entr_base: int = 2
@@ -496,7 +492,7 @@ class KLDivergenceConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
-class CrossEntropyConfig(BaseModel, frozen=True):
+class CrossEntropyConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["Cross-Entropy"] = "Cross-Entropy"
     eps: float = 1e-7
     entr_base: int = 2
@@ -513,7 +509,7 @@ class CrossEntropyConfig(BaseModel, frozen=True):
         return np.zeros((num_samples, *sample_shape), dtype=np.float32)
 
 
-class HammingDistanceConfig(BaseModel, frozen=True):
+class HammingDistanceConfig(ConsistencyMetaConfig, frozen=True):
     name: Literal["Hamming-Distance"] = "Hamming-Distance"
     threshold: float = 0.5
 
@@ -533,12 +529,11 @@ class EvaluateConfig(BaseModel, frozen=True):
             MultiClassF1Config,
             BinaryF1Config,
             SoftF1Config,
-            AdaptedRandErrorConfig,
+            AdaptedRandErrorEvalConfig,
             MeanAvgPrecisionConfig,
         ],
         Discriminator("name"),
     ]
-    eval_save_key: str
 
 
 class ConsistencyConfig(BaseModel, frozen=True):
@@ -550,11 +545,10 @@ class ConsistencyConfig(BaseModel, frozen=True):
             KLDivergenceConfig,
             CrossEntropyConfig,
             HammingDistanceConfig,
-            AdaptedRandErrorConfig,
+            AdaptedRandErrorConsisConfig,
         ],
         Discriminator("name"),
     ]
-    consistency_settings: ConsistencyMetaConfig
 
 
 class WandbConfig(BaseModel):
@@ -3013,7 +3007,7 @@ class MetaConfig(BaseModel):
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Annotated[
         Union[
-            AdaptedRandErrorConfig,
+            AdaptedRandErrorEvalConfig,
             MeanAvgPrecisionConfig,
             MultiClassF1Config,
             BinaryF1Config,
@@ -3021,16 +3015,16 @@ class MetaConfig(BaseModel):
         ],
         Discriminator("name"),
     ]
-    eval_save_key: str
-    consistency_metric: Annotated[
+    # eval_save_key: str
+    consistency_settings: Annotated[
         Union[
             DifferenceImageConfig,
             EffectiveInvarianceConfig,
             KLDivergenceConfig,
             CrossEntropyConfig,
             HammingDistanceConfig,
-            AdaptedRandErrorConfig,
+            AdaptedRandErrorConsisConfig,
         ],
         Discriminator("name"),
     ]
-    consistency_settings: ConsistencyMetaConfig
+    # consistency_settings: ConsistencyMetaConfig
