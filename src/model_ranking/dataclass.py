@@ -348,6 +348,7 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
 
 class EvalMetricConfig(BaseModel, frozen=True):
     eval_save_key: str
+    overwrite_score: bool
 
 
 class AdaptedRandErrorConfig(BaseModel, frozen=True):

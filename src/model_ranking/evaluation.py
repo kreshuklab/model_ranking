@@ -52,7 +52,7 @@ def get_evaluation_loaders(config: EvalDataloaderConfig):
 
 
 def run_evaluation(
-    config_data: EvaluateConfig, overwrite_score: bool = False
+    config_data: EvaluateConfig,
 ) -> List[NDArray[Any]]:
     # dataloader = get_evaluation_loaders(config_data.eval_dataloader)
     # check is cuda available
@@ -93,7 +93,7 @@ def run_evaluation(
                 pred_path,
                 config_data.eval_metric.eval_save_key,
                 eval_scores[0][i],
-                overwrite=overwrite_score,
+                overwrite=config_data.eval_metric.overwrite_score,
             )
 
     else:
@@ -103,7 +103,7 @@ def run_evaluation(
                 path,
                 config_data.eval_metric.eval_save_key,
                 scores,
-                overwrite=overwrite_score,
+                overwrite=config_data.eval_metric.overwrite_score,
             )
 
     return eval_scores
