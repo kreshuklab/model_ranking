@@ -185,9 +185,15 @@ def run_consistency_evaluation(
                 consis_scores[0][i],
                 overwrite=config_data.consistency_settings.overwrite_score,
             )
+            if config_data.consistency_settings.save_mask:
+                save_h5(
+                    pred_path,
+                    f"consistency_mask_{config_data.consistency_settings.save_key}",
+                    consis_masks[0][i],
+                )
 
     else:
-        for path, scores in zip(paths, consis_scores):
+        for path, scores, mask in zip(paths, consis_scores, consis_masks):
             print(f"saving scores to {path}")
             save_h5(
                 path,
@@ -195,8 +201,14 @@ def run_consistency_evaluation(
                 scores,
                 overwrite=config_data.consistency_settings.overwrite_score,
             )
+            if config_data.consistency_settings.save_mask:
+                save_h5(
+                    path,
+                    f"consistency_mask_{config_data.consistency_settings.save_key}",
+                    mask,
+                )
 
-    return consis_scores
+    return consis_scores, consis_masks
 
 
 def calc_segmentation_model_consistency(paths: List[Path]):
