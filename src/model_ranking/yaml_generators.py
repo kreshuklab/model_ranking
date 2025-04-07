@@ -540,17 +540,15 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
 
                     eval_metric_cfg = meta_cfg.eval_settings
 
-                    consis_metric_cfg = meta_cfg.consistency_metric
+                    consis_metric_cfg = meta_cfg.consistency_settings
 
                     eval_cfg = EvaluateConfig(
                         eval_dataloader=eval_loader_cfg,
                         eval_metric=eval_metric_cfg,
-                        eval_save_key=meta_cfg.eval_save_key,
                     )
                     consis_cfg = ConsistencyConfig(
                         consistency_dataloader=consis_loader_cfg,
                         consistency_metric=consis_metric_cfg,
-                        consistency_settings=meta_cfg.consistency_settings,
                     )
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
                     yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
