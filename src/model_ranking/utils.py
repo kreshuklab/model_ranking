@@ -2,6 +2,8 @@ import os
 import fnmatch
 from typing import Optional, List, Sequence, Any, TypeGuard, Union
 from pathlib import Path
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
@@ -124,3 +126,43 @@ def extract_filename(
     match = re.match(pattern, filename)
     if match:
         return match.group(1)
+
+
+def avoid_int_overflow(
+    data: NDArray[Union[np.uint16, np.uint32, np.uint64]], max_value: int
+) -> NDArray[Union[np.uint16, np.uint32, np.uint64]]:
+    # check for overflow error
+    if np.iinfo(data.dtype).max < max_value:
+        for dtype in [np.uint16, np.uint32, np.uint64]:
+            if np.iinfo(dtype).max >= max_value:
+                # incease dtype size by one
+                data = data.astype(dtype)
+                break
+        assert np.iinfo(data.dtype).max >= max_value, "Overflow error"
+    return data
+
+
+def generate_distinct_colors(n: int):
+    hsv: Any = (  # pyright: ignore[reportUnknownVariableType]
+        plt.cm.hsv  # pyright: ignore[reportAttributeAccessIssue]
+    )
+    hues = np.linspace(0, 1, n, endpoint=False)
+    np.random.shuffle(hues)
+    colors: List[Any] = [hsv(hue) for hue in hues]
+    return colors
+
+
+def get_unique_colourmap(data: NDArray[Any]) -> ListedColormap:
+    """Generate a colormap with distinct colors for each unique value in the input data
+
+    Args:
+        data (np.ndarray): Input data
+
+    Returns:
+        ListedColormap: colourmap
+    """
+    num_unique_values = len(np.unique(data))
+    colors = generate_distinct_colors(num_unique_values)
+    colors[0] = (0, 0, 0, 1)  # Set the background color to black
+    # Create a custom colormap
+    return ListedColormap(colors)
