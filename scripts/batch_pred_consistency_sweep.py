@@ -20,6 +20,7 @@ def main(
     run_config_paths = generate_yaml(config)
 
     for transfer_title, config_paths in run_config_paths.items():
+        print(f"Running transfer {transfer_title}")
         for config_path in config_paths:
             cfg, _ = load_config_direct(config_path)
             predict(cfg)
