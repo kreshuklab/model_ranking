@@ -538,21 +538,27 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                     else:
                         assert_never(pred_loader.dataset)
 
-                    eval_metric_cfg = meta_cfg.eval_settings
-
-                    consis_metric_cfg = meta_cfg.consistency_settings
-
-                    eval_cfg = EvaluateConfig(
-                        eval_dataloader=eval_loader_cfg,
-                        eval_metric=eval_metric_cfg,
-                    )
-                    consis_cfg = ConsistencyConfig(
-                        consistency_dataloader=consis_loader_cfg,
-                        consistency_metric=consis_metric_cfg,
-                    )
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
 
                     if meta_cfg.run_mode == "full":
+                        assert (
+                            meta_cfg.eval_settings is not None
+                        ), "Eval settings cannot be None for run mode {meta_cfg.run_mode}"
+                        assert (
+                            meta_cfg.consistency_settings is not None
+                        ), "Consistency settings cannot be None for run mode {meta_cfg.run_mode}"
+                        eval_metric_cfg = meta_cfg.eval_settings
+
+                        consis_metric_cfg = meta_cfg.consistency_settings
+
+                        eval_cfg = EvaluateConfig(
+                            eval_dataloader=eval_loader_cfg,
+                            eval_metric=eval_metric_cfg,
+                        )
+                        consis_cfg = ConsistencyConfig(
+                            consistency_dataloader=consis_loader_cfg,
+                            consistency_metric=consis_metric_cfg,
+                        )
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
 
                         yaml_dict_order = [
@@ -565,6 +571,16 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             {"consistency": consis_cfg.model_dump()},
                         ]
                     elif meta_cfg.run_mode == "consistency":
+                        assert (
+                            meta_cfg.consistency_settings is not None
+                        ), "Consistency settings cannot be None for run mode {meta_cfg.run_mode}"
+
+                        consis_metric_cfg = meta_cfg.consistency_settings
+
+                        consis_cfg = ConsistencyConfig(
+                            consistency_dataloader=consis_loader_cfg,
+                            consistency_metric=consis_metric_cfg,
+                        )
                         yaml_save_path = (
                             Path(yaml_dir_path)
                             / f"{save_name}_{consis_cfg.consistency_metric.save_key}.yml"
@@ -573,9 +589,19 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             {"consistency": consis_cfg.model_dump()},
                         ]
                     elif meta_cfg.run_mode == "evaluation":
+                        assert (
+                            meta_cfg.eval_settings is not None
+                        ), "Eval settings cannot be None for run mode {meta_cfg.run_mode}"
+                        eval_metric_cfg = meta_cfg.eval_settings
+
+                        eval_cfg = EvaluateConfig(
+                            eval_dataloader=eval_loader_cfg,
+                            eval_metric=eval_metric_cfg,
+                        )
+
                         yaml_save_path = (
                             Path(yaml_dir_path)
-                            / f"{save_name}_{eval_cfg.eval_metric.eval_save_key}.yml"
+                            / f"{save_name}_{eval_cfg.eval_metric.eval_save_key}_eval.yml"
                         )
                         yaml_dict_order = [
                             {"evaluation": eval_cfg.model_dump()},
