@@ -4,9 +4,8 @@ from model_ranking.consistency import (
     run_consistency_evaluation,
 )
 from model_ranking.dataclass import (
-    AdaptedRandErrorConfig,
+    AdaptedRandErrorConsisConfig,
     ConsistencyConfig,
-    ConsistencyMetaConfig,
     # Eval_TIF_TxtDataloaderMetaConfig,
     BBBC039TargetConfig,
 )
@@ -25,8 +24,7 @@ dataloader_config = BBBC039TargetConfig.model_fields[
 
 consis_config = ConsistencyConfig(
     consistency_dataloader=dataloader_config,
-    consistency_metric=AdaptedRandErrorConfig(),
-    consistency_settings=ConsistencyMetaConfig(
+    consistency_metric=AdaptedRandErrorConsisConfig(
         save_key="ARE_score",
         save_mask=True,
         mask_threshold=0.5,
