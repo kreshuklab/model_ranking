@@ -39,7 +39,7 @@ def get_evaluation_loaders(config: EvalDataloaderConfig):
         )
 
 
-def run_evaluation(
+def run_performance_evaluation(
     config_data: EvaluateConfig,
 ) -> List[NDArray[Any]]:
     # dataloader = get_evaluation_loaders(config_data.eval_dataloader)
