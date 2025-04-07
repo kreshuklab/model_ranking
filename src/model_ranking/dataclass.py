@@ -3007,26 +3007,30 @@ class MetaConfig(BaseModel):
     output_settings: OutputSettingsConfig
     # percentile_ranges: Dict[str, Optional[List[float]]]
     input_augs: Dict[str, List[Tuple[float, float]]]
-    eval_settings: Annotated[
-        Union[
-            AdaptedRandErrorEvalConfig,
-            MeanAvgPrecisionConfig,
-            MultiClassF1Config,
-            BinaryF1Config,
-            SoftF1Config,
-        ],
-        Discriminator("name"),
+    eval_settings: Optional[
+        Annotated[
+            Union[
+                AdaptedRandErrorEvalConfig,
+                MeanAvgPrecisionConfig,
+                MultiClassF1Config,
+                BinaryF1Config,
+                SoftF1Config,
+            ],
+            Discriminator("name"),
+        ]
     ]
     # eval_save_key: str
-    consistency_settings: Annotated[
-        Union[
-            DifferenceImageConfig,
-            EffectiveInvarianceConfig,
-            KLDivergenceConfig,
-            CrossEntropyConfig,
-            HammingDistanceConfig,
-            AdaptedRandErrorConsisConfig,
-        ],
-        Discriminator("name"),
+    consistency_settings: Optional[
+        Annotated[
+            Union[
+                DifferenceImageConfig,
+                EffectiveInvarianceConfig,
+                KLDivergenceConfig,
+                CrossEntropyConfig,
+                HammingDistanceConfig,
+                AdaptedRandErrorConsisConfig,
+            ],
+            Discriminator("name"),
+        ]
     ]
     # consistency_settings: ConsistencyMetaConfig
