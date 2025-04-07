@@ -3000,6 +3000,7 @@ class MetaConfig(BaseModel):
         ]
     ]
     segmentation_mode: Literal["instance", "semantic"]
+    run_mode: Literal["full", "evaluation", "consistency"]
     overwrite_yaml: bool
     data_base_path: str
     feature_perturbations: FeaturePerturbationConfig
