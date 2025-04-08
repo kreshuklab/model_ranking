@@ -1,11 +1,12 @@
 import os
 import fnmatch
-from typing import Optional, List, Sequence, Any, TypeGuard, Union
+from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
 import h5py  # pyright: ignore[reportMissingTypeStubs]
+from h5py import File  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import re
 
@@ -100,34 +101,6 @@ def check_for_no_aug_configs(
     return configs_with_NA
 
 
-def extract_filename(
-    pred_path: Union[Path, str],
-    suffix_names: List[str] = [
-        "brt",
-        "ctr",
-        "gamma",
-        "gauss",
-        "none",
-        "predictions",
-        "DO",
-        "FN",
-        "FD",
-    ],
-) -> Optional[str]:
-    if isinstance(pred_path, str):
-        pred_path = Path(pred_path)
-    filename = pred_path.stem
-    # Create a regex pattern dynamically based on the aug_titles
-    aug_pattern = "|".join(
-        map(re.escape, suffix_names)
-    )  # Escape to handle special characters
-    pattern = rf"^(.*)_(?:{aug_pattern})(?:_.+)?$"
-
-    match = re.match(pattern, filename)
-    if match:
-        return match.group(1)
-
-
 def avoid_int_overflow(
     data: NDArray[Union[np.uint16, np.uint32, np.uint64]], max_value: int
 ) -> NDArray[Union[np.uint16, np.uint32, np.uint64]]:
@@ -156,7 +129,7 @@ def get_unique_colourmap(data: NDArray[Any]) -> ListedColormap:
     """Generate a colormap with distinct colors for each unique value in the input data
 
     Args:
-        data (np.ndarray): Input data
+        data (NDArray[Any]): Input data
 
     Returns:
         ListedColormap: colourmap
@@ -166,3 +139,104 @@ def get_unique_colourmap(data: NDArray[Any]) -> ListedColormap:
     colors[0] = (0, 0, 0, 1)  # Set the background color to black
     # Create a custom colormap
     return ListedColormap(colors)
+
+
+def find_transfer_from_pred_path(pred_path: str) -> str:
+    match = re.search(r"/([^/]*_to_[^/]*)/", pred_path)
+    if match:
+        substring = match.group(1)
+        if "_gap" in substring:
+            # remove the "_gap" suffix
+            substring = "_".join(substring.split("_")[:-1])
+    else:
+        substring = ""
+
+    return substring
+
+
+def threshold_patch_foreground_ratio(
+    patches: NDArray[Any], gt: NDArray[Any], threshold: float
+) -> Tuple[List[int], List[int]]:
+    """Threshold patches based on foreground ratio in ground truth.
+    saving patch id of all patches above and below threhold seperately
+
+    Args:
+        patches (NDArray[Any]): patch_locations
+        gt (NDArray[Any]): GT Volume
+        threshold (float): foreground ratio threshold
+
+    Returns:
+        Tuple[List[int], List[int]]: patch ids above and below threshold respectively
+    """
+    if np.min(gt) > 0:
+        print("Ground truth background not 0. Relabelling to 0")
+        gt = _relabel(gt)
+
+    above_th_ids: List[int] = []
+    below_th_ids: List[int] = []
+    for i, patch in enumerate(patches):
+        patch_slice = get_roi_slice(patch)
+        foreground_ratio = np.sum(gt[patch_slice] > 0) / np.prod(gt[patch_slice].shape)
+        if foreground_ratio > threshold:
+            above_th_ids.append(i)
+        else:
+            below_th_ids.append(i)
+    return above_th_ids, below_th_ids
+
+
+def _relabel(input: NDArray[Any]) -> NDArray[Any]:
+    _, unique_labels = np.unique(input, return_inverse=True)
+    return unique_labels.reshape(input.shape)
+
+
+def extract_filename(
+    pred_path: Union[Path, str],
+    suffix_names: List[str] = [
+        "brt",
+        "ctr",
+        "gamma",
+        "gauss",
+        "none",
+        "predictions",
+        "DO",
+        "FN",
+        "FD",
+    ],
+) -> Optional[str]:
+    if isinstance(pred_path, str):
+        pred_path = Path(pred_path)
+    filename = pred_path.stem
+    # Create a regex pattern dynamically based on the aug_titles
+    aug_pattern = "|".join(
+        map(re.escape, suffix_names)
+    )  # Escape to handle special characters
+    pattern = rf"^(.*)_(?:{aug_pattern})(?:_.+)?$"
+
+    match = re.match(pattern, filename)
+    if match:
+        return match.group(1)
+    return None
+
+
+def create_h5_dataset(
+    file: File, key: str, data: NDArray[Any], overwrite: bool
+) -> None:
+    if key in file.keys():
+        print(f"Key {key} already exists in file")
+        if overwrite == True:
+            print(f"Overwriting {key} in file")
+            del file[key]
+            _ = file.create_dataset(key, data=data)
+    else:
+        _ = file.create_dataset(key, data=data)
+
+
+def load_select_prediction_scores(
+    path: Path,
+    score_save_key: str,
+    select_patches: Optional[NDArray[Any]] = None,
+) -> NDArray[Any]:
+    scores = load_h5(path, score_save_key)
+    if select_patches is not None:
+        scores = scores[select_patches]
+    return scores
