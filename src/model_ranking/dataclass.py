@@ -1089,6 +1089,24 @@ class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
         )
 
 
+class ForegroundFilterConfig(BaseModel):
+    name: Literal["ForegroundFilter"]
+    foreground_threshold: float
+    gt_dir_path: str
+    gt_key: Optional[str]
+    roi: Optional[Sequence[Sequence[int]]]
+
+    def create_config(self, data_base_path: str):
+        gt_dir_path = data_base_path + self.gt_dir_path
+        return ForegroundFilterConfig(
+            name=self.name,
+            foreground_threshold=self.foreground_threshold,
+            gt_dir_path=gt_dir_path,
+            gt_key=self.gt_key,
+            roi=self.roi,
+        )
+
+
 class TargetDatasetConfigBase(BaseModel, frozen=True):
     name: Literal[
         "BBBC039",
@@ -1179,6 +1197,8 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
             Discriminator("name"),
         ]
     ]
+
+    filter_results: Optional[ForegroundFilterConfig]
 
 
 class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1307,6 +1327,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1421,6 +1442,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1537,6 +1559,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1657,6 +1680,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1771,6 +1795,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -1893,6 +1918,13 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         zero_largest_instance=False,
         batch_size=1,
         num_workers=8,
+    )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0,
+        gt_dir_path="/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/",
+        gt_key="label",
+        roi=None,
     )
 
 
@@ -2048,6 +2080,13 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             num_workers=8,
         )
     )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.01,
+        gt_dir_path="/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/",
+        gt_key=None,
+        roi=None,
+    )
 
 
 class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2167,6 +2206,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             },
         )
     )
+    filter_results: None = None
 
 
 class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2291,6 +2331,13 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=1,
         num_workers=8,
     )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.05,
+        gt_dir_path="/Go-Nuclear/3d_all_in_one/",
+        gt_key="label/gold",
+        roi=[[50, 170]],
+    )
 
 
 class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2368,6 +2415,13 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         zero_largest_instance=True,
         batch_size=32,
         num_workers=8,
+    )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.01,
+        gt_dir_path="/FlyWing/GT/test/",
+        gt_key="volumes/labels/cells",
+        roi=None,
     )
 
 
@@ -2447,6 +2501,13 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
     )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.3,
+        gt_dir_path="/Ovules/GT2x/test/",
+        gt_key="label",
+        roi=None,
+    )
 
 
 class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2524,6 +2585,13 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         zero_largest_instance=False,
         batch_size=32,
         num_workers=8,
+    )
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.3,
+        gt_dir_path="/PNAS/test/",
+        gt_key="label",
+        roi=None,
     )
 
 
@@ -2603,6 +2671,13 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.02,
+        gt_dir_path="/EPFL/",
+        gt_key="labels",
+        roi=None,
+    )
 
 
 class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2681,6 +2756,13 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.1,
+        gt_dir_path="/Hmito/",
+        gt_key="labels",
+        roi=None,
+    )
 
 
 class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2759,6 +2841,13 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.1,
+        gt_dir_path="/Rmito/",
+        gt_key="labels",
+        roi=None,
+    )
 
 
 class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
@@ -2837,6 +2926,18 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
     )
     consis_dataloader_instance: None = None
+    filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
+        name="ForegroundFilter",
+        foreground_threshold=0.02,
+        gt_dir_path="/VNC/",
+        gt_key="labels",
+        roi=None,
+    )
+
+
+class SaveResultsMetaConfig(BaseModel):
+    overwrite_scores: bool
+    save_select_patches: bool
 
 
 class MetaConfig(BaseModel):
@@ -2871,6 +2972,7 @@ class MetaConfig(BaseModel):
     ]
     segmentation_mode: Literal["instance", "semantic"]
     run_mode: Literal["full", "evaluation", "consistency"]
+    save_results: SaveResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
     feature_perturbations: FeaturePerturbationConfig
@@ -2901,3 +3003,47 @@ class MetaConfig(BaseModel):
             Discriminator("name"),
         ]
     ]
+
+
+class SaveResultsConfig(BaseModel):
+    filter_patches: Optional[ForegroundFilterConfig]
+    output_path: str
+    eval_key: Optional[str]
+    consis_key: Optional[str]
+    overwrite_scores: bool
+    save_select_patches: bool
+
+
+class ConfigFull(BaseModel):
+    wandb: WandbConfig
+    model_path: str
+    save_results: SaveResultsConfig
+    model: Pytorch3DUnetModelConfig
+    predictor: Annotated[
+        Union[
+            Pytorch3DUnetPredictorMetaConfig,
+            TIFNucleiSemanticPredictorConfig,
+        ],
+        Discriminator("name"),
+    ]
+    loaders: Annotated[
+        Union[
+            Pytorch3DUnetLoaderMetaConfig,
+            TIFLoaderMetaConfig,
+            TIFtxtLoaderMetaConfig,
+            SBIAD1410LoaderMetaConfig,
+        ],
+        Discriminator("dataset"),
+    ]
+    evaluation: EvaluateConfig
+    consistency: ConsistencyConfig
+
+
+class ConfigEvaluation(BaseModel):
+    save_results: SaveResultsConfig
+    evaluation: EvaluateConfig
+
+
+class ConfigConsistency(BaseModel):
+    save_results: SaveResultsConfig
+    consistency: ConsistencyConfig
