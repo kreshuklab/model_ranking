@@ -1,6 +1,5 @@
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Sequence
 from pathlib import Path
-from torch import Sequence
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 from numpy.typing import NDArray
@@ -25,16 +24,20 @@ from model_ranking.utils import (
 
 def run_foreground_patch_selection(
     config: SaveResultsConfig,
-) -> None:
+) -> Dict[str, NDArray[Any]]:
     filter_cfg = config.filter_patches
     assert isinstance(filter_cfg, ForegroundFilterConfig)
     pred_paths = sorted(Path(config.output_path).glob("*.h5"))
+    selected_patches: Dict[str, NDArray[Any]] = {}
     for pred_path in pred_paths:
         transfer = find_transfer_from_pred_path(str(pred_path))
         target = transfer.split("_to_")[-1]
         filename = extract_filename(pred_path)
+        assert filename is not None, "filename not found in pred_path"
         if target == "S_BIAD1410":
-            gt_path = list(Path(filter_cfg.gt_dir_path).glob(f"*{filename}*mask.tif"))
+            gt_path = list(
+                Path(filter_cfg.gt_dir_path).rglob(f"{filename}/*{filename}*mask.tif")
+            )
         else:
             gt_path = list(Path(filter_cfg.gt_dir_path).glob(f"*{filename}*.h5"))
         assert len(gt_path) == 1, f"Found {len(gt_path)} files for {filename}"
@@ -46,12 +49,15 @@ def run_foreground_patch_selection(
             gt_key=filter_cfg.gt_key,
             gt_threshold=filter_cfg.foreground_threshold,
         )
-        save_h5(
-            pred_path,
-            f"foreground_patches_th{str(filter_cfg.foreground_threshold).replace('.', '')}",
-            select_patches,
-            overwrite=True,
-        )
+        if filter_cfg.save_selection:
+            save_h5(
+                pred_path,
+                f"foreground_patches_th{str(filter_cfg.foreground_threshold).replace('.', '')}",
+                select_patches,
+                overwrite=True,
+            )
+        selected_patches[filename] = select_patches
+    return selected_patches
 
 
 def select_foreground_patches(

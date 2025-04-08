@@ -1095,6 +1095,7 @@ class ForegroundFilterConfig(BaseModel):
     gt_dir_path: str
     gt_key: Optional[str]
     roi: Optional[Sequence[Sequence[int]]]
+    save_selection: bool
 
     def create_config(self, data_base_path: str):
         gt_dir_path = data_base_path + self.gt_dir_path
@@ -1104,6 +1105,7 @@ class ForegroundFilterConfig(BaseModel):
             gt_dir_path=gt_dir_path,
             gt_key=self.gt_key,
             roi=self.roi,
+            save_selection=self.save_selection,
         )
 
 
@@ -1925,6 +1927,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/",
         gt_key="label",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2086,6 +2089,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/",
         gt_key=None,
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2337,6 +2341,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/Go-Nuclear/3d_all_in_one/",
         gt_key="label/gold",
         roi=[[50, 170]],
+        save_selection=True,
     )
 
 
@@ -2422,6 +2427,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/FlyWing/GT/test/",
         gt_key="volumes/labels/cells",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2507,6 +2513,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/Ovules/GT2x/test/",
         gt_key="label",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2592,6 +2599,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/PNAS/test/",
         gt_key="label",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2677,6 +2685,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/EPFL/",
         gt_key="labels",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2762,6 +2771,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/Hmito/",
         gt_key="labels",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2847,6 +2857,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/Rmito/",
         gt_key="labels",
         roi=None,
+        save_selection=True,
     )
 
 
@@ -2932,6 +2943,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_dir_path="/VNC/",
         gt_key="labels",
         roi=None,
+        save_selection=True,
     )
 
 
