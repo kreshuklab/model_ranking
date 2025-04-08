@@ -2961,7 +2961,6 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
 
 class SummaryResultsMetaConfig(BaseModel):
     overwrite_scores: bool
-    save_select_patches: bool
 
 
 class MetaConfig(BaseModel):
@@ -2996,7 +2995,7 @@ class MetaConfig(BaseModel):
     ]
     segmentation_mode: Literal["instance", "semantic"]
     run_mode: Literal["full", "evaluation", "consistency"]
-    save_results: SummaryResultsMetaConfig
+    summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
     feature_perturbations: FeaturePerturbationConfig
@@ -3035,7 +3034,6 @@ class SummaryResultsConfig(BaseModel):
     eval_key: Optional[str]
     consis_key: Optional[str]
     overwrite_scores: bool
-    save_select_patches: bool
 
 
 class ConfigFull(BaseModel):

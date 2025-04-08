@@ -572,8 +572,8 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             output_path=pred_dir_path,
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=consis_cfg.consistency_metric.save_key,
-                            overwrite_scores=meta_cfg.save_results.overwrite_scores,
-                            save_select_patches=meta_cfg.save_results.save_select_patches,
+                            overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
 
@@ -603,8 +603,8 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             output_path=pred_dir_path,
                             eval_key=None,
                             consis_key=consis_cfg.consistency_metric.save_key,
-                            overwrite_scores=meta_cfg.save_results.overwrite_scores,
-                            save_select_patches=meta_cfg.save_results.save_select_patches,
+                            overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
                         yaml_save_path = (
                             Path(yaml_dir_path)
@@ -630,8 +630,8 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             output_path=pred_dir_path,
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=None,
-                            overwrite_scores=meta_cfg.save_results.overwrite_scores,
-                            save_select_patches=meta_cfg.save_results.save_select_patches,
+                            overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            # save_select_patches=meta_cfg.summary_results.save_select_patches,
                         )
 
                         yaml_save_path = (

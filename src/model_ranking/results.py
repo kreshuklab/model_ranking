@@ -94,17 +94,18 @@ def save_summary_metrics(
     assert len(pred_paths) > 0, f"No prediction files found in {config.output_path}"
     perf_scores: List[NDArray[Any]] = []
     consis_scores: List[NDArray[Any]] = []
-    select_vol_patches_per_pred: Dict[str, NDArray[Any]] = {}
+    select_vol_patches_per_pred: Dict[str, Optional[NDArray[Any]]] = {}
     sp_key = ""  # Initialize sp_key with a default value
     for pred_path in pred_paths:
+        filename = extract_filename(pred_path)
+        assert filename is not None, "filename not fround in pred_path"
         if isinstance(config.filter_patches, ForegroundFilterConfig):
             sp_key = f"foreground_patches_th{str(config.filter_patches.foreground_threshold).replace('.', '')}"
             select_patches = load_h5(pred_path, sp_key)
-            filename = extract_filename(pred_path)
-            assert filename is not None, "filename not fround in pred_path"
-            select_vol_patches_per_pred[filename] = select_patches
         else:
             select_patches = None
+
+        select_vol_patches_per_pred[filename] = select_patches
 
         if config.eval_key is not None:
             perf_score = load_select_prediction_scores(
@@ -199,12 +200,14 @@ def save_summary_metrics(
                 f, f"{config.eval_key}_std", std_perf_scores, config.overwrite_scores
             )
 
-        if config.save_select_patches is True:
-            assert isinstance(config.filter_patches, ForegroundFilterConfig)
-            for key, patches in select_vol_patches_per_pred.items():
-                create_h5_dataset(
-                    f, f"{key}_{sp_key}", np.array(patches), config.overwrite_scores
-                )
+        # if config.save_select_patches is True:
+        # assert isinstance(config.filter_patches, ForegroundFilterConfig)
+        # for key, patches in select_vol_patches_per_pred.items():
+        # if patches is None:
+        # create_h5_dataset(
+        #    f, f"{key}_{sp_key}", np.array(patches), config.overwrite_scores
+        # )
+
         if len(consis_scores) > 0:
             assert is_ndarray(consis_PP), "consis_PP must be a numpy array"
             assert is_ndarray(
