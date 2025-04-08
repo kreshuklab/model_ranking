@@ -9,8 +9,16 @@ from pytorch3dunet.predict import predict  # pyright: ignore[reportUnknownVariab
 from model_ranking.consistency import (
     run_consistency_evaluation,
 )
-from model_ranking.dataclass import EvaluateConfig, ConsistencyConfig
+from model_ranking.dataclass import (
+    EvaluateConfig,
+    ConsistencyConfig,
+    SummaryResultsConfig,
+)
 from model_ranking.evaluation import run_performance_evaluation
+from model_ranking.results import (
+    run_foreground_patch_selection,
+    save_summary_metrics,
+)
 from model_ranking.yaml_generators import generate_yaml
 
 
@@ -32,6 +40,11 @@ def main(
             else:
                 consis_config = ConsistencyConfig.model_validate(cfg["consistency"])
                 _, _ = run_consistency_evaluation(consis_config)
+
+            # save summary metrics
+            summary_config = SummaryResultsConfig.model_validate(cfg["summary_results"])
+            _ = run_foreground_patch_selection(summary_config)
+            save_summary_metrics(summary_config)
 
 
 if __name__ == "__main__":
