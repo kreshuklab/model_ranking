@@ -152,7 +152,14 @@ def save_summary_metrics(
         median_perf_scores = None
         std_perf_scores = None
     if len(consis_scores) > 0:
-        consis_PP = np.hstack(consis_scores)
+        if (
+            (consis_scores[0].ndim == 0)
+            or (consis_scores[0].ndim == 1)
+            and (len(np.array(consis_scores[0])) != 3)
+        ):
+            consis_PP = np.hstack(consis_scores)
+        else:
+            consis_PP = np.vstack(consis_scores)
         consis_per_alpha = np.nanmean(consis_PP, axis=0)
         consis_median_per_alpha = np.nanmedian(consis_PP, axis=0)
         consis_std_per_alpha = np.nanstd(consis_PP, axis=0)
