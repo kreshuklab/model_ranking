@@ -1096,6 +1096,7 @@ class ForegroundFilterConfig(BaseModel):
     gt_key: Optional[str]
     roi: Optional[Sequence[Sequence[int]]]
     save_selection: bool
+    overwrite: bool
 
     def create_config(self, data_base_path: str):
         gt_dir_path = data_base_path + self.gt_dir_path
@@ -1106,6 +1107,7 @@ class ForegroundFilterConfig(BaseModel):
             gt_key=self.gt_key,
             roi=self.roi,
             save_selection=self.save_selection,
+            overwrite=self.overwrite,
         )
 
 
@@ -1928,6 +1930,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="label",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2090,6 +2093,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key=None,
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2342,6 +2346,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="label/gold",
         roi=[[50, 170]],
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2428,6 +2433,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="volumes/labels/cells",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2514,6 +2520,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="label",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2600,6 +2607,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="label",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2686,6 +2694,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="labels",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2772,6 +2781,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="labels",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2858,6 +2868,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="labels",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
@@ -2944,6 +2955,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_key="labels",
         roi=None,
         save_selection=True,
+        overwrite=False,
     )
 
 
