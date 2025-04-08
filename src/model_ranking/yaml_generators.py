@@ -21,7 +21,7 @@ from model_ranking.dataclass import (
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
     SBIAD1410LoaderMetaConfig,
-    SaveResultsConfig,
+    SummaryResultsConfig,
     WandbConfig,
     # TIFPredictionLoadersConfig,
     FeatureNoisePerturbationConfig,
@@ -567,7 +567,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             consistency_metric=consis_metric_cfg,
                         )
 
-                        save_results_cfg = SaveResultsConfig(
+                        summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
                             output_path=pred_dir_path,
                             eval_key=eval_cfg.eval_metric.eval_save_key,
@@ -580,7 +580,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                         yaml_dict_order = [
                             {"wandb": wandb_cfg.model_dump()},
                             {"model_path": source_model_path},
-                            {"save_results": save_results_cfg},
+                            {"summary_results": summary_results_cfg},
                             {"model": model_cfg.model_dump()},
                             {"predictor": predictor_cfg.model_dump()},
                             {"loaders": pred_loader_cfg.model_dump()},
@@ -598,7 +598,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             consistency_dataloader=consis_loader_cfg,
                             consistency_metric=consis_metric_cfg,
                         )
-                        save_results_cfg = SaveResultsConfig(
+                        summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
                             output_path=pred_dir_path,
                             eval_key=None,
@@ -611,7 +611,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             / f"{save_name}_{consis_cfg.consistency_metric.save_key}.yml"
                         )
                         yaml_dict_order = [
-                            {"save_results": save_results_cfg},
+                            {"summary_results": summary_results_cfg},
                             {"consistency": consis_cfg.model_dump()},
                         ]
                     elif meta_cfg.run_mode == "evaluation":
@@ -625,7 +625,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             eval_metric=eval_metric_cfg,
                         )
 
-                        save_results_cfg = SaveResultsConfig(
+                        summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
                             output_path=pred_dir_path,
                             eval_key=eval_cfg.eval_metric.eval_save_key,
@@ -639,7 +639,7 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             / f"{save_name}_{eval_cfg.eval_metric.eval_save_key}_eval.yml"
                         )
                         yaml_dict_order = [
-                            {"save_results": save_results_cfg},
+                            {"summary_results": summary_results_cfg},
                             {"evaluation": eval_cfg.model_dump()},
                         ]
                     else:

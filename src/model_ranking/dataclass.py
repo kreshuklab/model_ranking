@@ -2947,7 +2947,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
-class SaveResultsMetaConfig(BaseModel):
+class SummaryResultsMetaConfig(BaseModel):
     overwrite_scores: bool
     save_select_patches: bool
 
@@ -2984,7 +2984,7 @@ class MetaConfig(BaseModel):
     ]
     segmentation_mode: Literal["instance", "semantic"]
     run_mode: Literal["full", "evaluation", "consistency"]
-    save_results: SaveResultsMetaConfig
+    save_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
     feature_perturbations: FeaturePerturbationConfig
@@ -3017,7 +3017,7 @@ class MetaConfig(BaseModel):
     ]
 
 
-class SaveResultsConfig(BaseModel):
+class SummaryResultsConfig(BaseModel):
     filter_patches: Optional[ForegroundFilterConfig]
     output_path: str
     eval_key: Optional[str]
@@ -3029,7 +3029,7 @@ class SaveResultsConfig(BaseModel):
 class ConfigFull(BaseModel):
     wandb: WandbConfig
     model_path: str
-    save_results: SaveResultsConfig
+    summary_results: SummaryResultsConfig
     model: Pytorch3DUnetModelConfig
     predictor: Annotated[
         Union[
@@ -3052,10 +3052,10 @@ class ConfigFull(BaseModel):
 
 
 class ConfigEvaluation(BaseModel):
-    save_results: SaveResultsConfig
+    save_results: SummaryResultsConfig
     evaluation: EvaluateConfig
 
 
 class ConfigConsistency(BaseModel):
-    save_results: SaveResultsConfig
+    save_results: SummaryResultsConfig
     consistency: ConsistencyConfig

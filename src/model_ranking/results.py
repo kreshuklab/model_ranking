@@ -7,7 +7,7 @@ import imageio.v2 as imageio
 
 from model_ranking.dataclass import (
     ForegroundFilterConfig,
-    SaveResultsConfig,
+    SummaryResultsConfig,
 )
 from model_ranking.utils import (
     find_transfer_from_pred_path,
@@ -23,7 +23,7 @@ from model_ranking.utils import (
 
 
 def run_foreground_patch_selection(
-    config: SaveResultsConfig,
+    config: SummaryResultsConfig,
 ) -> Dict[str, NDArray[Any]]:
     filter_cfg = config.filter_patches
     assert isinstance(filter_cfg, ForegroundFilterConfig)
@@ -88,7 +88,7 @@ def select_foreground_patches(
 
 
 def save_summary_metrics(
-    config: SaveResultsConfig,
+    config: SummaryResultsConfig,
 ):
     pred_paths = sorted(Path(config.output_path).glob("*.h5"))
     assert len(pred_paths) > 0, f"No prediction files found in {config.output_path}"
