@@ -155,7 +155,7 @@ def run_consistency_evaluation(
             save_h5(
                 pred_path,
                 config_data.consistency_metric.save_key,
-                consis_scores[0][i],
+                consis_scores[0][i].squeeze(),
                 overwrite=config_data.consistency_metric.overwrite_score,
             )
             if config_data.consistency_metric.save_mask:
@@ -163,6 +163,7 @@ def run_consistency_evaluation(
                     pred_path,
                     f"consistency_mask_{config_data.consistency_metric.save_key}",
                     consis_masks[0][i].squeeze(),
+                    overwrite=config_data.consistency_metric.overwrite_score,
                 )
 
     else:
@@ -171,14 +172,15 @@ def run_consistency_evaluation(
             save_h5(
                 path,
                 config_data.consistency_metric.save_key,
-                scores,
+                scores.squeeze(),
                 overwrite=config_data.consistency_metric.overwrite_score,
             )
             if config_data.consistency_metric.save_mask:
                 save_h5(
                     path,
                     f"consistency_mask_{config_data.consistency_metric.save_key}",
-                    mask,
+                    mask.squeeze(),
+                    overwrite=config_data.consistency_metric.overwrite_score,
                 )
 
     return consis_scores, consis_masks
