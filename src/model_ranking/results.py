@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, Any, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Union, Any, Sequence, Tuple
 from pathlib import Path
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
@@ -122,12 +122,12 @@ def save_summary_metrics(
                 )
                 if "HD" not in config.consis_key:
                     if consis_score.ndim == 2:
-                        consis_score_PP = np.nanmean(consis_score)
+                        consis_score_PP = np.array(np.nanmean(consis_score))
 
                     else:
-                        consis_score_PP = np.nanmean(
+                        consis_score_PP = np.array(np.nanmean(
                             consis_score, axis=tuple(range(1, consis_score.ndim))
-                        )
+                        ))
 
                 else:
                     consis_score_PP = consis_score
@@ -139,16 +139,16 @@ def save_summary_metrics(
     if len(perf_scores) > 0:
         if (
             (perf_scores[0].ndim == 0)
-            or (perf_scores[0].ndim == 1)
-            and (len(np.array(perf_scores[0])) != 3)
+            or ((perf_scores[0].ndim == 1)
+            and (len(np.array(perf_scores[0])) == 1))
         ):
             performance_scores = np.hstack(perf_scores)
         else:
             performance_scores = np.vstack(perf_scores)
 
-        mean_perf_score = np.nanmean(performance_scores, axis=0)
-        median_perf_scores = np.nanmedian(performance_scores, axis=0)
-        std_perf_scores = np.nanstd(performance_scores, axis=0)
+        mean_perf_score = np.array(np.nanmean(performance_scores, axis=0))
+        median_perf_scores = np.array(np.nanmedian(performance_scores, axis=0))
+        std_perf_scores = np.array(np.nanstd(performance_scores, axis=0))
     else:
         performance_scores = None
         mean_perf_score = None
@@ -157,15 +157,15 @@ def save_summary_metrics(
     if len(consis_scores) > 0:
         if (
             (consis_scores[0].ndim == 0)
-            or (consis_scores[0].ndim == 1)
-            and (len(np.array(consis_scores[0])) != 3)
+            or ((consis_scores[0].ndim == 1)
+            and (len(np.array(consis_scores[0])) == 1))
         ):
             consis_PP = np.hstack(consis_scores)
         else:
             consis_PP = np.vstack(consis_scores)
-        consis_per_alpha = np.nanmean(consis_PP, axis=0)
-        consis_median_per_alpha = np.nanmedian(consis_PP, axis=0)
-        consis_std_per_alpha = np.nanstd(consis_PP, axis=0)
+        consis_per_alpha = np.array(np.nanmean(consis_PP, axis=0))
+        consis_median_per_alpha = np.array(np.nanmedian(consis_PP, axis=0))
+        consis_std_per_alpha = np.array(np.nanstd(consis_PP, axis=0))
     else:
         consis_PP = None
         consis_per_alpha = None
@@ -212,9 +212,9 @@ def save_summary_metrics(
 
         if len(consis_scores) > 0:
             assert is_ndarray(consis_PP), "consis_PP must be a numpy array"
-            assert is_ndarray(
+            assert (is_ndarray(
                 consis_per_alpha
-            ), "consis_per_alpha must be a numpy array"
+            )) or (isinstance(consis_per_alpha, np.floating)), "consis_per_alpha must be a numpy array"
             assert is_ndarray(
                 consis_median_per_alpha
             ), "consis_median_per_alpha must be a numpy array"
@@ -267,7 +267,7 @@ def get_consis_results(
         "Hmito": "Hm_model3",
         "Rmito": "Rm_model3",
     },
-    selected_norms: Dict[str, List[Optional[Tuple[float, float]]]] = {
+    selected_norms: Mapping[str, Union[List[Tuple[float, float]], List[None]]] = {
         "BBBC039": [(5, 98)],
         "DSB2018": [(5, 98)],
         "Go-Nuclear": [(0, 99.8)],
@@ -363,7 +363,7 @@ def get_consis_results(
                     norm_foldername = "norm_Normalize"
                 else:
                     norm_foldername = (
-                        f"norm_{str(norm[0])}_{str(norm[1]).replace('.', '')}"
+                        f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
                     )
                 norm_dir_path = Path(output_dir) / norm_foldername
 
@@ -409,10 +409,10 @@ def get_consis_results(
                                 raise ValueError(
                                     f"perf_score has unexpected shape {perf_score.shape}"
                                 )
-                            assert isinstance(perf_score, float), "perf_score must be a float"
-                            assert isinstance(perf_std, float), "perf_std must be a float"
-                            no_aug_PN_perf_scores[norm_foldername] = perf_score
-                            no_aug_PN_perf_std[norm_foldername] = perf_std
+                            #assert isinstance(perf_score, np.float32), "perf_score must be a float"
+                            #assert isinstance(perf_std, np.floating), "perf_std must be a float"
+                            no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
+                            no_aug_PN_perf_std[norm_foldername] = float(perf_std)
                     else:
                         consis_per_alpha = np.zeros(len(alphas))
                         consis_std_per_alpha = np.zeros(len(alphas))
