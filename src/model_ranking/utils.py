@@ -240,3 +240,38 @@ def load_select_prediction_scores(
     if select_patches is not None:
         scores = scores[select_patches]
     return scores
+
+
+def get_output_dir(
+    source: str,
+    target: str,
+    model_name: str,
+    output_folder: Optional[str] = "patchwise",
+    approach: str = "consistency",
+    result_type: str = "prediction",
+    base_seg_folder: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
+):
+    assert Path(
+        base_seg_folder
+    ).exists(), f"Base segmentation folder {base_seg_folder} does not exist"
+
+    if "segmentation_ModelSelection" in base_seg_folder:
+        output_path = (
+            f"{base_seg_folder}/{source}_to_{target}/{approach}/{model_name}/"
+            f"{output_folder}/{result_type}"
+        )
+    else:
+        if output_folder is not None:
+            output_path = (
+                f"{base_seg_folder}/{source}_to_{target}_gap/{approach}/{result_type}"
+                f"/{model_name}/{output_folder}"
+            )
+        else:
+            output_path = (
+                f"{base_seg_folder}/{source}_to_{target}_gap/{approach}/{result_type}"
+                f"/{model_name}"
+            )
+
+    # Create save folder if it doesn't exist
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    return output_path
