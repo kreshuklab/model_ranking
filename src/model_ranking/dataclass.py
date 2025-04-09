@@ -363,7 +363,7 @@ class AdaptedRandErrorEvalConfig(AdaptedRandErrorConfig, EvalMetricConfig, froze
 
 class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
     name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
-    iou_range: Optional[List[float]] = [0.5, 0.95, 10]
+    iou_range: Optional[List[Union[float, int]]] = [0.5, 0.95, 10]
     min_instance_size: Optional[int] = None
 
     def initialise_metric(self) -> InstanceAveragePrecision:
@@ -530,6 +530,7 @@ class ConsistencyConfig(BaseModel, frozen=True):
         Union[
             DifferenceImageConfig,
             EffectiveInvarianceConfig,
+            EntropyConfig,
             KLDivergenceConfig,
             CrossEntropyConfig,
             HammingDistanceConfig,
@@ -1306,8 +1307,12 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_key="predictions",
             filenames_path="/BBBC039/test.txt",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1326,8 +1331,12 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_key="segmentation",
             filenames_path="/BBBC039/test.txt",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1422,8 +1431,12 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             batch_size=1,
             num_workers=8,
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1441,8 +1454,12 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             batch_size=1,
             num_workers=8,
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1539,8 +1556,12 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             batch_size=1,
             num_workers=8,
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1558,8 +1579,12 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             batch_size=1,
             num_workers=8,
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1659,8 +1684,12 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_key="predictions",
             filenames_path="/S-BIAD634/dataset/test.txt",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1679,8 +1708,12 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_key="segmentation",
             filenames_path="/S-BIAD634/dataset/test.txt",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1775,8 +1808,12 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_dir=None,
             mask_key="predictions",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -1794,8 +1831,12 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_dir=None,
             mask_key="segmentation",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -2041,8 +2082,12 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
                 mask_paths=None,
                 roi=None,
                 transformer={
-                    "raw": [],
-                    "label": [],
+                    "raw": [
+                        {"name": "ToTensor", "expand_dims": True},
+                    ],
+                    "label": [
+                        {"name": "ToTensor", "expand_dims": True},
+                    ],
                 },
                 slice_builder=Pytorch3DUnetSliceBuilderConfig(
                     name="SliceBuilder",
@@ -2190,8 +2235,12 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_dir=None,
             mask_key="predictions",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -2209,8 +2258,12 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             mask_dir=None,
             mask_key="segmentation",
             transformer={
-                "raw": [],
-                "label": [],
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
             },
         )
     )
@@ -3018,6 +3071,7 @@ class MetaConfig(BaseModel):
             Union[
                 DifferenceImageConfig,
                 EffectiveInvarianceConfig,
+                EntropyConfig,
                 KLDivergenceConfig,
                 CrossEntropyConfig,
                 HammingDistanceConfig,
