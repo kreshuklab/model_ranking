@@ -130,7 +130,8 @@ class EffectiveInvarianceEval:
         self.threshold = threshold
 
     def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
-        cmb_pred = np.stack([gt, pred], axis=0)
+        # cmb_pred = np.stack([gt, pred], axis=0)
+        cmb_pred = np.vstack([gt, pred])
         hard_pred = cmb_pred > self.threshold
         metric_result, _, _, _ = calculate_EI_binary(hard_pred, cmb_pred)
         return metric_result
