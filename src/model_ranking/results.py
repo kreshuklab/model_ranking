@@ -23,6 +23,31 @@ from model_ranking.utils import (
     get_output_dir,
 )
 
+DATASET_ABBREVIATIONS = {
+    "BBBC039": "BC",
+    "DSB2018": "DSB",
+    "Go-Nuclear": "GN",
+    "HeLaNuc": "HN",
+    "Hoechst": "Hst",
+    "S_BIAD634": "634",
+    "S_BIAD895": "895",
+    "S_BIAD1196": "1196",
+    "S_BIAD1410": "1410",
+    "FlyWing": "fw",
+    "Ovules": "ov",
+    "PNAS": "p",
+    "EPFL": "E",
+    "Hmito": "Hm",
+    "Rmito": "Rm",
+    "VNC": "V",
+    "affable-shark": "AS",
+    "cp_nuclei": "CN",
+    "cp_cyto3": "C3",
+    "root_nuclei_ds1x": "RN",
+    "laid-back-lobster": "LL",
+    "pioneering-rhino": "PR",
+}
+
 
 def run_foreground_patch_selection(
     config: SummaryResultsConfig,
@@ -125,9 +150,11 @@ def save_summary_metrics(
                         consis_score_PP = np.array(np.nanmean(consis_score))
 
                     else:
-                        consis_score_PP = np.array(np.nanmean(
-                            consis_score, axis=tuple(range(1, consis_score.ndim))
-                        ))
+                        consis_score_PP = np.array(
+                            np.nanmean(
+                                consis_score, axis=tuple(range(1, consis_score.ndim))
+                            )
+                        )
 
                 else:
                     consis_score_PP = consis_score
@@ -137,10 +164,8 @@ def save_summary_metrics(
                 consis_scores.append(consis_score_PP)
 
     if len(perf_scores) > 0:
-        if (
-            (perf_scores[0].ndim == 0)
-            or ((perf_scores[0].ndim == 1)
-            and (len(np.array(perf_scores[0])) == 1))
+        if (perf_scores[0].ndim == 0) or (
+            (perf_scores[0].ndim == 1) and (len(np.array(perf_scores[0])) == 1)
         ):
             performance_scores = np.hstack(perf_scores)
         else:
@@ -155,22 +180,20 @@ def save_summary_metrics(
         median_perf_scores = None
         std_perf_scores = None
     if len(consis_scores) > 0:
-        if (
-            (consis_scores[0].ndim == 0)
-            or ((consis_scores[0].ndim == 1)
-            and (len(np.array(consis_scores[0])) == 1))
+        if (consis_scores[0].ndim == 0) or (
+            (consis_scores[0].ndim == 1) and (len(np.array(consis_scores[0])) == 1)
         ):
             consis_PP = np.hstack(consis_scores)
         else:
             consis_PP = np.vstack(consis_scores)
-        consis_per_alpha = np.array(np.nanmean(consis_PP, axis=0))
-        consis_median_per_alpha = np.array(np.nanmedian(consis_PP, axis=0))
-        consis_std_per_alpha = np.array(np.nanstd(consis_PP, axis=0))
+        consis_mean = np.array(np.nanmean(consis_PP, axis=0))
+        consis_median = np.array(np.nanmedian(consis_PP, axis=0))
+        consis_std = np.array(np.nanstd(consis_PP, axis=0))
     else:
         consis_PP = None
-        consis_per_alpha = None
-        consis_median_per_alpha = None
-        consis_std_per_alpha = None
+        consis_mean = None
+        consis_median = None
+        consis_std = None
 
     # save scores in h5 file in parent directory
     save_path = Path(config.output_path).parent / "metric_summary.h5"
@@ -178,70 +201,45 @@ def save_summary_metrics(
     with h5py.File(save_path, "a") as f:
         # check if key already exists
         if config.eval_key is not None:
-            assert is_ndarray(
-                performance_scores
-            ), "performance_scores must be a numpy array"
-            assert is_ndarray(mean_perf_score), "mean_perf_score must be a numpy array"
-            assert is_ndarray(
-                median_perf_scores
-            ), "median_perf_scores must be a numpy array"
-            assert is_ndarray(std_perf_scores), "std_perf_scores must be a numpy array"
-            create_h5_dataset(
-                f, config.eval_key, performance_scores, config.overwrite_scores
-            )
-            create_h5_dataset(
-                f, f"{config.eval_key}_mean", mean_perf_score, config.overwrite_scores
-            )
-            create_h5_dataset(
-                f,
-                f"{config.eval_key}_median",
-                median_perf_scores,
-                config.overwrite_scores,
-            )
-            create_h5_dataset(
-                f, f"{config.eval_key}_std", std_perf_scores, config.overwrite_scores
-            )
+            for eval_score, save_postfix in zip(
+                [
+                    performance_scores,
+                    mean_perf_score,
+                    median_perf_scores,
+                    std_perf_scores,
+                ],
+                ["", "_mean", "_median", "_std"],
+            ):
+                assert is_ndarray(
+                    eval_score
+                ), f"performance_score{save_postfix} must be a numpy array"
 
-        # if config.save_select_patches is True:
-        # assert isinstance(config.filter_patches, ForegroundFilterConfig)
-        # for key, patches in select_vol_patches_per_pred.items():
-        # if patches is None:
-        # create_h5_dataset(
-        #    f, f"{key}_{sp_key}", np.array(patches), config.overwrite_scores
-        # )
+                create_h5_dataset(
+                    f,
+                    f"{config.eval_key}{save_postfix}",
+                    eval_score,
+                    config.overwrite_scores,
+                )
 
         if len(consis_scores) > 0:
-            assert is_ndarray(consis_PP), "consis_PP must be a numpy array"
-            assert (is_ndarray(
-                consis_per_alpha
-            )) or (isinstance(consis_per_alpha, np.floating)), "consis_per_alpha must be a numpy array"
-            assert is_ndarray(
-                consis_median_per_alpha
-            ), "consis_median_per_alpha must be a numpy array"
-            assert is_ndarray(
-                consis_std_per_alpha
-            ), "consis_std_per_alpha must be a numpy array"
-            create_h5_dataset(
-                f, f"{config.consis_key}_per_patch", consis_PP, config.overwrite_scores
-            )
-            create_h5_dataset(
-                f,
-                f"{config.consis_key}_per_alpha",
-                consis_per_alpha,
-                config.overwrite_scores,
-            )
-            create_h5_dataset(
-                f,
-                f"{config.consis_key}_median_per_alpha",
-                consis_median_per_alpha,
-                config.overwrite_scores,
-            )
-            create_h5_dataset(
-                f,
-                f"{config.consis_key}_std_per_alpha",
-                consis_std_per_alpha,
-                config.overwrite_scores,
-            )
+            for consis_score, save_postfix in zip(
+                [
+                    consis_PP,
+                    consis_mean,
+                    consis_median,
+                    consis_std,
+                ],
+                ["", "_mean", "_median", "_std"],
+            ):
+                assert is_ndarray(
+                    consis_score
+                ), f"consistency_score{save_postfix} must be a numpy array"
+                create_h5_dataset(
+                    f,
+                    f"{config.consis_key}{save_postfix}",
+                    consis_score,
+                    config.overwrite_scores,
+                )
 
 
 def get_consis_results(
@@ -268,48 +266,24 @@ def get_consis_results(
         "Rmito": "Rm_model3",
     },
     selected_norms: Mapping[str, Union[List[Tuple[float, float]], List[None]]] = {
-        "BBBC039": [(5, 98)],
-        "DSB2018": [(5, 98)],
+        "BBBC039": [(5.0, 98.0)],
+        "DSB2018": [(5.0, 98.0)],
         "Go-Nuclear": [(0, 99.8)],
-        "HeLaNuc": [(5, 99.6)],
-        "Hoechst": [(5, 98)],
-        "S_BIAD634": [(5, 98)],
-        "S_BIAD895": [(5, 98)],
-        "S_BIAD1196": [(5, 98)],
-        "S_BIAD1410": [(5, 98)],
-        "FlyWing": [(5, 95)],
-        "Ovules": [(5, 95)],
-        "PNAS": [(5, 95)],
+        "HeLaNuc": [(5.0, 99.6)],
+        "Hoechst": [(5.0, 98.0)],
+        "S_BIAD634": [(5.0, 98.0)],
+        "S_BIAD895": [(5.0, 98.0)],
+        "S_BIAD1196": [(5.0, 98.0)],
+        "S_BIAD1410": [(5.0, 98.0)],
+        "FlyWing": [(5.0, 95.0)],
+        "Ovules": [(5.0, 95.0)],
+        "PNAS": [(5.0, 95.0)],
         "EPFL": [None],
         "Hmito": [None],
         "Rmito": [None],
         "VNC": [None],
     },
     perf_key: str = "hard_f1",
-    model_abbreviations: Dict[str, str] = {
-        "BBBC039": "BC",
-        "DSB2018": "DSB",
-        "Go-Nuclear": "GN",
-        "HeLaNuc": "HN",
-        "Hoechst": "Hst",
-        "S_BIAD634": "634",
-        "S_BIAD895": "895",
-        "S_BIAD1196": "1196",
-        "S_BIAD1410": "1410",
-        "FlyWing": "fw",
-        "Ovules": "ov",
-        "PNAS": "p",
-        "EPFL": "E",
-        "Hmito": "Hm",
-        "Rmito": "Rm",
-        "VNC": "V",
-        "affable-shark": "AS",
-        "cp_nuclei": "CN",
-        "cp_cyto3": "C3",
-        "root_nuclei_ds1x": "RN",
-        "laid-back-lobster": "LL",
-        "pioneering-rhino": "PR",
-    },
     select_results_by_source: bool = False,
     approach: str = "consistency",
     per_transfer_norms: bool = False,
@@ -318,19 +292,14 @@ def get_consis_results(
     perf_postfix: str = "mean",
     base_seg_dir: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
 ):
-
-    consis_PT_PA_type: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
     consis_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
-    consis_std_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
-    perf_PT_PA_type: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
     perf_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
     no_aug_perf_scores: Dict[str, Dict[str, float]] = {}
-    no_aug_perf_std: Dict[str, Dict[str, float]] = {}
     for source in source_data:
         print(f"Source: {source}")
         for target in tqdm(target_data):
             transfer = (
-                model_abbreviations[source] + "_to_" + model_abbreviations[target]
+                DATASET_ABBREVIATIONS[source] + "_to_" + DATASET_ABBREVIATIONS[target]
             )
             if select_results_by_source:
                 result_folder = result_folders[source]
@@ -345,13 +314,9 @@ def get_consis_results(
                 approach=approach,
                 base_seg_folder=base_seg_dir,
             )
-            consis_PT_PN_PA_type: Dict[str, Dict[str, NDArray[Any]]] = {}
-            consis_std_PT_PN_PA_strength: Dict[str, Dict[str, NDArray[Any]]] = {}
             consis_PT_PN_PA_strength: Dict[str, Dict[str, NDArray[Any]]] = {}
-            perf_PT_PN_PA_type: Dict[str, Dict[str, NDArray[Any]]] = {}
             perf_PT_PN_PA_strength: Dict[str, Dict[str, NDArray[Any]]] = {}
             no_aug_PN_perf_scores: Dict[str, float] = {}
-            no_aug_PN_perf_std: Dict[str, float] = {}
             if per_transfer_norms:
                 norms = selected_norms[transfer]
             elif per_target_norms:
@@ -362,60 +327,23 @@ def get_consis_results(
                 if norm == None:
                     norm_foldername = "norm_Normalize"
                 else:
-                    norm_foldername = (
-                        f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
-                    )
+                    norm_foldername = f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
                 norm_dir_path = Path(output_dir) / norm_foldername
 
                 consis_per_aug_strength: Dict[str, NDArray[Any]] = {}
-                consis_std_per_aug_strength: Dict[str, NDArray[Any]] = {}
-                consis_per_aug_type: Dict[str, NDArray[Any]] = {}
                 perf_per_aug_strength: Dict[str, NDArray[Any]] = {}
-                perf_per_aug_type: Dict[str, NDArray[Any]] = {}
 
                 for aug, alphas in selected_augmentations.items():
                     if aug == "none":
                         metric_filepath = (
                             Path(norm_dir_path) / f"{aug}" / "metric_summary.h5"
                         )
-                        with h5py.File(metric_filepath, "r") as f:
-                            ds = f[f"{perf_key}"]
-                            assert isinstance(ds, h5py.Dataset)
-                            perf_per_patch = (# pyright: ignore[reportUnknownVariableType]
-                                ds[...]
-                            ) 
-                            assert is_ndarray(
-                                perf_per_patch
-                            ), "perf_per_patch must be a numpy array"
-                            if perf_per_patch.ndim == 2:
-                                perf_std = np.nanstd(perf_per_patch, axis=0)[0]
-                            else:
-                                perf_std = np.nanstd(perf_per_patch, axis=0)
-                            ds = f[f"{perf_key}_{perf_postfix}"]
-                            assert isinstance(ds, h5py.Dataset)
-                            perf_score = ds[...] # pyright: ignore[reportUnknownVariableType]
-                            assert is_ndarray(
-                                perf_score
-                            ), "perf_score must be a numpy array"
-                            if perf_score.size == 2:
-                                perf_score = perf_score[1]
-                            elif perf_score.size == 3:
-                                perf_score = perf_score[0]
-                            elif (len(perf_score.shape) == 1) and (
-                                perf_score.size == 0
-                            ):
-                                perf_score = perf_score[0]
-                            else:
-                                raise ValueError(
-                                    f"perf_score has unexpected shape {perf_score.shape}"
-                                )
-                            #assert isinstance(perf_score, np.float32), "perf_score must be a float"
-                            #assert isinstance(perf_std, np.floating), "perf_std must be a float"
-                            no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
-                            no_aug_PN_perf_std[norm_foldername] = float(perf_std)
+                        perf_score = load_summary_metric(
+                            metric_filepath, perf_key, perf_postfix
+                        )
+                        no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
                     else:
                         consis_per_alpha = np.zeros(len(alphas))
-                        consis_std_per_alpha = np.zeros(len(alphas))
                         perf_per_alpha = np.zeros(len(alphas))
                         for i, alpha in enumerate(alphas):
                             metric_filepath = (
@@ -423,57 +351,55 @@ def get_consis_results(
                                 / f"{aug}_{alpha}"
                                 / "metric_summary.h5"
                             )
-                            with h5py.File(metric_filepath, "r") as f:
-                                ds = f[f"{consis_keys[target]}_{consis_postfix}"]
-                                assert isinstance(ds, h5py.Dataset), f"{consis_keys[target]}_{consis_postfix} must be a h5py.Dataset"
-                                consis_per_alpha[i] = ds[...]
-                                ds = f[f"{consis_keys[target]}_per_patch"]
-                                assert isinstance(ds, h5py.Dataset), f"{consis_keys[target]}_per_patch must be a h5py.Dataset"
-                                consis_std_per_alpha[i] = np.nanstd(
-                                    ds[...] # pyright: ignore[reportUnknownArgumentType]
-                                )
-                                ds = f[f"{perf_key}_{perf_postfix}"]
-                                assert isinstance(ds, h5py.Dataset), f"{perf_key}_{perf_postfix} must be a h5py.Dataset"
-                                perf_score = ds[...] # pyright: ignore[reportUnknownVariableType]
-                                assert is_ndarray(
-                                    perf_score
-                                ), "perf_score must be a numpy array"
-                                if perf_score.size == 2:
-                                    perf_score = perf_score[1]
-                                elif perf_score.size == 3:
-                                    perf_score = perf_score[0]
-                                elif (len(perf_score.shape) == 1) and (
-                                    perf_score.size == 0
-                                ):
-                                    perf_score = perf_score[0]
-                                perf_per_alpha[i] = perf_score
+                            consis_score = load_summary_metric(
+                                metric_filepath, consis_keys[target], consis_postfix
+                            )
+                            consis_per_alpha[i] = consis_score
+                            perf_score = load_summary_metric(
+                                metric_filepath, perf_key, perf_postfix
+                            )
+                            perf_per_alpha[i] = perf_score
+
                         consis_per_aug_strength[aug] = consis_per_alpha
-                        consis_std_per_aug_strength[aug] = consis_std_per_alpha
-                        consis_per_aug_type[aug] = np.array(
-                            [np.nanmean(consis_per_alpha)]
-                        )
                         perf_per_aug_strength[aug] = perf_per_alpha
-                        perf_per_aug_type[aug] = np.array([np.nanmean(perf_per_alpha)])
                 consis_PT_PN_PA_strength[norm_foldername] = consis_per_aug_strength
-                consis_std_PT_PN_PA_strength[norm_foldername] = (
-                    consis_std_per_aug_strength
-                )
-                consis_PT_PN_PA_type[norm_foldername] = consis_per_aug_type
                 perf_PT_PN_PA_strength[norm_foldername] = perf_per_aug_strength
-                perf_PT_PN_PA_type[norm_foldername] = perf_per_aug_type
             consis_PT_PA_strength[transfer] = consis_PT_PN_PA_strength
-            consis_std_PT_PA_strength[transfer] = consis_std_PT_PN_PA_strength
-            consis_PT_PA_type[transfer] = consis_PT_PN_PA_type
             perf_PT_PA_strength[transfer] = perf_PT_PN_PA_strength
-            perf_PT_PA_type[transfer] = perf_PT_PN_PA_type
             no_aug_perf_scores[transfer] = no_aug_PN_perf_scores
-            no_aug_perf_std[transfer] = no_aug_PN_perf_std
+
     return (
-        consis_PT_PA_type,
         consis_PT_PA_strength,
-        consis_std_PT_PA_strength,
-        perf_PT_PA_type,
         perf_PT_PA_strength,
         no_aug_perf_scores,
-        no_aug_perf_std,
     )
+
+
+def load_summary_metric(
+    filepath: Union[Path, str], metric_key: str, metric_postfix: str
+):
+    with h5py.File(filepath, "r") as f:
+        ds = f[f"{metric_key}_{metric_postfix}"]
+        assert isinstance(
+            ds, h5py.Dataset
+        ), f"{metric_key}_{metric_postfix} must be a h5py.Dataset"
+
+        score = ds[...]  # pyright: ignore[reportUnknownVariableType]
+
+        assert is_ndarray(
+            score
+        ), f"{metric_key}_{metric_postfix} score must be a numpy array"
+
+        if score.size == 2:
+            score = score[1]
+        elif score.size == 3:
+            score = score[0]
+        elif (len(score.shape) == 1) and (score.size == 0):
+            score = score[0]
+        elif (len(score.shape) == 0) and (score.size == 1):
+            score = score
+        else:
+            raise ValueError(
+                f"{metric_key}_{metric_postfix} score has unexpected shape {score.shape}"
+            )
+    return float(score)
