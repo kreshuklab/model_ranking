@@ -546,26 +546,25 @@ class WandbConfig(BaseModel):
     mode: Literal["disabled", "online", "offline"]
 
 
-class DropOutPerturbationConfig(BaseModel):
-    name: Literal["DropOutPerturbation"]
-    random_seed: int
+class FeaturePerturbationBaseConfig(BaseModel):
     layers: Sequence[int]
+    random_seed: int
+
+
+class DropOutPerturbationConfig(FeaturePerturbationBaseConfig):
+    name: Literal["DropOutPerturbation"]
     drop_rate: float
     spatial_dropout: bool
 
 
-class FeatureDropPerturbationConfig(BaseModel):
+class FeatureDropPerturbationConfig(FeaturePerturbationBaseConfig):
     name: Literal["FeatureDropPerturbation"]
-    random_seed: int
-    layers: Sequence[int]
     lower_th: float
     upper_th: float
 
 
-class FeatureNoisePerturbationConfig(BaseModel):
+class FeatureNoisePerturbationConfig(FeaturePerturbationBaseConfig):
     name: Literal["FeatureNoisePerturbation"]
-    random_seed: int
-    layers: Sequence[int]
     uniform_range: float
 
 
@@ -774,6 +773,7 @@ class FeaturePerturbationConfig(BaseModel):
     ]
     layers: Sequence[int]
     dropOut_rates: Optional[Sequence[float]]
+    spatial_dropout: Optional[bool]
     featureDrop_thresholds: Optional[Sequence[Tuple[float, float]]]
     featureNoise_ranges: Optional[Sequence[float]]
     random_seed: int
