@@ -13,13 +13,13 @@ from model_ranking.consistency import (
     run_consistency_evaluation,
 )
 from model_ranking.dataclass import ConsistencyConfig, SummaryResultsConfig
-from model_ranking.yaml_generators import generate_yaml
+from model_ranking.yaml_generators import generate_run_yamls
 
 
 def main(
     config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
 ):
-    run_config_paths = generate_yaml(config)
+    run_config_paths = generate_run_yamls(config)
 
     for transfer_title, config_paths in run_config_paths.items():
         print(f"Running transfer {transfer_title}")

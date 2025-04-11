@@ -183,7 +183,7 @@ FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
 }
 
 
-def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
+def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
     config, _ = load_config_direct(config_path)
     meta_cfg = MetaConfig.model_validate(config)
     yaml_paths: Dict[str, List[Path]] = {}
