@@ -202,13 +202,16 @@ def generate_yaml(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                     assert (
                         feat_pert_cfg.dropOut_rates is not None
                     ), "dropOut rates not provided"
+                    assert (
+                        feat_pert_cfg.spatial_dropout is not None
+                    ), "spatial dropout not provided"
                     for dropOut_rate in feat_pert_cfg.dropOut_rates:
                         feature_perturbation_config = DropOutPerturbationConfig(
                             name=feature_perturbation,
                             random_seed=feat_pert_cfg.random_seed,
                             layers=feat_pert_cfg.layers,
                             drop_rate=dropOut_rate,
-                            spatial_dropout=True,
+                            spatial_dropout=feat_pert_cfg.spatial_dropout,
                         )
                         feature_str = f"_a{str(dropOut_rate).replace('.','')}"
                         model_cfgs[feature_abbrev + feature_str] = (
