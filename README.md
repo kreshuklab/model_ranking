@@ -5,3 +5,11 @@
 ![Fig1](./figures/MICCAI_intro_figure.svg)
 
 
+## Installation
+#### Clone repository
+
+Clone and navigate to this repository
+
+```
+git clone 
+```
