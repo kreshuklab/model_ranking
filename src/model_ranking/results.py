@@ -242,7 +242,7 @@ def save_summary_metrics(
                 )
 
 
-def get_consis_results(
+def get_summary_results(
     source_data: List[str],
     target_data: List[str],
     selected_augmentations: Dict[str, List[str]],
@@ -403,3 +403,19 @@ def load_summary_metric(
                 f"{metric_key}_{metric_postfix} score has unexpected shape {score.shape}"
             )
     return float(score)
+
+
+def results_to_arrays(
+    score_per_transfer: Dict[str, Dict[str, Dict[str, NDArray[Any]]]],
+    no_aug_score: Dict[str, Dict[str, float]],
+    perturbation_key: str,
+    num_alphas: int,
+):
+    consis_array = np.zeros((len(score_per_transfer), num_alphas))
+    no_aug_eval_array = np.zeros(len(score_per_transfer))
+    for i, (transfer, per_norm_consis) in enumerate(score_per_transfer.items()):
+        per_norm_NA_eval = no_aug_score[transfer]
+        norm = list(per_norm_consis.keys())[0]
+        no_aug_eval_array[i] = per_norm_NA_eval[norm]
+        consis_array[i, :] = per_norm_consis[norm][perturbation_key]
+    return consis_array, no_aug_eval_array
