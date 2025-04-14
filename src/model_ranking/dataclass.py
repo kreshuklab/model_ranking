@@ -3051,6 +3051,7 @@ class MetaConfig(BaseModel):
     summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
+    model_dir_path: str
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
     input_augs: Dict[str, List[Tuple[float, float]]]
