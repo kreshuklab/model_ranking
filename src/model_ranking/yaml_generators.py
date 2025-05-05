@@ -333,7 +333,7 @@ def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_semantic.create_config(
                                     aug_name=aug_name,
-                                    pred_path=pred_dir_path,
+                                    pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
@@ -406,7 +406,7 @@ def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
                                     aug_name=aug_name,
-                                    pred_path=pred_dir_path,
+                                    pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
