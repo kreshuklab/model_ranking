@@ -11,12 +11,18 @@ import numpy as np
 import re
 
 from pytorch3dunet.datasets.utils import (
-    _loader_classes,  # pyright: ignore[reportUnknownVariableType, reportPrivateUsage]
+    get_class,  # pyright: ignore[reportUnknownVariableType]
 )
 
 
 def loader_classes(class_name: str):
-    return _loader_classes(class_name)
+    modules = [
+        "pytorch3dunet.datasets.hdf5",
+        "pytorch3dunet.datasets.dsb",
+        "pytorch3dunet.datasets.utils",
+        "model_ranking.datasets",
+    ]
+    return get_class(class_name, modules)
 
 
 def load_h5(
