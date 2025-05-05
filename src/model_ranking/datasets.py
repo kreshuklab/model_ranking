@@ -22,13 +22,13 @@ from model_ranking.utils import load_h5, get_roi_slice, is_ndarray
 from model_ranking.dataclass import EvalDatasetConfig
 
 
-def traverse_pred_files(file_paths: Sequence[str], aug_name: str) -> List[str]:
+def traverse_pred_files(file_paths: Sequence[str], save_postfix: str) -> List[str]:
     assert isinstance(file_paths, list)
     results: List[str] = []
     for file_path in file_paths:
         if os.path.isdir(file_path):
             # if file path is a directory take all H5 files in that directory
-            iters = [glob.glob(os.path.join(file_path, f"*{aug_name}.h5"))]
+            iters = [glob.glob(os.path.join(file_path, f"*{save_postfix}.h5"))]
             for fp in chain(*iters):
                 results.append(fp)
         else:
@@ -198,9 +198,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
     def create_datasets(
         cls, dataset_config: EvalDatasetConfig
     ) -> List["StandardEvalDataset"]:
-        pred_paths = traverse_pred_files(
-            dataset_config.pred_path, dataset_config.aug_name
-        )
+        pred_paths = traverse_pred_files(dataset_config.pred_path, "predictions")
         gt_paths = traverse_pred_files(dataset_config.gt_path, "")
         datasets: List["StandardEvalDataset"] = []
         for i, pred_path in enumerate(pred_paths):
