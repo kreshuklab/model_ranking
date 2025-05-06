@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 from numpy.typing import NDArray
-from typing import Any, List, Sequence
+from typing import Any, List, Tuple, Mapping
 
 
 def plot_perturbation_sweep(
@@ -19,8 +19,8 @@ def plot_perturbation_sweep(
     figsize: tuple[int, int] = (12, 9),
     legend_size: int = 22,
     fontsize: int = 28,
-    xlim: Sequence[float] = [0.59, 1],
-    ylim: Sequence[float] = [0.3, 1],
+    xlim: Tuple[float, float] = (0.59, 1),
+    ylim: Tuple[float, float] = (0.3, 1),
     point_size: int = 500,
     fit_lines: bool = True,
     grid_alpha: float = 0.6,
@@ -45,18 +45,7 @@ def plot_perturbation_sweep(
     # Set the matplotlib style
     plt.style.use(style)
 
-    # Define colors and markers
-    colors = [
-        "#377eb8",
-        "#ff7f00",
-        "#4daf4a",
-        "#f781bf",
-        "#a65628",
-        "#984ea3",
-        "#999999",
-        "#e41a1c",
-        "#dede00",
-    ]  # Colors for each row of A
+    # Define markers
     markers = ["o", "s", "x", "D", "^", "v", "p", "*"]  # Markers for each column of A
 
     # Invert the metrics if specified
@@ -69,7 +58,7 @@ def plot_perturbation_sweep(
     _, ax = plt.subplots(figsize=figsize)
 
     # Loop over each column in A
-    for j, col_idx in enumerate(range(consis_scores.shape[1])):
+    for col_idx in range(consis_scores.shape[1]):
         for row_idx in range(consis_scores.shape[0]):
             _ = ax.scatter(
                 consis_scores[row_idx, col_idx],
@@ -153,4 +142,79 @@ def plot_perturbation_sweep(
     _ = plt.yticks(fontsize=fontsize - 5)  # pyright: ignore[reportUnknownVariableType]
     if save_fig_path:
         plt.savefig(save_fig_path)
+    plt.show()
+
+
+def plot_multitarget_correlations(
+    consis_scores: Mapping[str, NDArray[Any]],
+    NA_perf_scores: Mapping[str, NDArray[Any]],
+    save_path: str = "",
+    title: str = "",
+    perf_metric_name: str = "MAP score",
+    consis_metric_name: str = "CTE",
+    invert_consis_metric: bool = True,
+    invert_perf_metric: bool = False,
+    figsize: Tuple[int, int] = (10, 8),
+    fit_line: bool = True,
+    xlim: Tuple[float, float] = (0.19, 1.05),
+    ylim: Tuple[float, float] = (0, 1),
+    point_size: int = 500,
+    legend_size: int = 28,
+    fontsize: int = 30,
+    colors: List[str] = [
+        "#377eb8",
+        "#ff7f00",
+        "#4daf4a",
+        "#f781bf",
+        "#a65628",
+        "#984ea3",
+        "#999999",
+        "#e41a1c",
+        "#dede00",
+    ],
+):
+
+    _ = plt.figure(figsize=figsize)
+    for i, (target, consis) in enumerate(consis_scores.items()):
+        NA_perf = NA_perf_scores[target]
+        assert (
+            consis.shape == NA_perf.shape
+        ), "Consistency and performance scores must have the same shape"
+        if invert_consis_metric:
+            consis = 1 - consis
+
+        if invert_perf_metric:
+            NA_perf = 1 - NA_perf
+
+        _ = plt.scatter(
+            consis,
+            NA_perf,
+            c=colors[i],
+            label=f"To {target}",
+            s=point_size,
+            alpha=0.6,
+        )
+        if fit_line:
+            # plot dotted line that is fitted to data
+            x = np.linspace(
+                np.min(consis) - 0.01,
+                np.max(consis) + 0.01,
+                100,
+            )
+            y = np.poly1d(np.polyfit(consis, NA_perf, 1))(x)
+            _ = plt.plot(x, y, "--", c=colors[i], alpha=1, linewidth=3)
+    plt.grid(alpha=0.6)
+    _ = plt.legend(
+        prop={"size": legend_size}, title="Target dataset", title_fontsize=legend_size
+    )
+    _ = plt.xlim(xlim)
+    _ = plt.ylim(ylim)
+    _ = plt.xlabel(consis_metric_name, fontsize=fontsize)
+    _ = plt.ylabel(perf_metric_name, fontsize=fontsize)
+    _ = plt.xticks(fontsize=fontsize - 5)  # pyright: ignore[reportUnknownVariableType]
+    _ = plt.yticks(fontsize=fontsize - 5)  # pyright: ignore[reportUnknownVariableType]
+    _ = plt.title(title, fontsize=fontsize + 5)
+    if len(save_path) > 0:
+        plt.savefig(save_path)
+
     plt.show()
