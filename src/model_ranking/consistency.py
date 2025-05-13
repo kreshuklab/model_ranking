@@ -19,7 +19,6 @@ from model_ranking.datasets import StandardEvalDataset
 
 from model_ranking.metrics import (
     AdaptedRandErrorEval,
-    HammingDistanceEval,
     get_mask,
 )
 from model_ranking.utils import (
@@ -99,14 +98,7 @@ def calc_consistency_score(
             batch_consis_mask = get_mask(
                 unperturbed_pred, perturbed_pred, metric_cfg.mask_threshold
             )
-            if isinstance(metric, HammingDistanceEval):
-                batch_scores = metric(
-                    perturbed_pred, unperturbed_pred, batch_consis_mask
-                )
-            else:
-                batch_scores = metric(perturbed_pred, unperturbed_pred)
-                mask_inverted = np.logical_not(batch_consis_mask)
-                batch_scores[mask_inverted] = None
+            batch_scores = metric(perturbed_pred, unperturbed_pred, batch_consis_mask)
 
         scores[
             i * dataloader.batch_size : i * dataloader.batch_size

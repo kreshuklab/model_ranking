@@ -120,8 +120,19 @@ class DifferenceImageEval:
         super().__init__()
         self.diff_alpha = diff_alpha
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
-        return np.abs(pred**self.diff_alpha - gt**self.diff_alpha)
+    def __call__(
+        self,
+        pred: NDArray[Any],
+        gt: NDArray[Any],
+        consis_mask: Optional[NDArray[Any]] = None,
+    ) -> NDArray[Any]:
+        metric_result = np.abs(pred**self.diff_alpha - gt**self.diff_alpha)
+
+        if consis_mask is not None:
+            mask_inverted = np.logical_not(consis_mask)
+            metric_result[mask_inverted] = None
+
+        return metric_result
 
 
 class EffectiveInvarianceEval:
@@ -129,11 +140,19 @@ class EffectiveInvarianceEval:
         super().__init__()
         self.threshold = threshold
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
+    def __call__(
+        self,
+        pred: NDArray[Any],
+        gt: NDArray[Any],
+        consis_mask: Optional[NDArray[Any]] = None,
+    ) -> NDArray[Any]:
         # cmb_pred = np.stack([gt, pred], axis=0)
         cmb_pred = np.vstack([gt, pred])
         hard_pred = cmb_pred > self.threshold
         metric_result, _, _, _ = calculate_EI_binary(hard_pred, cmb_pred)
+        if consis_mask is not None:
+            mask_inverted = np.logical_not(consis_mask)
+            metric_result[mask_inverted] = None
         return metric_result
 
 
@@ -142,7 +161,12 @@ class EntropyEval:
         super().__init__()
         self.entr_base = entr_base
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
+    def __call__(
+        self,
+        pred: NDArray[Any],
+        gt: NDArray[Any],
+        consis_mask: Optional[NDArray[Any]] = None,
+    ) -> NDArray[Any]:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
         # cmb_pred = np.stack([gt_converted, pred_converted], axis=0)
@@ -153,6 +177,9 @@ class EntropyEval:
             probs, base=self.entr_base
         )
         assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
+        if consis_mask is not None:
+            mask_inverted = np.logical_not(consis_mask)
+            metric_result[mask_inverted] = None
         return metric_result
         # return torch.from_numpy(metric_result).to(pred.device).float()
 
@@ -163,7 +190,12 @@ class KLDivergenceEval:
         self.eps = eps
         self.entr_base = entr_base
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
+    def __call__(
+        self,
+        pred: NDArray[Any],
+        gt: NDArray[Any],
+        consis_mask: Optional[NDArray[Any]] = None,
+    ) -> NDArray[Any]:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
         probs_NA = np.clip(np.stack([1 - gt, gt], axis=0), self.eps, 1 - self.eps)
@@ -177,6 +209,9 @@ class KLDivergenceEval:
         )
         assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
         # return torch.from_numpy(metric_result).to(pred.device).float()
+        if consis_mask is not None:
+            mask_inverted = np.logical_not(consis_mask)
+            metric_result[mask_inverted] = None
         return metric_result
 
 
@@ -186,7 +221,12 @@ class CrossEntropyEval:
         self.eps = eps
         self.entr_base = entr_base
 
-    def __call__(self, pred: NDArray[Any], gt: NDArray[Any]) -> NDArray[Any]:
+    def __call__(
+        self,
+        pred: NDArray[Any],
+        gt: NDArray[Any],
+        consis_mask: Optional[NDArray[Any]] = None,
+    ) -> NDArray[Any]:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
         probs_NA = np.clip(np.stack([1 - gt, gt], axis=0), self.eps, 1 - self.eps)
@@ -200,6 +240,9 @@ class CrossEntropyEval:
         )
         assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
         # return torch.from_numpy(metric_result).to(pred.device).float()
+        if consis_mask is not None:
+            mask_inverted = np.logical_not(consis_mask)
+            metric_result[mask_inverted] = None
         return metric_result
 
 
