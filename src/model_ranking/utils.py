@@ -283,7 +283,7 @@ def get_output_dir(
     return output_path
 
 
-def get_output_path(
+def get_output_paths(
     source: str,
     target: str,
     selected_augmentations: Dict[str, List[str]],
