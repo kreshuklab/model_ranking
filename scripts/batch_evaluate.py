@@ -17,7 +17,11 @@ from model_ranking.yaml_generators import generate_run_yamls
 def main(
     config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
 ):
-    run_config_paths = generate_run_yamls(config)
+    cfg, _ = load_config_direct(config)
+    assert (
+        cfg["run_mode"] == "evaluation"
+    ), f"Current Run mode = {cfg['run_mode']}, should be 'evaluation"
+    run_config_paths = generate_run_yamls(cfg)
 
     for transfer_title, config_paths in run_config_paths.items():
         print(f"Running transfer {transfer_title}")

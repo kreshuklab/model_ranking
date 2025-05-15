@@ -142,7 +142,7 @@ def get_model_path(
         base_dir = Path(base_dir_path) / "Semantic"
 
     model_paths = list(
-        base_dir.glob(f"{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch")
+        base_dir.glob(f"**/{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch")
     )
     assert (
         len(model_paths) == 1
@@ -181,8 +181,8 @@ FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
 }
 
 
-def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
-    config, _ = load_config_direct(config_path)
+def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
+    # config, _ = load_config_direct(config_path)
     meta_cfg = MetaConfig.model_validate(config)
     yaml_paths: Dict[str, List[Path]] = {}
     for source_model in meta_cfg.source_models:
