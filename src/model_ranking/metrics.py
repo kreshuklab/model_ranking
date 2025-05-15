@@ -147,12 +147,26 @@ class EffectiveInvarianceEval:
         consis_mask: Optional[NDArray[Any]] = None,
     ) -> NDArray[Any]:
         # cmb_pred = np.stack([gt, pred], axis=0)
-        cmb_pred = np.vstack([gt, pred])
-        hard_pred = cmb_pred > self.threshold
-        metric_result, _, _, _ = calculate_EI_binary(hard_pred, cmb_pred)
-        if consis_mask is not None:
-            mask_inverted = np.logical_not(consis_mask)
-            metric_result[mask_inverted] = None
+        if pred.ndim == 2:
+            flag_2d = True
+            pred = np.expand_dims(pred, axis=0)
+            gt = np.expand_dims(gt, axis=0)
+            if consis_mask is not None:
+                consis_mask = np.expand_dims(consis_mask, axis=0)
+        else:
+            flag_2d = False
+        metric_result = np.zeros_like(pred)
+        for i in range(len(pred)):
+            # pred_converted = pred.cpu().numpy().astype("float32")
+            cmb_pred = np.stack([gt[i], pred[i]])
+            hard_pred = cmb_pred > self.threshold
+            metric_result_pp, _, _, _ = calculate_EI_binary(hard_pred, cmb_pred)
+            if consis_mask is not None:
+                mask_inverted = np.logical_not(consis_mask[i])
+                metric_result_pp[mask_inverted] = None
+            metric_result[i] = metric_result_pp
+        if flag_2d:
+            metric_result = np.squeeze(metric_result)
         return metric_result
 
 
