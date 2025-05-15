@@ -108,38 +108,6 @@ class AbstractConsistencyPatchwisePseudoLabeler:
 
         return torch.from_numpy(mask)
 
-    """
-    def __call__(
-        self,
-        teacher: torch.nn.Module,
-        perturbed_teacher: Optional[torch.nn.Module],
-        input_: torch.Tensor,
-        perturbed_input_: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        pseudo_labels = teacher(input_)
-        if perturbed_input_ is not None:
-            pseudo_labels_perturbed = teacher(perturbed_input_)
-        else:
-            assert perturbed_teacher is not None, (
-                "perturbed_teacher and perturbed_input_ are both None."
-                " Either perturbed_teacher or perturbed_input_ must be provided."
-            )
-            pseudo_labels_perturbed = perturbed_teacher(input_)
-
-        if self.consistency_threshold is None:
-            label_mask = torch.ones_like(pseudo_labels)
-        else:
-            label_mask = self._compute_label_mask(
-                pseudo_labels.cpu().numpy().astype("float32"),
-                pseudo_labels_perturbed.cpu().numpy().astype("float32"),
-            )
-            assert is_torch_tensor(pseudo_labels), (
-                "pseudo_labels is not a torch.Tensor. "
-                "Either pseudo_labels or label_mask must be a torch.Tensor."
-            )
-        return pseudo_labels, label_mask
-        """
-
 
 class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoLabeler):
     """Compute pseudo labels based on model predictions, typically from a teacher model.
