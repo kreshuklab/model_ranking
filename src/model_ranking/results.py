@@ -167,9 +167,9 @@ def save_summary_metrics(
         if (perf_scores[0].ndim == 0) or (
             (perf_scores[0].ndim == 1) and (len(np.array(perf_scores[0])) == 1)
         ):
-            performance_scores = np.hstack(perf_scores)
+            performance_scores = np.hstack(perf_scores).squeeze()
         else:
-            performance_scores = np.vstack(perf_scores)
+            performance_scores = np.vstack(perf_scores).squeeze()
 
         mean_perf_score = np.array(np.nanmean(performance_scores, axis=0))
         median_perf_scores = np.array(np.nanmedian(performance_scores, axis=0))
@@ -183,9 +183,9 @@ def save_summary_metrics(
         if (consis_scores[0].ndim == 0) or (
             (consis_scores[0].ndim == 1) and (len(np.array(consis_scores[0])) == 1)
         ):
-            consis_PP = np.hstack(consis_scores)
+            consis_PP = np.hstack(consis_scores).squeeze()
         else:
-            consis_PP = np.vstack(consis_scores)
+            consis_PP = np.vstack(consis_scores).squeeze()
         consis_mean = np.array(np.nanmean(consis_PP, axis=0))
         consis_median = np.array(np.nanmedian(consis_PP, axis=0))
         consis_std = np.array(np.nanstd(consis_PP, axis=0))

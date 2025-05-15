@@ -2992,7 +2992,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         ignore_path=None,
         ignore_key=None,
         convert_to_boundary_label=False,
-        convert_to_binary_label=True,
+        convert_to_binary_label=False,
         min_object_size=None,
         relabel_background=False,
         instance_zero_background=False,
@@ -3051,6 +3051,7 @@ class MetaConfig(BaseModel):
     summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
+    model_dir_path: str
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
     input_augs: Dict[str, List[Tuple[float, float]]]

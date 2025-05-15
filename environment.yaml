@@ -1,0 +1,58 @@
+name: CRank
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - affogato
+  - h5py
+  - imageio
+  - matplotlib
+  - mrcfile
+  - nifty
+  - numba
+  - numpy[version='<2']
+  - pandas
+  - pathlib
+  - pip
+  - pytest
+  - python
+  - pytorch
+  - pytorch-cuda=12.1
+  - pyyaml
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - setuptools
+  - skan
+  - tensorboard
+  - threadpoolctl
+  - torchvision
+  - tqdm
+  - typer
+  - typing
+  - vigra
+  - wandb
+  - z5py
+  - python-elf
+  - conda-forge::pydantic
+  - conda-forge::kornia
+  - conda-forge::ruyaml
+  - conda-forge::bioimageio.core[version='<0.6']
+  - conda-forge::marshmallow
+  - conda-forge::bioimageio.spec==0.4.9
+  - conda-forge::seaborn
+  - conda-forge::ipykernel
+  - conda-forge::natsort
+  - conda-forge::opencv
+  - conda-forge::libopengl
+  - conda-forge::nibabel
+  - conda-forge::pydantic-yaml
+  - conda-forge::plotly
+  - nbformat
+  - python-kaleido
+  - plant-seg
+  - pip
+
+  - pip:
+      - git+https://github.com/Josh-Talks/pytorch-3dunet.git@1.8.7-model_ranking
+      

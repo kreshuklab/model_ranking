@@ -1,0 +1,60 @@
+### Target Datasets
+target_datasets:
+  - name: BBBC039
+
+### Source Models
+source_models:
+  - source_name: BBBC039 
+    model_name: BC_IN_model2
+
+### Perturbation Settings
+
+# Feature perturbations
+feature_perturbations:
+  random_seed: 42
+  layers: [0]
+  spatial_dropout: True
+  perturbation_types:
+    - "None"
+    - "DropOutPerturbation"
+  dropOut_rates:
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.4
+  featureDrop_thresholds: null
+  featureNoise_ranges: null 
+
+# Input Augmentations
+input_augs:
+    none: []
+
+### General Run Settings
+overwrite_yaml: True
+segmentation_mode: instance
+run_mode: full
+data_base_path: /scratch/talks/data
+model_dir_path: ""
+summary_results:
+  overwrite_scores: False
+
+# Output Settings
+output_settings:
+  result_dir: test
+  approach: feature_perturbation_consistency
+  base_dir_path: /g/kreshuk/talks/model_ranking/scripts/test_scripts/sweep3
+
+
+### Performance and Consistency evaluation settings
+eval_settings:
+  name: MeanAvgPrecision
+  eval_save_key: MAP_eval
+  overwrite_score: True
+
+consistency_settings:
+  name: Entropy
+  save_key: Entropy_consis
+  save_mask: True
+  mask_threshold: 0.5
+  overwrite_score: True

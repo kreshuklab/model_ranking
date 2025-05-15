@@ -1,6 +1,6 @@
 import os
 import fnmatch
-from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union
+from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union, Dict
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -9,14 +9,21 @@ import h5py  # pyright: ignore[reportMissingTypeStubs]
 from h5py import File  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import re
+import torch
 
 from pytorch3dunet.datasets.utils import (
-    _loader_classes,  # pyright: ignore[reportUnknownVariableType, reportPrivateUsage]
+    get_class,  # pyright: ignore[reportUnknownVariableType]
 )
 
 
 def loader_classes(class_name: str):
-    return _loader_classes(class_name)
+    modules = [
+        "pytorch3dunet.datasets.hdf5",
+        "pytorch3dunet.datasets.dsb",
+        "pytorch3dunet.datasets.utils",
+        "model_ranking.datasets",
+    ]
+    return get_class(class_name, modules)
 
 
 def load_h5(
@@ -69,6 +76,10 @@ def get_roi_slice(roi: Sequence[Sequence[int]]) -> tuple[slice, ...]:
 
 def is_ndarray(v: Any) -> TypeGuard[NDArray[Any]]:
     return isinstance(v, np.ndarray)
+
+
+def is_torch_tensor(v: Any) -> TypeGuard[torch.Tensor]:
+    return isinstance(v, torch.Tensor)
 
 
 def check_for_no_aug_configs(
@@ -275,3 +286,42 @@ def get_output_dir(
     # Create save folder if it doesn't exist
     Path(output_path).mkdir(parents=True, exist_ok=True)
     return output_path
+
+
+def get_output_paths(
+    source: str,
+    target: str,
+    selected_augmentations: Dict[str, List[str]],
+    selected_norms: Union[List[Tuple[float, float]], List[None]],
+    source_model: str,
+    output: str = "metric_summary.h5",
+    approach: str = "feature_perturbation_consistency",
+    result_folder: str = "exp1",
+    base_dir_path: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation/",
+) -> List[str]:
+    paths: List[str] = []
+    for aug, alphas in selected_augmentations.items():
+        for norm in selected_norms:
+            if norm == None:
+                norm_foldername = "norm_Normalize"
+            else:
+                norm_foldername = f"norm_{str(norm[0])}_{str(norm[1]).replace('.', '')}"
+            path = list(
+                Path(base_dir_path).glob(
+                    (
+                        f"{source}_to_{target}_gap/{approach}/{result_folder}/"
+                        f"{source_model}/{norm_foldername}"
+                    )
+                )
+            )
+            assert len(path) == 1, f"num paths found == {len(path)}"
+            if aug == "none":
+                out_path = list((path[0] / f"{aug}").glob(output))
+                assert len(out_path) == 1, f"num paths found == {len(out_path)}"
+                paths.append(str(out_path[0]))
+            else:
+                for alpha in alphas:
+                    out_path = list((path[0] / f"{aug}_{alpha}").glob(output))
+                    assert len(out_path) == 1, f"num paths found == {len(out_path)}"
+                    paths.append(str(out_path[0]))
+    return paths

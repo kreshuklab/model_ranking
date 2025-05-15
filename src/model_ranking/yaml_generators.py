@@ -118,38 +118,36 @@ def generate_aug_config(
     return augs
 
 
-def get_seg_model_path(
+def get_model_path(
     source_data: str,
     model_name: str,
-    internal_norm: str = "BatchNorm",
+    base_dir_path: str,
     seg_mode: Literal["instance", "semantic"] = "semantic",
-):
-    # assert model_abbreviations[source_data] == model_name.split("_")[0], (
-    #    f"Model abbreviation {model_abbreviations[source_data]} does not match"
-    #    f" model name {model_name}"
-    # )
+) -> str:
+    """Find path to model checkpoint
+
+    Args:
+        source_data (str): source dataset name
+        model_name (str): source model name
+        base_dir_path (str): path to directory contatining model checkpoints
+        seg_mode (Literal[&quot;instance&quot;, &quot;semantic&quot;], optional): semantic or instance segmentation mode. Defaults to "semantic".
+
+    Returns:
+        str: = path to model checkpoint
+    """
     if seg_mode == "instance":
-        base_dir = "/g/kreshuk/talks/segmentation_ModelSelection/experiments/Instance_segmentation_models"
-    else:
-        base_dir = "/g/kreshuk/talks/segmentation_ModelSelection/experiments"
-    if source_data in ["FlyWing", "Ovules", "PNAS"]:
-        model_path = (
-            f"/g/kreshuk/talks/segmentation_ModelSelection/experiments/{source_data}/Boundary/"
-            f"{internal_norm}/{model_name}/best_checkpoint.pytorch"
-        )
+        base_dir = Path(base_dir_path) / "Instance"
 
     else:
-        model_paths = list(
-            Path(base_dir).glob(
-                f"{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch"
-            )
-        )
-        assert (
-            len(model_paths) == 1
-        ), f"number of path found = {len(model_paths)}, model ambiguous"
-        model_path = str(model_paths[0])
-    assert Path(model_path).exists(), f"Model path {model_path} does not exist"
+        base_dir = Path(base_dir_path) / "Semantic"
 
+    model_paths = list(
+        base_dir.glob(f"{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch")
+    )
+    assert (
+        len(model_paths) == 1
+    ), f"number of path found = {len(model_paths)}, model ambiguous"
+    model_path = str(model_paths[0])
     return model_path
 
 
@@ -188,9 +186,10 @@ def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
     meta_cfg = MetaConfig.model_validate(config)
     yaml_paths: Dict[str, List[Path]] = {}
     for source_model in meta_cfg.source_models:
-        source_model_path = get_seg_model_path(
+        source_model_path = get_model_path(
             source_data=source_model.source_name,
             model_name=source_model.model_name,
+            base_dir_path=meta_cfg.model_dir_path,
             seg_mode=meta_cfg.segmentation_mode,
         )
         feat_pert_cfg = meta_cfg.feature_perturbations
@@ -334,7 +333,7 @@ def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_semantic.create_config(
                                     aug_name=aug_name,
-                                    pred_path=pred_dir_path,
+                                    pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
@@ -407,7 +406,7 @@ def generate_run_yamls(config_path: Union[str, Path]) -> Dict[str, List[Path]]:
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
                                     aug_name=aug_name,
-                                    pred_path=pred_dir_path,
+                                    pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
                             )
