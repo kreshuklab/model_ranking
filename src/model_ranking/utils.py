@@ -325,3 +325,18 @@ def get_output_paths(
                     assert len(out_path) == 1, f"num paths found == {len(out_path)}"
                     paths.append(str(out_path[0]))
     return paths
+
+
+def add_device_to_config(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add device to the config dictionary.
+    """
+    device = config.get("device", None)
+    if device == "cpu":
+        config["device"] = "cpu"
+        return config
+    if torch.cuda.is_available():
+        config["device"] = "cuda"
+    else:
+        config["device"] = "cpu"
+    return config
