@@ -93,7 +93,9 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             )
         mask = np.zeros_like(pseudo_labels)
         if isinstance(self.consistency_metric, HammingDistanceEval):
-            ids = np.argwhere(consis_score[:, 0] > self.consistency_threshold)
+            # Hamming distance is a measure of dissimilarity, so we want to keep
+            # the patches with a low distance
+            ids = np.argwhere(consis_score < self.consistency_threshold)
 
         elif isinstance(self.consistency_metric, AdaptedRandErrorEval):
             ids = np.argwhere(consis_score[:, 2] > self.consistency_threshold)
@@ -143,8 +145,10 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         self, teacher: torch.nn.Module, input_: torch.Tensor
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         pseudo_labels = teacher(input_)
-        perturbed_input_ = self.transform(  # pyright: ignore[reportUnknownVariableType]
-            input_
+        perturbed_input_ = (
+            torch.from_numpy(self.transform(input_.cpu().numpy().astype("float32")))
+            .to(input_.dtype)
+            .to(input_.device)
         )
         pseudo_labels_perturbed = teacher(perturbed_input_)
         if self.consistency_threshold is None:
@@ -153,7 +157,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             label_mask = self._compute_label_mask(
                 pseudo_labels.cpu().numpy().astype("float32"),
                 pseudo_labels_perturbed.cpu().numpy().astype("float32"),
-            )
+            ).to(input_.device)
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
             "Either pseudo_labels or label_mask must be a torch.Tensor."
@@ -188,15 +192,15 @@ class ModelConsistencyPatcWisePseudoLabeler(AbstractConsistencyPatchwisePseudoLa
             foreground_threshold=foreground_threshold,
             consistency_threshold=consistency_threshold,
         )
-        self.perturbed_model_config = perturbed_model_config
+        self.perturbed_teacher = get_model(perturbed_model_config.model_dump())
 
     def __call__(
         self, teacher: torch.nn.Module, input_: torch.Tensor
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         pseudo_labels = teacher(input_)
-        perturbed_teacher = get_model(self.perturbed_model_config.model_dump())
-        _ = perturbed_teacher.load_state_dict(teacher.state_dict())
-        perturbed_teacher = perturbed_teacher.to(next(teacher.parameters()).device)
+
+        _ = self.perturbed_teacher.load_state_dict(teacher.state_dict())
+        perturbed_teacher = self.perturbed_teacher.to(next(teacher.parameters()).device)
         _ = perturbed_teacher.eval()
         pseudo_labels_perturbed = perturbed_teacher(input_)
         if self.consistency_threshold is None:
