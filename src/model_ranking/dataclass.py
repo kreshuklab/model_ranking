@@ -3124,3 +3124,14 @@ class ConfigEvaluation(BaseModel):
 class ConfigConsistency(BaseModel):
     save_results: SummaryResultsConfig
     consistency: ConsistencyConfig
+
+
+class SemanticSegmentation(BaseModel):
+    name: Literal["semantic"] = "semantic"
+
+
+class InstanceSegmentation(BaseModel):
+    name: Literal["instance"] = "instance"
+    min_size: int = 50
+    zero_largest_instance: bool = False
+    no_adjust_background: bool = False
