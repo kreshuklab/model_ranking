@@ -65,11 +65,12 @@ class AbstractConsistencyPatchwisePseudoLabeler:
 
     Args:
         consistency_threshold: Threshold for accepting patches, if the patch consistency
-        is above the threshold the full prediction will be used, otherwise the patch will
-        be masked out.
+            is above the threshold the full prediction will be used, otherwise the patch will
+            be masked out.
         consistency_metric: Metric used to compute the consistency of the patches.
         foreground_threhold: threshold to consider foreground only pixels for consistency
-        calculation.
+            calculation.
+        seg_params: Segmentation parameters for processing prediction.
 
     """
 
@@ -173,6 +174,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         foreground_threshold: threshold to consider foreground only pixels for consistency
             calculation.
         consistency_metric: Metric used to compute the consistency of the patches.
+        seg_params: Segmentation parameters for processing prediction.
 
     """
 
@@ -238,6 +240,7 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         consistency_threshold: Threshold for accepting patches, if the patch consistency
             is above the threshold the full prediction will be used, otherwise the patch
             will be masked out.
+        seg_params: Segmentation parameters for processing prediction.
     """
 
     def __init__(
