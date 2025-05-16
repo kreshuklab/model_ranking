@@ -162,7 +162,7 @@ class EffectiveInvarianceEval:
             hard_pred = cmb_pred > self.threshold
             metric_result_pp, _, _, _ = calculate_EI_binary(hard_pred, cmb_pred)
             if consis_mask is not None:
-                mask_inverted = np.logical_not(consis_mask[i])
+                mask_inverted = np.logical_not(consis_mask[i : i + 1])
                 metric_result_pp[mask_inverted] = None
             metric_result[i] = metric_result_pp
         if flag_2d:
@@ -184,16 +184,32 @@ class EntropyEval:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
         # cmb_pred = np.stack([gt_converted, pred_converted], axis=0)
-        cmb_pred = np.stack([gt, pred], axis=0)
-        mean_pred = np.mean(cmb_pred, axis=0)
-        probs = np.stack([1 - mean_pred, mean_pred], axis=0)
-        metric_result = entropy(  # pyright: ignore[reportUnknownVariableType]
-            probs, base=self.entr_base
-        )
-        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
-        if consis_mask is not None:
-            mask_inverted = np.logical_not(consis_mask)
-            metric_result[mask_inverted] = None
+        if pred.ndim == 2:
+            flag_2d = True
+            pred = np.expand_dims(pred, axis=0)
+            gt = np.expand_dims(gt, axis=0)
+            if consis_mask is not None:
+                consis_mask = np.expand_dims(consis_mask, axis=0)
+        else:
+            flag_2d = False
+
+        metric_result = np.zeros_like(pred)
+        for i in range(len(pred)):
+            cmb_pred = np.stack([gt[i], pred[i]], axis=0)
+            mean_pred = np.mean(cmb_pred, axis=0)
+            probs = np.stack([1 - mean_pred, mean_pred], axis=0)
+            metric_result_pp = entropy(  # pyright: ignore[reportUnknownVariableType]
+                probs, base=self.entr_base
+            )
+            assert is_ndarray(
+                metric_result_pp
+            ), f"Data is not a numpy array: {metric_result_pp}"
+            if consis_mask is not None:
+                mask_inverted = np.logical_not(consis_mask[i])
+                metric_result_pp[mask_inverted] = None
+            metric_result[i] = metric_result_pp
+        if flag_2d:
+            metric_result = np.squeeze(metric_result)
         return metric_result
         # return torch.from_numpy(metric_result).to(pred.device).float()
 
@@ -212,20 +228,39 @@ class KLDivergenceEval:
     ) -> NDArray[Any]:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
-        probs_NA = np.clip(np.stack([1 - gt, gt], axis=0), self.eps, 1 - self.eps)
-        probs_A = np.clip(
-            np.stack([1 - pred, pred], axis=0),
-            self.eps,
-            1 - self.eps,
-        )
-        metric_result = entropy(  # pyright: ignore[reportUnknownVariableType]
-            probs_NA, probs_A, base=self.entr_base
-        )
-        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
-        # return torch.from_numpy(metric_result).to(pred.device).float()
-        if consis_mask is not None:
-            mask_inverted = np.logical_not(consis_mask)
-            metric_result[mask_inverted] = None
+        if pred.ndim == 2:
+            flag_2d = True
+            pred = np.expand_dims(pred, axis=0)
+            gt = np.expand_dims(gt, axis=0)
+            if consis_mask is not None:
+                consis_mask = np.expand_dims(consis_mask, axis=0)
+        else:
+            flag_2d = False
+        metric_result = np.zeros_like(pred)
+
+        for i in range(len(pred)):
+            probs_NA = np.clip(
+                np.stack([1 - gt[i], gt[i]], axis=0), self.eps, 1 - self.eps
+            )
+            probs_A = np.clip(
+                np.stack([1 - pred[i], pred[i]], axis=0),
+                self.eps,
+                1 - self.eps,
+            )
+            metric_result_pp = entropy(  # pyright: ignore[reportUnknownVariableType]
+                probs_NA, probs_A, base=self.entr_base
+            )
+            assert is_ndarray(
+                metric_result_pp
+            ), f"Data is not a numpy array: {metric_result_pp}"
+            # return torch.from_numpy(metric_result).to(pred.device).float()
+            if consis_mask is not None:
+                mask_inverted = np.logical_not(consis_mask[i])
+                metric_result_pp[mask_inverted] = None
+            metric_result[i] = metric_result_pp
+        if flag_2d:
+            metric_result = np.squeeze(metric_result)
+
         return metric_result
 
 
@@ -243,20 +278,37 @@ class CrossEntropyEval:
     ) -> NDArray[Any]:
         # pred_converted = pred.cpu().numpy().astype("float32")
         # gt_converted = gt.cpu().numpy().astype("float32")
-        probs_NA = np.clip(np.stack([1 - gt, gt], axis=0), self.eps, 1 - self.eps)
-        probs_A = np.clip(
-            np.stack([1 - pred, pred], axis=0),
-            self.eps,
-            1 - self.eps,
-        )
-        metric_result = entropy(probs_NA, base=self.entr_base) + entropy(
-            probs_NA, probs_A, base=self.entr_base
-        )
-        assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
-        # return torch.from_numpy(metric_result).to(pred.device).float()
-        if consis_mask is not None:
-            mask_inverted = np.logical_not(consis_mask)
-            metric_result[mask_inverted] = None
+        if pred.ndim == 2:
+            flag_2d = True
+            pred = np.expand_dims(pred, axis=0)
+            gt = np.expand_dims(gt, axis=0)
+            if consis_mask is not None:
+                consis_mask = np.expand_dims(consis_mask, axis=0)
+        else:
+            flag_2d = False
+        metric_result = np.zeros_like(pred)
+        for i in range(len(pred)):
+            probs_NA = np.clip(
+                np.stack([1 - gt[i], gt[i]], axis=0), self.eps, 1 - self.eps
+            )
+            probs_A = np.clip(
+                np.stack([1 - pred[i], pred[i]], axis=0),
+                self.eps,
+                1 - self.eps,
+            )
+            metric_result_pp = entropy(probs_NA, base=self.entr_base) + entropy(
+                probs_NA, probs_A, base=self.entr_base
+            )
+            assert is_ndarray(
+                metric_result_pp
+            ), f"Data is not a numpy array: {metric_result_pp}"
+            # return torch.from_numpy(metric_result).to(pred.device).float()
+            if consis_mask is not None:
+                mask_inverted = np.logical_not(consis_mask[i])
+                metric_result_pp[mask_inverted] = None
+            metric_result[i] = metric_result_pp
+        if flag_2d:
+            metric_result = np.squeeze(metric_result)
         return metric_result
 
 
