@@ -35,7 +35,8 @@ def main(
 
     # save summary metrics
     summary_config = SummaryResultsConfig.model_validate(cfg["summary_results"])
-    _ = run_foreground_patch_selection(summary_config)
+    if summary_config.filter_patches is not None:
+        _ = run_foreground_patch_selection(summary_config)
     save_summary_metrics(summary_config)
 
 
