@@ -1242,7 +1242,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     eval_dataloader_semantic: Eval_TIF_TxtDataloaderMetaConfig = (
         Eval_TIF_TxtDataloaderMetaConfig(
-            batch_size=1,
+            batch_size=2,
             num_workers=8,
             name="TIF_txt_Dataset",
             expand_dims=True,
@@ -1269,7 +1269,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     eval_dataloader_instance: Eval_TIF_TxtDataloaderMetaConfig = (
         Eval_TIF_TxtDataloaderMetaConfig(
-            batch_size=1,
+            batch_size=2,
             num_workers=8,
             name="TIF_txt_Dataset",
             expand_dims=True,
@@ -1294,7 +1294,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     consis_dataloader_semantic: Eval_TIF_TxtDataloaderMetaConfig = (
         Eval_TIF_TxtDataloaderMetaConfig(
-            batch_size=1,
+            batch_size=2,
             num_workers=8,
             name="TIF_txt_Dataset",
             expand_dims=True,
@@ -1318,7 +1318,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     consis_dataloader_instance: Eval_TIF_TxtDataloaderMetaConfig = (
         Eval_TIF_TxtDataloaderMetaConfig(
-            batch_size=1,
+            batch_size=2,
             num_workers=8,
             name="TIF_txt_Dataset",
             expand_dims=True,
