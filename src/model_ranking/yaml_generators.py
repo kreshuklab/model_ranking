@@ -135,11 +135,13 @@ def get_model_path(
     Returns:
         str: = path to model checkpoint
     """
-    if seg_mode == "instance":
-        base_dir = Path(base_dir_path) / "Instance"
+    # if seg_mode == "instance":
+    #    base_dir = Path(base_dir_path) / "Instance"
 
-    else:
-        base_dir = Path(base_dir_path) / "Semantic"
+    # else:
+    #    base_dir = Path(base_dir_path) / "Semantic"
+
+    base_dir = Path(base_dir_path)
 
     model_paths = list(
         base_dir.glob(f"**/{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch")
