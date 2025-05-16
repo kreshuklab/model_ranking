@@ -3,3 +3,4 @@ wandb/
 .vscode/
 *.egg-info/
 *.h5
+/tests
