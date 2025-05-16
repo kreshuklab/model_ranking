@@ -225,7 +225,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         return pseudo_labels, label_mask
 
 
-class ModelConsistencyPatcWisePseudoLabeler(AbstractConsistencyPatchwisePseudoLabeler):
+class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoLabeler):
     """Compute pseudo labels based on model predictions, typically from a teacher model.
     Optionally apply patch filter depending on the model's predictions consistency under
     feature space perturbations.
@@ -260,10 +260,9 @@ class ModelConsistencyPatcWisePseudoLabeler(AbstractConsistencyPatchwisePseudoLa
         self, teacher: torch.nn.Module, input_: torch.Tensor
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         pseudo_labels = teacher(input_)
-
         _ = self.perturbed_teacher.load_state_dict(teacher.state_dict())
         perturbed_teacher = self.perturbed_teacher.to(next(teacher.parameters()).device)
-        _ = perturbed_teacher.eval()
+        perturbed_teacher = perturbed_teacher.eval()
         pseudo_labels_perturbed = perturbed_teacher(input_)
 
         if self.seg_params.name == "instance":
