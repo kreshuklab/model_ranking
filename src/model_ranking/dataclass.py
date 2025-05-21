@@ -26,9 +26,22 @@ from model_ranking.metrics import (
     CrossEntropyEval,
     HammingDistanceEval,
 )
-from pytorch3dunet.unet3d.metrics import (
+from pytorch3dunet.augment.transforms import (  # pyright: ignore[reportMissingTypeStubs]
+    Transformer,
+)
+from pytorch3dunet.unet3d.metrics import (  # pyright: ignore[reportMissingTypeStubs]
     InstanceAveragePrecision,
 )
+
+consistency_metric_type = Union[
+    CrossEntropyEval,
+    DifferenceImageEval,
+    EffectiveInvarianceEval,
+    EntropyEval,
+    HammingDistanceEval,
+    KLDivergenceEval,
+    AdaptedRandErrorEval,
+]
 
 
 class ConsistencyMetricConfig(BaseModel):
@@ -3135,3 +3148,32 @@ class InstanceSegmentation(BaseModel):
     min_size: int = 50
     zero_largest_instance: bool = False
     no_adjust_background: bool = False
+
+
+segmentation_type = Annotated[
+    Union[SemanticSegmentation, InstanceSegmentation],
+    Discriminator("name"),
+]
+
+
+class PseudoLabelerConfig(BaseModel):
+    consistency_metric: consistency_metric_type
+    foreground_threshold: Optional[float]
+    consistency_threshold: Optional[float]
+    seg_params: segmentation_type
+
+
+class InputConsisPseudoLabelerConfig(PseudoLabelerConfig):
+    name: Literal["input_consistency"]
+    transformer: Transformer
+
+
+class ModelConsisPseudoLabelerConfig(PseudoLabelerConfig):
+    name: Literal["model_consistency"]
+    perturbed_model_config: Pytorch3DUnetModelConfig
+
+
+pseudo_labeler_type = Annotated[
+    Union[InputConsisPseudoLabelerConfig, ModelConsisPseudoLabelerConfig],
+    Discriminator("name"),
+]

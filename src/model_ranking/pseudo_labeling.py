@@ -1,63 +1,34 @@
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import Discriminator
 import torch
-from typing import Optional, Union, Any, Tuple, Annotated
+from typing import Optional, Any, Tuple
 
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     SemanticSegmentation,
     InstanceSegmentation,
+    consistency_metric_type,
+    segmentation_type,
 )
 from model_ranking.metrics import (
     get_mask,
-    CrossEntropyEval,
-    DifferenceImageEval,
-    EffectiveInvarianceEval,
-    EntropyEval,
     HammingDistanceEval,
-    KLDivergenceEval,
     AdaptedRandErrorEval,
 )
 from model_ranking.utils import (
     is_torch_tensor,
+    is_ndarray,
 )
 
-from pytorch3dunet.augment.transforms import (
-    RandomContrast,
-    RandomGamma,
-    RandomBrightness,
-    AdditiveGaussianNoise,
+from pytorch3dunet.augment.transforms import (  # pyright: ignore[reportMissingTypeStubs]
     Transformer,
 )
-from pytorch3dunet.unet3d.model import (
+from pytorch3dunet.unet3d.model import (  # pyright: ignore[reportMissingTypeStubs]
     get_model,  # pyright: ignore[reportUnknownVariableType]
 )
-from pytorch3dunet.unet3d.predictor import (
+from pytorch3dunet.unet3d.predictor import (  # pyright: ignore[reportMissingTypeStubs]
     pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
-
-consistency_metric_type = Union[
-    CrossEntropyEval,
-    DifferenceImageEval,
-    EffectiveInvarianceEval,
-    EntropyEval,
-    HammingDistanceEval,
-    KLDivergenceEval,
-    AdaptedRandErrorEval,
-]
-
-transform_type = Union[
-    RandomContrast,
-    RandomGamma,
-    RandomBrightness,
-    AdditiveGaussianNoise,
-]
-
-segmentation_type = Annotated[
-    Union[SemanticSegmentation, InstanceSegmentation],
-    Discriminator("name"),
-]
 
 
 class AbstractConsistencyPatchwisePseudoLabeler:
@@ -216,9 +187,17 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
+            ps_lab = (  # pyright: ignore[reportUnknownVariableType]
+                pseudo_labels.cpu().numpy().astype("float32")
+            )
+            ps_lab_perturbed = (  # pyright: ignore[reportUnknownVariableType]
+                pseudo_labels_perturbed.cpu().numpy().astype("float32")
+            )
+            assert is_ndarray(ps_lab)
+            assert is_ndarray(ps_lab_perturbed)
             label_mask = self._compute_label_mask(
-                pseudo_labels.cpu().numpy().astype("float32"),
-                pseudo_labels_perturbed.cpu().numpy().astype("float32"),
+                ps_lab,
+                ps_lab_perturbed,
             ).to(input_.device)
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
@@ -276,9 +255,17 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
+            ps_lab = (  # pyright: ignore[reportUnknownVariableType]
+                pseudo_labels.cpu().numpy().astype("float32")
+            )
+            ps_lab_perturbed = (  # pyright: ignore[reportUnknownVariableType]
+                pseudo_labels_perturbed.cpu().numpy().astype("float32")
+            )
+            assert is_ndarray(ps_lab)
+            assert is_ndarray(ps_lab_perturbed)
             label_mask = self._compute_label_mask(
-                pseudo_labels.cpu().numpy().astype("float32"),
-                pseudo_labels_perturbed.cpu().numpy().astype("float32"),
+                ps_lab,
+                ps_lab_perturbed,
             )
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
