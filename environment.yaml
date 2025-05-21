@@ -20,6 +20,7 @@ dependencies:
   - pytorch
   - pytorch-cuda=12.1
   - pyyaml
+  - python-elf
   - scikit-image
   - scikit-learn
   - scipy
@@ -34,4 +35,5 @@ dependencies:
   - pip:
       - torcheval
       - -e .
+      - -e /g/kreshuk/talks/pytorch-3dunet
 
