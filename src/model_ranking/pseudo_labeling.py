@@ -1,19 +1,23 @@
 import numpy as np
 from numpy.typing import NDArray
 import torch
-from typing import Optional, Any, Tuple
+from typing import Optional, Any, Tuple, Union
 
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
-    SemanticSegmentation,
-    InstanceSegmentation,
-    consistency_metric_type,
+    SemanticSegmentationConfig,
+    InstanceSegmentationConfig,
     segmentation_type,
 )
 from model_ranking.metrics import (
     get_mask,
     HammingDistanceEval,
     AdaptedRandErrorEval,
+    EffectiveInvarianceEval,
+    CrossEntropyEval,
+    DifferenceImageEval,
+    EntropyEval,
+    KLDivergenceEval,
 )
 from model_ranking.utils import (
     is_torch_tensor,
@@ -29,6 +33,16 @@ from pytorch3dunet.unet3d.model import (  # pyright: ignore[reportMissingTypeStu
 from pytorch3dunet.unet3d.predictor import (  # pyright: ignore[reportMissingTypeStubs]
     pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
+
+consistency_metrics = Union[
+    HammingDistanceEval,
+    AdaptedRandErrorEval,
+    EffectiveInvarianceEval,
+    CrossEntropyEval,
+    DifferenceImageEval,
+    EntropyEval,
+    KLDivergenceEval,
+]
 
 
 class AbstractConsistencyPatchwisePseudoLabeler:
@@ -47,10 +61,10 @@ class AbstractConsistencyPatchwisePseudoLabeler:
 
     def __init__(
         self,
-        consistency_metric: consistency_metric_type,
+        consistency_metric: consistency_metrics,
         foreground_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
-        seg_params: segmentation_type = SemanticSegmentation(),
+        seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__()
         self.consistency_metric = consistency_metric
@@ -98,7 +112,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
     def get_instance_labels(
         self, pseudo_labels: torch.Tensor, pseudo_labels_perturbed: torch.Tensor
     ):
-        assert isinstance(self.seg_params, InstanceSegmentation), (
+        assert isinstance(self.seg_params, InstanceSegmentationConfig), (
             "Segmentation type is not instance segmentation. "
             "Please use the correct segmentation type."
         )
@@ -152,10 +166,10 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
     def __init__(
         self,
         transformer: Transformer,
-        consistency_metric: consistency_metric_type,
+        consistency_metric: consistency_metrics,
         foreground_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
-        seg_params: segmentation_type = SemanticSegmentation(),
+        seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__(
             consistency_metric=consistency_metric,
@@ -168,6 +182,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
     def __call__(
         self, teacher: torch.nn.Module, input_: torch.Tensor
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        # input_ = input_.squeeze(2)
         pseudo_labels = teacher(input_)
         perturbed_input_ = (
             torch.from_numpy(self.transform(input_.cpu().numpy().astype("float32")))
@@ -225,10 +240,10 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
     def __init__(
         self,
         perturbed_model_config: Pytorch3DUnetModelConfig,
-        consistency_metric: consistency_metric_type,
+        consistency_metric: consistency_metrics,
         foreground_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
-        seg_params: segmentation_type = SemanticSegmentation(),
+        seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__(
             consistency_metric=consistency_metric,
