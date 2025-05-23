@@ -26,22 +26,9 @@ from model_ranking.metrics import (
     CrossEntropyEval,
     HammingDistanceEval,
 )
-from pytorch3dunet.augment.transforms import (  # pyright: ignore[reportMissingTypeStubs]
-    Transformer,
-)
 from pytorch3dunet.unet3d.metrics import (  # pyright: ignore[reportMissingTypeStubs]
     InstanceAveragePrecision,
 )
-
-consistency_metric_type = Union[
-    CrossEntropyEval,
-    DifferenceImageEval,
-    EffectiveInvarianceEval,
-    EntropyEval,
-    HammingDistanceEval,
-    KLDivergenceEval,
-    AdaptedRandErrorEval,
-]
 
 
 class ConsistencyMetricConfig(BaseModel):
@@ -3139,11 +3126,11 @@ class ConfigConsistency(BaseModel):
     consistency: ConsistencyConfig
 
 
-class SemanticSegmentation(BaseModel):
+class SemanticSegmentationConfig(BaseModel):
     name: Literal["semantic"] = "semantic"
 
 
-class InstanceSegmentation(BaseModel):
+class InstanceSegmentationConfig(BaseModel):
     name: Literal["instance"] = "instance"
     min_size: int = 50
     zero_largest_instance: bool = False
@@ -3151,13 +3138,26 @@ class InstanceSegmentation(BaseModel):
 
 
 segmentation_type = Annotated[
-    Union[SemanticSegmentation, InstanceSegmentation],
+    Union[SemanticSegmentationConfig, InstanceSegmentationConfig],
+    Discriminator("name"),
+]
+
+consistency_metric_type = Annotated[
+    Union[
+        CrossEntropyConfig,
+        DifferenceImageConfig,
+        EffectiveInvarianceConfig,
+        EntropyConfig,
+        HammingDistanceConfig,
+        KLDivergenceConfig,
+        AdaptedRandErrorConfig,
+    ],
     Discriminator("name"),
 ]
 
 
 class PseudoLabelerConfig(BaseModel):
-    consistency_metric: consistency_metric_type
+    # consistency_metric: consistency_metric_type
     foreground_threshold: Optional[float]
     consistency_threshold: Optional[float]
     seg_params: segmentation_type
@@ -3165,7 +3165,8 @@ class PseudoLabelerConfig(BaseModel):
 
 class InputConsisPseudoLabelerConfig(PseudoLabelerConfig):
     name: Literal["input_consistency"]
-    transformer: Transformer
+    transformer_cfg: Dict[str, List[Any]]
+    stats_cfg: Dict[str, Any]
 
 
 class ModelConsisPseudoLabelerConfig(PseudoLabelerConfig):
