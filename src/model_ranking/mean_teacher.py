@@ -12,24 +12,30 @@ from model_ranking.dataclass import (
 from model_ranking.pseudo_labeling import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
+    consistency_metrics,
 )
 from model_ranking.self_training import get_unsupervised_loader
 from model_ranking.supervised_training import get_supervised_loader
 
-from pytorch3dunet.unet3d.model import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
 )
-from pytorch3dunet.unet3d.utils import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.utils import (
     load_checkpoint,  # pyright: ignore[reportUnknownVariableType]
+)
+from pytorch3dunet.augment.transforms import (
+    Transformer,
 )
 
 
 def mean_teacher_adaptation(
+    name: str,
     output_root_path: str,
     unsupervised_train_paths: List[str],
     unsupervised_val_paths: List[str],
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
+    consistency_metric: consistency_metrics,
     model_config: Pytorch3DUnetModelConfig,
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_train_paths: Optional[List[str]] = None,
@@ -65,9 +71,13 @@ def mean_teacher_adaptation(
 
     # self training functionality
     if pseudo_labeler_config.name == "input_consistency":
+
         pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
-            transformer=pseudo_labeler_config.transformer,
-            consistency_metric=pseudo_labeler_config.consistency_metric,
+            transformer=Transformer(
+                pseudo_labeler_config.transformer_cfg,
+                pseudo_labeler_config.stats_cfg,
+            ),
+            consistency_metric=consistency_metric,
             foreground_threshold=pseudo_labeler_config.foreground_threshold,
             consistency_threshold=pseudo_labeler_config.consistency_threshold,
             seg_params=pseudo_labeler_config.seg_params,
@@ -76,7 +86,7 @@ def mean_teacher_adaptation(
     else:
         pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
             perturbed_model_config=pseudo_labeler_config.perturbed_model_config,
-            consistency_metric=pseudo_labeler_config.consistency_metric,
+            consistency_metric=consistency_metric,
             foreground_threshold=pseudo_labeler_config.foreground_threshold,
             consistency_threshold=pseudo_labeler_config.consistency_threshold,
             seg_params=pseudo_labeler_config.seg_params,
@@ -132,6 +142,7 @@ def mean_teacher_adaptation(
     print("Lift off!")
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     trainer = self_training.MeanTeacherTrainer(
+        name=name,
         model=model,
         optimizer=optimizer,
         lr_scheduler=scheduler,
