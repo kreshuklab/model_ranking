@@ -24,13 +24,13 @@ from model_ranking.utils import (
     is_ndarray,
 )
 
-from pytorch3dunet.augment.transforms import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.augment.transforms import (
     Transformer,
 )
-from pytorch3dunet.unet3d.model import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
 )
-from pytorch3dunet.unet3d.predictor import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.predictor import (
     pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
 
@@ -202,12 +202,8 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
-            ps_lab = (  # pyright: ignore[reportUnknownVariableType]
-                pseudo_labels.cpu().numpy().astype("float32")
-            )
-            ps_lab_perturbed = (  # pyright: ignore[reportUnknownVariableType]
-                pseudo_labels_perturbed.cpu().numpy().astype("float32")
-            )
+            ps_lab = pseudo_labels.cpu().numpy().astype("float32")
+            ps_lab_perturbed = pseudo_labels_perturbed.cpu().numpy().astype("float32")
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
             label_mask = self._compute_label_mask(
@@ -270,12 +266,8 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
-            ps_lab = (  # pyright: ignore[reportUnknownVariableType]
-                pseudo_labels.cpu().numpy().astype("float32")
-            )
-            ps_lab_perturbed = (  # pyright: ignore[reportUnknownVariableType]
-                pseudo_labels_perturbed.cpu().numpy().astype("float32")
-            )
+            ps_lab = pseudo_labels.cpu().numpy().astype("float32")
+            ps_lab_perturbed = pseudo_labels_perturbed.cpu().numpy().astype("float32")
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
             label_mask = self._compute_label_mask(

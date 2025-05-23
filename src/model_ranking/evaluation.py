@@ -128,5 +128,5 @@ def calc_evaluation_score(
         scores[
             i * dataloader.batch_size : i * dataloader.batch_size + pred.shape[0]
         ] = metric_scores
-    eval_scores = scores.cpu().numpy()
+    eval_scores = scores.cpu().numpy()  # pyright: ignore[reportUnknownVariableType]
     return eval_scores

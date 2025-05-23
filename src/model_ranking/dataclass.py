@@ -26,7 +26,7 @@ from model_ranking.metrics import (
     CrossEntropyEval,
     HammingDistanceEval,
 )
-from pytorch3dunet.unet3d.metrics import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.metrics import (
     InstanceAveragePrecision,
 )
 

@@ -11,10 +11,10 @@ from skimage.morphology import (
     erosion,  # pyright: ignore[reportUnknownVariableType]
     dilation,  # pyright: ignore[reportUnknownVariableType]
 )
-from skimage.metrics import (
+from skimage.metrics import (  # pyright: ignore[reportMissingTypeStubs]
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
-from pytorch3dunet.unet3d.metrics import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.metrics import (
     DiceCoefficient,
 )
 from model_ranking.utils import is_ndarray, avoid_int_overflow
@@ -296,9 +296,9 @@ class CrossEntropyEval:
                 self.eps,
                 1 - self.eps,
             )
-            metric_result_pp = entropy(  # pyright: ignore[reportUnknownVariableType]
-                probs_NA, base=self.entr_base
-            ) + entropy(probs_NA, probs_A, base=self.entr_base)
+            metric_result_pp = entropy(probs_NA, base=self.entr_base) + entropy(
+                probs_NA, probs_A, base=self.entr_base
+            )
             assert is_ndarray(
                 metric_result_pp
             ), f"Data is not a numpy array: {metric_result_pp}"
