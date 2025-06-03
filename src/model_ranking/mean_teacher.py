@@ -27,7 +27,7 @@ from pytorch3dunet.augment.transforms import (
 )
 
 
-def mean_teacher_adaptation(
+def run_mean_teacher(
     name: str,
     output_root_path: str,
     unsupervised_train_paths: List[str],
