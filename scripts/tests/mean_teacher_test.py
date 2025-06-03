@@ -8,7 +8,7 @@ from model_ranking.dataclass import (
     # consistency_metric_type,
     # ModelConsisPseudoLabelerConfig,
 )
-from model_ranking.mean_teacher import mean_teacher_adaptation
+from model_ranking.mean_teacher import run_mean_teacher
 
 output_path = "/g/kreshuk/talks/model_ranking/tests/mean_teacher2"
 unsupervised_train_paths = [
@@ -75,7 +75,7 @@ pseudo_labeler_cfg = InputConsisPseudoLabelerConfig(
 )
 
 
-mean_teacher_adaptation(
+run_mean_teacher(
     name="MT_test",
     output_root_path=output_path,
     unsupervised_train_paths=unsupervised_train_paths,
