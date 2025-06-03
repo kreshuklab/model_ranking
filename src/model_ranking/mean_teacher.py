@@ -4,11 +4,11 @@ from pathlib import Path
 
 import torch_em.self_training as self_training  # pyright: ignore[reportMissingTypeStubs]
 
-
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
 )
+from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.pseudo_labeling import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
@@ -43,10 +43,15 @@ def run_mean_teacher(
     label_key: Optional[str] = None,
     batch_size: int = 1,
     lr: float = 1e-4,
-    n_iterations: int = int(1e4),
+    n_iterations: Optional[int] = None,
+    epochs: Optional[int] = 10,
     n_samples_train: Optional[int] = None,
     n_samples_val: Optional[int] = None,
+    save_ckpt_every_kth_epoch: Optional[int] = None,
 ):
+    assert (n_iterations is None) != (
+        epochs is None
+    ), "Specify exactly one of n_iterations or epochs (not both, not neither)"
 
     assert (supervised_train_paths is None) == (supervised_val_paths is None)
 
@@ -160,7 +165,7 @@ def run_mean_teacher(
         unsupervised_val_loader=unsupervised_val_loader,
         supervised_loss=loss,
         supervised_loss_and_metric=loss_and_metric,
-        logger=self_training.SelfTrainingTensorboardLogger,
+        logger=SelfTrainingWandbLogger,  # pyright: ignore[reportArgumentType]
         mixed_precision=True,
         log_image_interval=100,
         compile_model=False,
@@ -168,4 +173,8 @@ def run_mean_teacher(
         reinit_teacher=reinit_teacher,
         save_root=output_root_path,
     )
-    trainer.fit(n_iterations)
+    trainer.fit(
+        iterations=n_iterations,
+        save_every_kth_epoch=save_ckpt_every_kth_epoch,
+        epochs=epochs,
+    )

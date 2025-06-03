@@ -3172,7 +3172,9 @@ class SelfTrainingModelConfig(BaseModel):
 
 class SelfTrainingTrainConfig(BaseModel):
     lr: float
-    n_iterations: int
+    n_iterations: Optional[int]
+    epochs: Optional[int]
+    save_ckpt_every_kth_epoch: Optional[int]
 
 
 class MeanTeacherConfig(BaseModel):

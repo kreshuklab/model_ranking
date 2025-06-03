@@ -31,8 +31,10 @@ def main(
         batch_size=mt_cfg.data_cfg.batch_size,
         lr=mt_cfg.training_cfg.lr,
         n_iterations=mt_cfg.training_cfg.n_iterations,
+        epochs=mt_cfg.training_cfg.epochs,
         n_samples_train=mt_cfg.data_cfg.n_samples_train,
         n_samples_val=mt_cfg.data_cfg.n_samples_val,
+        save_ckpt_every_kth_epoch=mt_cfg.training_cfg.save_ckpt_every_kth_epoch,
     )
 
 
