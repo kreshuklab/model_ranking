@@ -12,7 +12,6 @@ from model_ranking.dataclass import (
 from model_ranking.pseudo_labeling import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
-    consistency_metrics,
 )
 from model_ranking.self_training import get_unsupervised_loader
 from model_ranking.supervised_training import get_supervised_loader
@@ -35,7 +34,6 @@ def mean_teacher_adaptation(
     unsupervised_val_paths: List[str],
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
-    consistency_metric: consistency_metrics,
     model_config: Pytorch3DUnetModelConfig,
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_train_paths: Optional[List[str]] = None,
@@ -69,6 +67,13 @@ def mean_teacher_adaptation(
         optimizer, mode="min", factor=0.5, patience=5
     )
 
+    # Get the consistency metric
+    consis_cfg = pseudo_labeler_config.consistency_metric
+    if consis_cfg.name == "AdaptedRandError":
+        consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
+    else:
+        consistency_metric = consis_cfg.initialise_metric()
+
     # self training functionality
     if pseudo_labeler_config.name == "input_consistency":
 
@@ -78,7 +83,7 @@ def mean_teacher_adaptation(
                 pseudo_labeler_config.stats_cfg,
             ),
             consistency_metric=consistency_metric,
-            foreground_threshold=pseudo_labeler_config.foreground_threshold,
+            mask_threshold=consis_cfg.mask_threshold,
             consistency_threshold=pseudo_labeler_config.consistency_threshold,
             seg_params=pseudo_labeler_config.seg_params,
         )
@@ -87,7 +92,7 @@ def mean_teacher_adaptation(
         pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
             perturbed_model_config=pseudo_labeler_config.perturbed_model_config,
             consistency_metric=consistency_metric,
-            foreground_threshold=pseudo_labeler_config.foreground_threshold,
+            mask_threshold=consis_cfg.mask_threshold,
             consistency_threshold=pseudo_labeler_config.consistency_threshold,
             seg_params=pseudo_labeler_config.seg_params,
         )

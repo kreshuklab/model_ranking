@@ -53,7 +53,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             is above the threshold the full prediction will be used, otherwise the patch will
             be masked out.
         consistency_metric: Metric used to compute the consistency of the patches.
-        foreground_threhold: threshold to consider foreground only pixels for consistency
+        mask_threshold: threshold to consider masked pixels only for consistency
             calculation.
         seg_params: Segmentation parameters for processing prediction.
 
@@ -62,13 +62,13 @@ class AbstractConsistencyPatchwisePseudoLabeler:
     def __init__(
         self,
         consistency_metric: consistency_metrics,
-        foreground_threshold: Optional[float] = None,
+        mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__()
         self.consistency_metric = consistency_metric
-        self.foreground_threshold = foreground_threshold
+        self.mask_threshold = mask_threshold
         self.consistency_threshold = consistency_threshold
         self.seg_params = seg_params
         # TODO serialize the class names and kwargs for activation instead
@@ -81,11 +81,11 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                 perturbed_pseudo_labels, pseudo_labels
             )
         else:
-            if self.foreground_threshold is None:
+            if self.mask_threshold is None:
                 consis_mask = np.ones_like(pseudo_labels)
             else:
                 consis_mask = get_mask(
-                    pseudo_labels, perturbed_pseudo_labels, self.foreground_threshold
+                    pseudo_labels, perturbed_pseudo_labels, self.mask_threshold
                 )
             consis_score = self.consistency_metric(
                 perturbed_pseudo_labels, pseudo_labels, consis_mask
@@ -156,7 +156,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         consistency_threshold: Threshold for accepting patches, if the patch consistency
             is above the threshold the full prediction will be used, otherwise the patch will
             be masked out.
-        foreground_threshold: threshold to consider foreground only pixels for consistency
+        mask_threshold: threshold to consider masked pixels only for consistency
             calculation.
         consistency_metric: Metric used to compute the consistency of the patches.
         seg_params: Segmentation parameters for processing prediction.
@@ -167,13 +167,13 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         self,
         transformer: Transformer,
         consistency_metric: consistency_metrics,
-        foreground_threshold: Optional[float] = None,
+        mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__(
             consistency_metric=consistency_metric,
-            foreground_threshold=foreground_threshold,
+            mask_threshold=mask_threshold,
             consistency_threshold=consistency_threshold,
             seg_params=seg_params,
         )
@@ -225,7 +225,7 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
     Args:
         perturbed_model_config: Configuration for the perturbed model.
         consistency_metric: Metric used to compute the consistency of the patches.
-        foreground_threhold: threshold to consider foreground only pixels for
+        mask_threshold: threshold to consider masked pixels only for
             consistency calculation.
         consistency_threshold: Threshold for accepting patches, if the patch consistency
             is above the threshold the full prediction will be used, otherwise the patch
@@ -237,13 +237,13 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         self,
         perturbed_model_config: Pytorch3DUnetModelConfig,
         consistency_metric: consistency_metrics,
-        foreground_threshold: Optional[float] = None,
+        mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
     ):
         super().__init__(
             consistency_metric=consistency_metric,
-            foreground_threshold=foreground_threshold,
+            mask_threshold=mask_threshold,
             consistency_threshold=consistency_threshold,
             seg_params=seg_params,
         )
