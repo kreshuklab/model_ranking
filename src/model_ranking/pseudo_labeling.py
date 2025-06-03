@@ -273,7 +273,7 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             label_mask = self._compute_label_mask(
                 ps_lab,
                 ps_lab_perturbed,
-            )
+            ).to(input_.device)
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
             "Either pseudo_labels or label_mask must be a torch.Tensor."
