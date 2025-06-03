@@ -1,9 +1,9 @@
-name: EtoH_F_model1
-output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/EPFL_to_Hmito/feature_perturbation/DO_a02
+name: HtoE_F_model1
+output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/Hmito_to_EPFL/feature_perturbation/DO_a02
 
 training_cfg:
   lr: 1e-4
-  n_iterations: 190
+  n_iterations: 250
 
 data_cfg:
   unsupervised_train_paths: ["/scratch/talks/data/EPFL/train.h5"]

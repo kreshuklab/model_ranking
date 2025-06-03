@@ -1,9 +1,9 @@
-name: EtoH_I_model1
+name: HtoE_I_model1
 output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/Hmito_to_EPFL/input_perturbation/gauss_a0-005
 
 training_cfg:
   lr: 1e-4
-  n_iterations: 190
+  n_iterations: 250
 
 data_cfg:
   unsupervised_train_paths: ["/scratch/talks/data/EPFL/train.h5"]
