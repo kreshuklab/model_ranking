@@ -58,10 +58,10 @@ class ConsistencyMetricConfig(BaseModel):
 
 
 class ConsistencyMetaConfig(BaseModel, frozen=True):
-    save_key: str
-    save_mask: bool
+    save_key: Optional[str]
+    save_mask: Optional[bool]
     mask_threshold: float
-    overwrite_score: bool
+    overwrite_score: Optional[bool]
 
 
 class EvalDatasetConfig(BaseModel):
@@ -343,9 +343,9 @@ class AdaptedRandErrorConfig(BaseModel, frozen=True):
     num_dilations: Optional[int] = 1
     num_erosions: Optional[int] = 1
 
-    def initialise_metric(self, dataset_name: str) -> AdaptedRandErrorEval:
+    def initialise_metric(self, incomplete_gt: bool) -> AdaptedRandErrorEval:
         return AdaptedRandErrorEval(
-            dataset_name=dataset_name,
+            incomplete_gt=incomplete_gt,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
         )
@@ -510,34 +510,39 @@ class HammingDistanceConfig(ConsistencyMetaConfig, frozen=True):
         return np.zeros(num_samples, dtype=np.float32)
 
 
+consistency_metric_type = Annotated[
+    Union[
+        AdaptedRandErrorConsisConfig,
+        CrossEntropyConfig,
+        DifferenceImageConfig,
+        EffectiveInvarianceConfig,
+        EntropyConfig,
+        HammingDistanceConfig,
+        KLDivergenceConfig,
+    ],
+    Discriminator("name"),
+]
+
+eval_metric_type = Annotated[
+    Union[
+        AdaptedRandErrorEvalConfig,
+        BinaryF1Config,
+        MeanAvgPrecisionConfig,
+        MultiClassF1Config,
+        SoftF1Config,
+    ],
+    Discriminator("name"),
+]
+
+
 class EvaluateConfig(BaseModel, frozen=True):
     eval_dataloader: EvalDataloaderConfig
-    eval_metric: Annotated[
-        Union[
-            MultiClassF1Config,
-            BinaryF1Config,
-            SoftF1Config,
-            AdaptedRandErrorEvalConfig,
-            MeanAvgPrecisionConfig,
-        ],
-        Discriminator("name"),
-    ]
+    eval_metric: eval_metric_type
 
 
 class ConsistencyConfig(BaseModel, frozen=True):
     consistency_dataloader: EvalDataloaderConfig
-    consistency_metric: Annotated[
-        Union[
-            DifferenceImageConfig,
-            EffectiveInvarianceConfig,
-            EntropyConfig,
-            KLDivergenceConfig,
-            CrossEntropyConfig,
-            HammingDistanceConfig,
-            AdaptedRandErrorConsisConfig,
-        ],
-        Discriminator("name"),
-    ]
+    consistency_metric: consistency_metric_type
 
 
 class WandbConfig(BaseModel):
@@ -3016,30 +3021,31 @@ class SummaryResultsMetaConfig(BaseModel):
     overwrite_scores: bool
 
 
+target_dataset_type = Annotated[
+    Union[
+        BBBC039TargetConfig,
+        DSB2018TargetConfig,
+        GoNuclearTargetConfig,
+        HeLaNucTargetConfig,
+        HoechstTargetConfig,
+        SBIAD634TargetConfig,
+        SBIAD895TargetConfig,
+        SBIAD1196TargetConfig,
+        SBIAD1410TargetConfig,
+        FlyWingTargetConfig,
+        OvulesTargetConfig,
+        PNASTargetConfig,
+        EPFLTargetConfig,
+        HmitoTargetConfig,
+        RmitoTargetConfig,
+        VNCTargetConfig,
+    ],
+    Discriminator("name"),
+]
+
+
 class MetaConfig(BaseModel):
-    target_datasets: Sequence[
-        Annotated[
-            Union[
-                BBBC039TargetConfig,
-                DSB2018TargetConfig,
-                GoNuclearTargetConfig,
-                HeLaNucTargetConfig,
-                HoechstTargetConfig,
-                SBIAD634TargetConfig,
-                SBIAD895TargetConfig,
-                SBIAD1196TargetConfig,
-                SBIAD1410TargetConfig,
-                FlyWingTargetConfig,
-                OvulesTargetConfig,
-                PNASTargetConfig,
-                EPFLTargetConfig,
-                HmitoTargetConfig,
-                RmitoTargetConfig,
-                VNCTargetConfig,
-            ],
-            Discriminator("name"),
-        ]
-    ]
+    target_datasets: Sequence[target_dataset_type]
     source_models: Sequence[
         Annotated[
             Union[Model3LayerSourceConfig, Model4LayerSourceConfig],
@@ -3055,32 +3061,8 @@ class MetaConfig(BaseModel):
     feature_perturbations: FeaturePerturbationConfig
     output_settings: OutputSettingsConfig
     input_augs: Dict[str, List[Tuple[float, float]]]
-    eval_settings: Optional[
-        Annotated[
-            Union[
-                AdaptedRandErrorEvalConfig,
-                MeanAvgPrecisionConfig,
-                MultiClassF1Config,
-                BinaryF1Config,
-                SoftF1Config,
-            ],
-            Discriminator("name"),
-        ]
-    ]
-    consistency_settings: Optional[
-        Annotated[
-            Union[
-                DifferenceImageConfig,
-                EffectiveInvarianceConfig,
-                EntropyConfig,
-                KLDivergenceConfig,
-                CrossEntropyConfig,
-                HammingDistanceConfig,
-                AdaptedRandErrorConsisConfig,
-            ],
-            Discriminator("name"),
-        ]
-    ]
+    eval_settings: Optional[eval_metric_type]
+    consistency_settings: Optional[consistency_metric_type]
 
 
 class SummaryResultsConfig(BaseModel):
@@ -3142,25 +3124,12 @@ segmentation_type = Annotated[
     Discriminator("name"),
 ]
 
-consistency_metric_type = Annotated[
-    Union[
-        CrossEntropyConfig,
-        DifferenceImageConfig,
-        EffectiveInvarianceConfig,
-        EntropyConfig,
-        HammingDistanceConfig,
-        KLDivergenceConfig,
-        AdaptedRandErrorConfig,
-    ],
-    Discriminator("name"),
-]
-
 
 class PseudoLabelerConfig(BaseModel):
     # consistency_metric: consistency_metric_type
-    foreground_threshold: Optional[float]
     consistency_threshold: Optional[float]
     seg_params: segmentation_type
+    consistency_metric: consistency_metric_type
 
 
 class InputConsisPseudoLabelerConfig(PseudoLabelerConfig):
