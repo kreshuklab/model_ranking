@@ -52,9 +52,10 @@ def calc_consistency_score(
     metric_cfg = config.consistency_metric
     # consis_cfg = config.consistency_settings
     if metric_cfg.name == "AdaptedRandError":
-        metric = metric_cfg.initialise_metric(
-            dataset_name=dataloader.dataset.__class__.__name__
-        )
+        if dataloader.dataset.__class__.__name__ == "S_BIAD1410_Dataset":
+            metric = metric_cfg.initialise_metric(incomplete_gt=True)
+        else:
+            metric = metric_cfg.initialise_metric(incomplete_gt=False)
         scores = metric_cfg.initialise_score_array(
             dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
         )
@@ -123,7 +124,9 @@ def run_consistency_evaluation(
     paths: List[Union[Path, str]] = []
     consis_scores: List[NDArray[Any]] = []
     consis_masks: List[NDArray[Any]] = []
-    for dataloader in get_consistency_loaders(config_data.consistency_dataloader):
+    metric_cfg = config_data.consistency_metric
+    loader_cfg = config_data.consistency_dataloader
+    for dataloader in get_consistency_loaders(loader_cfg):
         scores, masks = calc_consistency_score(dataloader, config_data)
         consis_scores.append(scores)
         consis_masks.append(masks)
@@ -138,47 +141,49 @@ def run_consistency_evaluation(
         elif isinstance(dataloader.dataset, StandardEvalDataset):
             paths.append(dataloader.dataset.pred_path)
 
-    if isinstance(
-        config_data.consistency_dataloader.eval_dataset, TIFEvalDatasetConfig
-    ):
-        pred_dir = config_data.consistency_dataloader.eval_dataset.eval.image_dir[0]
-        pred_paths = sorted(list(Path(pred_dir).glob("*.h5")))
-        assert consis_scores[0] is not None, "Scores are not available"
-        assert len(pred_paths) == len(
-            consis_scores[0]
-        ), "Number of predictions and scores differ"
-        for i, pred_path in enumerate(pred_paths):
-            # save scores in pred_file
-            print(f"saving scores to {pred_path}")
-            save_h5(
-                pred_path,
-                config_data.consistency_metric.save_key,
-                consis_scores[0][i].squeeze(),
-                overwrite=config_data.consistency_metric.overwrite_score,
-            )
-            if config_data.consistency_metric.save_mask:
+    if metric_cfg.save_key is not None:
+        assert (
+            metric_cfg.overwrite_score is not None
+        ), "boolean overwrite_score must be provided if save_key is set"
+        if isinstance(loader_cfg.eval_dataset, TIFEvalDatasetConfig):
+            pred_dir = loader_cfg.eval_dataset.eval.image_dir[0]
+            pred_paths = sorted(list(Path(pred_dir).glob("*.h5")))
+            assert consis_scores[0] is not None, "Scores are not available"
+            assert len(pred_paths) == len(
+                consis_scores[0]
+            ), "Number of predictions and scores differ"
+            for i, pred_path in enumerate(pred_paths):
+                # save scores in pred_file
+                print(f"saving scores to {pred_path}")
                 save_h5(
                     pred_path,
-                    f"consistency_mask_{config_data.consistency_metric.save_key}",
-                    consis_masks[0][i].squeeze(),
-                    overwrite=config_data.consistency_metric.overwrite_score,
+                    metric_cfg.save_key,
+                    consis_scores[0][i].squeeze(),
+                    overwrite=metric_cfg.overwrite_score,
                 )
+                if config_data.consistency_metric.save_mask:
+                    save_h5(
+                        pred_path,
+                        f"consistency_mask_{config_data.consistency_metric.save_key}",
+                        consis_masks[0][i].squeeze(),
+                        overwrite=metric_cfg.overwrite_score,
+                    )
 
-    else:
-        for path, scores, mask in zip(paths, consis_scores, consis_masks):
-            print(f"saving scores to {path}")
-            save_h5(
-                path,
-                config_data.consistency_metric.save_key,
-                scores.squeeze(),
-                overwrite=config_data.consistency_metric.overwrite_score,
-            )
-            if config_data.consistency_metric.save_mask:
+        else:
+            for path, scores, mask in zip(paths, consis_scores, consis_masks):
+                print(f"saving scores to {path}")
                 save_h5(
                     path,
-                    f"consistency_mask_{config_data.consistency_metric.save_key}",
-                    mask.squeeze(),
-                    overwrite=config_data.consistency_metric.overwrite_score,
+                    metric_cfg.save_key,
+                    scores.squeeze(),
+                    overwrite=metric_cfg.overwrite_score,
                 )
+                if metric_cfg.save_mask:
+                    save_h5(
+                        path,
+                        f"consistency_mask_{metric_cfg.save_key}",
+                        mask.squeeze(),
+                        overwrite=metric_cfg.overwrite_score,
+                    )
 
     return consis_scores, consis_masks

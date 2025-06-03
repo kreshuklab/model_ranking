@@ -84,12 +84,12 @@ class SoftF1Eval:
 class AdaptedRandErrorEval:
     def __init__(
         self,
-        dataset_name: str,
+        incomplete_gt: bool,
         num_dilations: Optional[int] = 1,
         num_erosions: Optional[int] = 1,
     ):
         super().__init__()
-        self.dataset_name = dataset_name
+        self.incomplete_gt = incomplete_gt
         self.num_dilations = num_dilations
         self.num_erosions = num_erosions
 
@@ -103,7 +103,7 @@ class AdaptedRandErrorEval:
         metric_result, mask = adaRandError_eval(
             pred_converted,
             gt_converted,
-            self.dataset_name,
+            self.incomplete_gt,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
         )
@@ -352,7 +352,7 @@ class HammingDistanceEval:
 def adaRandError_eval(
     pred: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
     gt: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
-    dataset_name: str,
+    incomplete_gt: bool,
     num_dilations: Optional[int] = 1,
     num_erosions: Optional[int] = 1,
     # border_params: Optional[Dict[str, int]] = {"num_dilations": 1, "num_erosions": 1},
@@ -379,7 +379,7 @@ def adaRandError_eval(
             consis_mask[j] = get_mask(gt[j], pred[j], 0)
 
         else:
-            if dataset_name == "S_BIAD1410_Dataset":
+            if incomplete_gt:
                 mask = get_mask_incomplete_gt(gt[j], pred[j])
             else:
                 mask = get_mask(gt[j], pred[j], 0)
