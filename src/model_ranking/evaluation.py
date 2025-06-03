@@ -104,9 +104,10 @@ def calc_evaluation_score(
 ) -> NDArray[Any]:
     metric_cfg = config.eval_metric
     if metric_cfg.name == "AdaptedRandError":
-        metric = metric_cfg.initialise_metric(
-            dataset_name=dataloader.dataset.__class__.__name__
-        )
+        if dataloader.dataset.__class__.__name__ == "S_BIAD1410_Dataset":
+            metric = metric_cfg.initialise_metric(incomplete_gt=True)
+        else:
+            metric = metric_cfg.initialise_metric(incomplete_gt=False)
     else:
         metric = metric_cfg.initialise_metric()
 
