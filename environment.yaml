@@ -1,4 +1,4 @@
-name: model-ranking
+name: model-rank
 
 channels:
   - pytorch
@@ -17,7 +17,7 @@ dependencies:
   - plant-seg
   - pydantic
   - pytest
-  - pytorch
+  - pytorch=2.5.1
   - pytorch-cuda=12.1
   - pyyaml
   - python-elf
@@ -26,6 +26,7 @@ dependencies:
   - scipy
   - setuptools
   - tensorboard
+  - torchvision=0.20.1
   - torch_em
   - tqdm
   - typer
@@ -33,7 +34,5 @@ dependencies:
   - wandb
 
   - pip:
-      - torcheval
       - -e .
-      - -e /g/kreshuk/talks/pytorch-3dunet
 
