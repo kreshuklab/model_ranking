@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Discriminator
+from pathlib import Path
 from typing import (
     Annotated,
     Literal,
@@ -14,6 +15,7 @@ from typing import (
 import numpy as np
 from numpy.typing import NDArray
 import torch
+
 from model_ranking.metrics import (
     MultiClassF1Eval,
     BinaryF1Eval,
@@ -3147,3 +3149,36 @@ pseudo_labeler_type = Annotated[
     Union[InputConsisPseudoLabelerConfig, ModelConsisPseudoLabelerConfig],
     Discriminator("name"),
 ]
+
+
+class SelfTrainingDataConfig(BaseModel):
+    unsupervised_train_paths: List[str]
+    unsupervised_val_paths: List[str]
+    patch_shape: Tuple[int, ...]
+    supervised_train_paths: Optional[List[str]]
+    supervised_val_paths: Optional[List[str]]
+    raw_key: str
+    raw_key_supervised: Optional[str]
+    label_key: Optional[str]
+    batch_size: int
+    n_samples_train: Optional[int]
+    n_samples_val: Optional[int]
+
+
+class SelfTrainingModelConfig(BaseModel):
+    model: Pytorch3DUnetModelConfig
+    source_checkpoint: Optional[Union[str, Path]]
+
+
+class SelfTrainingTrainConfig(BaseModel):
+    lr: float
+    n_iterations: int
+
+
+class MeanTeacherConfig(BaseModel):
+    name: str
+    output_root_path: str
+    data_cfg: SelfTrainingDataConfig
+    pseudo_labeler_cfg: pseudo_labeler_type
+    model_cfg: SelfTrainingModelConfig
+    training_cfg: SelfTrainingTrainConfig
