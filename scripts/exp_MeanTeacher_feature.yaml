@@ -12,7 +12,7 @@ data_cfg:
   supervised_train_paths: null
   supervised_val_paths: null
   raw_key: "raw" 
-  raw_supervised_key: null
+  raw_key_supervised: null
   label_key: null
   batch_size: 32
   n_samples_train: null
@@ -42,7 +42,7 @@ pseudo_labeler_cfg:
     save_key: null
     save_mask: null
     mask_threshold: 0.5
-    overwrite_scores: null
+    overwrite_score: null
   perturbed_model_config:
     name: UNet2d_as3d
     in_channels: 1
