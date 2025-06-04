@@ -1,6 +1,7 @@
 import typer
 from typing import Annotated
 
+from model_ranking.config import copy_config
 from model_ranking.dataclass import MeanTeacherConfig
 from model_ranking.mean_teacher import run_mean_teacher
 from pytorch3dunet.unet3d.config import (
@@ -37,6 +38,7 @@ def main(
         save_ckpt_every_kth_epoch=mt_cfg.training_cfg.save_ckpt_every_kth_epoch,
         wandb_config=mt_cfg.wandb_cfg,
     )
+    copy_config(mt_cfg, config)
 
 
 if __name__ == "__main__":
