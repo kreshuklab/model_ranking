@@ -196,7 +196,8 @@ def save_summary_metrics(
         consis_std = None
 
     # save scores in h5 file in parent directory
-    save_path = Path(config.output_path).parent / "metric_summary.h5"
+    # save_path = Path(config.output_path).parent / "metric_summary.h5"
+    save_path = Path(config.output_path) / "metric_summary.h5"
 
     with h5py.File(save_path, "a") as f:
         # check if key already exists

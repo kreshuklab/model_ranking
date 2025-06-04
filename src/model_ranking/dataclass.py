@@ -790,6 +790,7 @@ class OutputSettingsConfig(BaseModel):
     result_dir: str
     approach: str
     base_dir_path: str
+    output_folder: str = "norm"
 
 
 class LoaderMetaConfig(BaseModel):
@@ -1000,7 +1001,7 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
     zero_largest_instance: bool
 
 
-class SourceModelConfigBase(BaseModel, frozen=True):
+class SourceModelConfigBase(BaseModel):
     model: Pytorch3DUnetModelMetaConfig
     model_name: str
 
@@ -1028,12 +1029,13 @@ UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
 )
 
 
-class Model3LayerSourceConfig(SourceModelConfigBase, frozen=True):
+class Model3LayerSourceConfig(SourceModelConfigBase):
     source_name: Literal[
         "BBBC039", "DSB2018", "HeLaNuc", "Hoechst", "S_BIAD634", "S_BIAD895"
     ]
     model: Pytorch3DUnetModelMetaConfig = UNET2D_3LAYER_ARCHITECTURE
     model_name: str
+    checkpoint_name: str = "best_checkpoint"
 
     def create_config(
         self,
@@ -1058,7 +1060,7 @@ class Model3LayerSourceConfig(SourceModelConfigBase, frozen=True):
         )
 
 
-class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
+class Model4LayerSourceConfig(SourceModelConfigBase):
     source_name: Literal[
         "Go-Nuclear",
         "S_BIAD1196",
@@ -1073,6 +1075,7 @@ class Model4LayerSourceConfig(SourceModelConfigBase, frozen=True):
     ]
     model: Pytorch3DUnetModelMetaConfig = UNET2D_4LAYER_ARCHITECTURE
     model_name: str
+    checkpoint_name: str = "best_checkpoint"
 
     def create_config(
         self,
@@ -3055,7 +3058,7 @@ class MetaConfig(BaseModel):
         ]
     ]
     segmentation_mode: Literal["instance", "semantic"]
-    run_mode: Literal["full", "evaluation", "consistency"]
+    run_mode: Literal["full", "evaluation", "consistency", "pred_eval"]
     summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str

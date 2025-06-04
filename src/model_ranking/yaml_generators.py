@@ -1,7 +1,6 @@
 import yaml
 from pathlib import Path
 from typing import (
-    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -122,7 +121,7 @@ def get_model_path(
     source_data: str,
     model_name: str,
     base_dir_path: str,
-    seg_mode: Literal["instance", "semantic"] = "semantic",
+    checkpoint_name: str = "best_checkpoint",
 ) -> str:
     """Find path to model checkpoint
 
@@ -135,17 +134,16 @@ def get_model_path(
     Returns:
         str: = path to model checkpoint
     """
-    # if seg_mode == "instance":
-    #    base_dir = Path(base_dir_path) / "Instance"
-
-    # else:
-    #    base_dir = Path(base_dir_path) / "Semantic"
 
     base_dir = Path(base_dir_path)
 
     model_paths = list(
-        base_dir.glob(f"**/{source_data}/**/" + f"{model_name}/best_checkpoint.pytorch")
+        base_dir.glob(
+            f"**/{source_data}/**/" + f"{model_name}/{checkpoint_name}.pytorch"
+        )
     )
+    if len(model_paths) == 0:
+        model_paths = list(base_dir.glob(f"**/{model_name}/**/{checkpoint_name}.pt"))
     assert (
         len(model_paths) == 1
     ), f"number of path found = {len(model_paths)}, model ambiguous"
@@ -192,7 +190,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
             source_data=source_model.source_name,
             model_name=source_model.model_name,
             base_dir_path=meta_cfg.model_dir_path,
-            seg_mode=meta_cfg.segmentation_mode,
+            checkpoint_name=source_model.checkpoint_name,
         )
         feat_pert_cfg = meta_cfg.feature_perturbations
         model_cfgs: Dict[str, Pytorch3DUnetModelConfig] = {}
@@ -292,11 +290,16 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                 else:
                     percentiles_save_name = "Normalize"
 
+            if meta_cfg.output_settings.output_folder == "norm":
+                output_name = f"norm_{percentiles_save_name}"
+            else:
+                output_name = meta_cfg.output_settings.output_folder
+
             output_folder_path = get_output_dir(
                 source=source_model.source_name,
                 target=target_cfg.name,
                 model_name=source_model.model_name,
-                output_folder=f"norm_{percentiles_save_name}",
+                output_folder=output_name,
                 approach=meta_cfg.output_settings.approach,
                 result_type=meta_cfg.output_settings.result_dir,
                 base_seg_folder=meta_cfg.output_settings.base_dir_path,
@@ -314,9 +317,13 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         save_name = f"feat_{feature_perturbation_name}_aug_{aug_name}"
 
-                    pred_dir_path = (
-                        output_folder_path + "/" + save_name + "/predictions"
-                    )
+                    if meta_cfg.run_mode == "pred_eval":
+                        pred_dir_path = output_folder_path + "/" + "predictions"
+
+                    else:
+                        pred_dir_path = (
+                            output_folder_path + "/" + save_name + "/predictions"
+                        )
                     none_pred_path = output_folder_path + "/" + "none" + "/predictions"
                     # make directory if needed
                     Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
@@ -469,9 +476,14 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         assert_never(meta_cfg.segmentation_mode)
 
+                    if meta_cfg.run_mode == "pred_eval":
+                        wandb_name = source_model.model_name
+                    else:
+                        wandb_name = f"{source_model.model_name}_{transfer_title_abbrev}_{save_name}"
+
                     wandb_cfg = WandbConfig(
                         project=project_name,
-                        name=f"{source_model.model_name}_{transfer_title_abbrev}_{save_name}",
+                        name=wandb_name,
                         mode="online",
                     )
 
@@ -539,7 +551,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                         summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
-                            output_path=pred_dir_path,
+                            output_path=str(Path(pred_dir_path).parent),
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=consis_cfg.consistency_metric.save_key,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
@@ -547,7 +559,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
 
-                        yaml_dict_order = [
+                        yaml_dict_order: List[Dict[str, Any]] = [
                             {"wandb": wandb_cfg.model_dump()},
                             {"model_path": source_model_path},
                             {"summary_results": summary_results_cfg.model_dump()},
@@ -557,6 +569,39 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             {"evaluation": eval_cfg.model_dump()},
                             {"consistency": consis_cfg.model_dump()},
                         ]
+
+                    elif meta_cfg.run_mode == "pred_eval":
+                        assert (
+                            meta_cfg.eval_settings is not None
+                        ), "Eval settings cannot be None for run mode {meta_cfg.run_mode}"
+                        eval_metric_cfg = meta_cfg.eval_settings
+
+                        eval_cfg = EvaluateConfig(
+                            eval_dataloader=eval_loader_cfg,
+                            eval_metric=eval_metric_cfg,
+                        )
+
+                        summary_results_cfg = SummaryResultsConfig(
+                            filter_patches=None,
+                            output_path=pred_dir_path,
+                            eval_key=eval_cfg.eval_metric.eval_save_key,
+                            consis_key=None,
+                            overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            # save_select_patches=meta_cfg.save_results.save_select_patches,
+                        )
+                        yaml_save_path = Path(yaml_dir_path) / "pred.yml"
+
+                        yaml_dict_order = [
+                            {"wandb": wandb_cfg.model_dump()},
+                            {"model_path": source_model_path},
+                            {"model_key": "model_state"},
+                            {"summary_results": summary_results_cfg.model_dump()},
+                            {"model": model_cfg.model_dump()},
+                            {"predictor": predictor_cfg.model_dump()},
+                            {"loaders": pred_loader_cfg.model_dump()},
+                            {"evaluation": eval_cfg.model_dump()},
+                        ]
+
                     elif meta_cfg.run_mode == "consistency":
                         assert (
                             meta_cfg.consistency_settings is not None
@@ -570,7 +615,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
                         summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
-                            output_path=pred_dir_path,
+                            output_path=str(Path(pred_dir_path).parent),
                             eval_key=None,
                             consis_key=consis_cfg.consistency_metric.save_key,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
@@ -597,7 +642,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                         summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
-                            output_path=pred_dir_path,
+                            output_path=str(Path(pred_dir_path).parent),
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=None,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
