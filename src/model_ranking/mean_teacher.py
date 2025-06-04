@@ -7,6 +7,7 @@ import torch_em.self_training as self_training  # pyright: ignore[reportMissingT
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
+    WandbConfig,
 )
 from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.pseudo_labeling import (
@@ -35,6 +36,7 @@ def run_mean_teacher(
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
     model_config: Pytorch3DUnetModelConfig,
+    wandb_config: WandbConfig,
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_train_paths: Optional[List[str]] = None,
     supervised_val_paths: Optional[List[str]] = None,
@@ -154,6 +156,11 @@ def run_mean_teacher(
         supervised_train_loader = None
         supervised_val_loader = None
 
+    logger_kwargs = {
+        "project_name": wandb_config.project,
+        "mode": wandb_config.mode,
+    }
+
     print("Lift off!")
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     trainer = self_training.MeanTeacherTrainer(
@@ -171,6 +178,7 @@ def run_mean_teacher(
         supervised_loss=loss,
         supervised_loss_and_metric=loss_and_metric,
         logger=SelfTrainingWandbLogger,  # pyright: ignore[reportArgumentType]
+        logger_kwargs=logger_kwargs,
         mixed_precision=True,
         log_image_interval=100,
         compile_model=False,

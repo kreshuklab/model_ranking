@@ -3185,3 +3185,4 @@ class MeanTeacherConfig(BaseModel):
     pseudo_labeler_cfg: pseudo_labeler_type
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
+    wandb_cfg: WandbConfig
