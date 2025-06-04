@@ -3161,6 +3161,7 @@ class SelfTrainingDataConfig(BaseModel):
     raw_key_supervised: Optional[str]
     label_key: Optional[str]
     batch_size: int
+    num_workers: int
     n_samples_train: Optional[int]
     n_samples_val: Optional[int]
 

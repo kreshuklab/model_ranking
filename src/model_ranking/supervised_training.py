@@ -96,6 +96,7 @@ def get_supervised_loader(
     patch_shape: Tuple[int, ...],
     batch_size: int,
     root: str,
+    num_workers: int = 8,
     n_samples: Optional[int] = None,
     crop_to_labels: bool = False,  # NOTE: war vorher True
     add_boundary_transform: bool = True,
@@ -122,9 +123,6 @@ def get_supervised_loader(
         PadIfNecessary(patch_shape),
         get_augmentations(3),
     )
-
-    num_workers = 4 * batch_size
-    # num_workers = 0
 
     sampler = MinInstanceSampler(min_num_instances=4)
     loader = torch_em.default_segmentation_loader(  # pyright: ignore[reportUnknownVariableType]

@@ -42,6 +42,7 @@ def run_mean_teacher(
     raw_key_supervised: Optional[str] = "raw",
     label_key: Optional[str] = None,
     batch_size: int = 1,
+    num_workers: int = 8,
     lr: float = 1e-4,
     n_iterations: Optional[int] = None,
     epochs: Optional[int] = 10,
@@ -111,6 +112,7 @@ def run_mean_teacher(
         raw_key,
         patch_shape,
         batch_size,
+        num_workers=num_workers,
         n_samples=n_samples_train,
     )
     unsupervised_val_loader = get_unsupervised_loader(
@@ -118,6 +120,7 @@ def run_mean_teacher(
         raw_key,
         patch_shape,
         batch_size,
+        num_workers=num_workers,
         n_samples=n_samples_val,
     )
 
@@ -133,6 +136,7 @@ def run_mean_teacher(
             patch_shape,
             batch_size,
             output_root_path,
+            num_workers=num_workers,
             n_samples=n_samples_train,
         )
         assert supervised_val_paths is not None
@@ -143,6 +147,7 @@ def run_mean_teacher(
             patch_shape,
             batch_size,
             output_root_path,
+            num_workers=num_workers,
             n_samples=n_samples_val,
         )
     else:

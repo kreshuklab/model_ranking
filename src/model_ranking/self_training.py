@@ -45,6 +45,7 @@ def get_unsupervised_loader(
     raw_key: str,
     patch_shape: Tuple[int, ...],
     batch_size: int,
+    num_workers: int = 8,
     n_samples: Optional[int] = None,
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
 ) -> torch.utils.data.DataLoader[Any]:
@@ -75,7 +76,6 @@ def get_unsupervised_loader(
         datasets
     )
 
-    num_workers = 4 * batch_size
     loader = get_data_loader(  # pyright: ignore[reportUnknownVariableType]
         ds, batch_size=batch_size, num_workers=num_workers, shuffle=True
     )

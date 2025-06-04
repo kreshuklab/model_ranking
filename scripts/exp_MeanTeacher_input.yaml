@@ -15,6 +15,7 @@ data_cfg:
   raw_key_supervised: null
   label_key: null
   batch_size: 32
+  num_workers: 32
   n_samples_train: null
   n_samples_val: null
 
