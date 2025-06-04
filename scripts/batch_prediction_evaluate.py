@@ -1,10 +1,10 @@
 from typing import Annotated
 import typer
 
-from pytorch3dunet.unet3d.config import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-from pytorch3dunet.predict import (  # pyright: ignore[reportMissingTypeStubs]
+from pytorch3dunet.predict import (
     predict,  # pyright: ignore[reportUnknownVariableType]
 )
 
