@@ -1,13 +1,14 @@
 import os
 from datetime import datetime
+from PIL import Image
 from typing import Optional, Literal
 import torch
-
+import numpy as np
 import wandb
 import torch_em  # pyright: ignore[reportMissingTypeStubs]
-import torch_em.transform  # pyright: ignore[reportMissingTypeStubs]
-from model_ranking.utils import is_torch_tensor
 
+from model_ranking.utils import is_torch_tensor
+import torch_em.transform  # pyright: ignore[reportMissingTypeStubs]
 from torchvision.utils import make_grid  # pyright: ignore[reportMissingTypeStubs]
 from torch_em.trainer.logger_base import (  # pyright: ignore[reportMissingTypeStubs]
     TorchEmLogger,
@@ -15,6 +16,18 @@ from torch_em.trainer.logger_base import (  # pyright: ignore[reportMissingTypeS
 from torch_em.trainer.default_trainer import (  # pyright: ignore[reportMissingTypeStubs]
     DefaultTrainer,
 )
+
+
+def convert_to_pil_image(image: torch.Tensor):
+    # image: (C, H, W)
+    image = image.detach().cpu()
+    if image.dtype != torch.uint8:
+        image = (image * 255).clamp(0, 255).to(torch.uint8)
+    image = image.permute(1, 2, 0)  # (H, W, C)
+    np_img = image.numpy().astype(np.uint8)
+    if np_img.shape[2] == 1:
+        np_img = np_img.squeeze(2)  # (H, W)
+    return Image.fromarray(np_img)
 
 
 class SelfTrainingWandbLogger(TorchEmLogger):
@@ -82,12 +95,23 @@ class SelfTrainingWandbLogger(TorchEmLogger):
             x[0]
         )
         assert is_torch_tensor(normalized_x), "Input tensor should be normalized"
-        grid = make_grid([normalized_x, y[0, 0:1], pred[0, 0:1]], padding=8)
+        # Rearrange axis order from (z, y, x) to (y, x, z) by moving the first axis to the last
+        grid = make_grid(
+            [
+                normalized_x,
+                y[0, 0:1],
+                pred[0, 0:1],
+            ],
+            padding=8,
+        )
 
         wandb.log(
             {
                 f"{name}/supervised/input-labels-prediction": [
-                    wandb.Image(grid, caption="input-labels-prediction")
+                    wandb.Image(
+                        convert_to_pil_image(grid),
+                        caption="input-labels-prediction",
+                    )
                 ]
             },
             step=step,
@@ -130,11 +154,18 @@ class SelfTrainingWandbLogger(TorchEmLogger):
         im_name = f"{name}/unsupervised/aug1-aug2-prediction-pseudolabels"
         if label_filter is not None:
             images.append(label_filter[0, 0:1])
-            name += "-labelfilter"
+            im_name += "-labelfilter"
         grid = make_grid(images, nrow=2, padding=8)
 
         wandb.log(
-            {im_name: [wandb.Image(grid, caption="aug1-aug2-prediction-pseudolabels")]},
+            {
+                im_name: [
+                    wandb.Image(
+                        convert_to_pil_image(grid),
+                        caption="aug1-aug2-prediction-pseudolabels",
+                    )
+                ]
+            },
             step=step,
         )
 
@@ -198,7 +229,7 @@ class SelfTrainingWandbLogger(TorchEmLogger):
         )
         if step % self.log_image_interval == 0:
             self._add_unsupervised_images(
-                step, "validation", x1, x2, pred, pseudo_labels, label_filter
+                step, "train", x1, x2, pred, pseudo_labels, label_filter
             )
 
     def log_validation_unsupervised(
