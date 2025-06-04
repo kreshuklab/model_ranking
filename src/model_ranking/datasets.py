@@ -6,11 +6,11 @@ import numpy as np
 import glob
 from itertools import chain
 from torch.utils.data import Dataset
-import skimage
+import skimage.morphology
 
 from pytorch3dunet.augment.transforms import StandardLabelToBoundary, Relabel
 
-from plantseg.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
+from plantseg.functionals.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
     set_background_to_value,  # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.unet3d.utils import (
