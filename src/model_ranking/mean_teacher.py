@@ -1,9 +1,8 @@
 import torch
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, assert_never
 from pathlib import Path
 
 import torch_em.self_training as self_training  # pyright: ignore[reportMissingTypeStubs]
-
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
@@ -13,6 +12,7 @@ from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.pseudo_labeling import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
+    ScheduledPseudoLabeler,
 )
 from model_ranking.self_training import get_unsupervised_loader
 from model_ranking.supervised_training import get_supervised_loader
@@ -76,34 +76,61 @@ def run_mean_teacher(
     )
 
     # Get the consistency metric
-    consis_cfg = pseudo_labeler_config.consistency_metric
-    if consis_cfg.name == "AdaptedRandError":
-        consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
-    else:
-        consistency_metric = consis_cfg.initialise_metric()
+    if (pseudo_labeler_config.name == "input_consistency") or (
+        pseudo_labeler_config.name == "model_consistency"
+    ):
+        consis_cfg = pseudo_labeler_config.consistency_metric
+        if consis_cfg.name == "AdaptedRandError":
+            consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
+        else:
+            consistency_metric = consis_cfg.initialise_metric()
 
-    # self training functionality
-    if pseudo_labeler_config.name == "input_consistency":
+        # self training functionality
+        if pseudo_labeler_config.name == "input_consistency":
 
-        pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
-            transformer=Transformer(
-                pseudo_labeler_config.transformer_cfg,
-                pseudo_labeler_config.stats_cfg,
-            ),
-            consistency_metric=consistency_metric,
-            mask_threshold=consis_cfg.mask_threshold,
-            consistency_threshold=pseudo_labeler_config.consistency_threshold,
-            seg_params=pseudo_labeler_config.seg_params,
+            pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
+                transformer=Transformer(
+                    pseudo_labeler_config.transformer_cfg,
+                    pseudo_labeler_config.stats_cfg,
+                ),
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=pseudo_labeler_config.consistency_threshold,
+                seg_params=pseudo_labeler_config.seg_params,
+            )
+
+        else:
+            pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
+                perturbed_model_config=pseudo_labeler_config.perturbed_model_config,
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=pseudo_labeler_config.consistency_threshold,
+                seg_params=pseudo_labeler_config.seg_params,
+            )
+
+    elif pseudo_labeler_config.name == "default_pseudo_labeler":
+        pseudo_labeler = self_training.DefaultPseudoLabeler(
+            activation=pseudo_labeler_config.activation,
+            confidence_threshold=pseudo_labeler_config.confidence_threshold,
+            threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
+        )
+    elif pseudo_labeler_config.name == "scheduled_pseudo_labeler":
+        pseudo_labeler = ScheduledPseudoLabeler(
+            activation=pseudo_labeler_config.activation,
+            confidence_threshold=pseudo_labeler_config.confidence_threshold,
+            threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
+            mode=pseudo_labeler_config.mode,
+            factor=pseudo_labeler_config.factor,
+            patience=pseudo_labeler_config.patience,
+            threshold=pseudo_labeler_config.threshold,
+            threshold_mode=pseudo_labeler_config.threshold_mode,
+            min_ct=pseudo_labeler_config.min_ct,
+            eps=pseudo_labeler_config.eps,
+            verbose=pseudo_labeler_config.verbose,
         )
 
     else:
-        pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
-            perturbed_model_config=pseudo_labeler_config.perturbed_model_config,
-            consistency_metric=consistency_metric,
-            mask_threshold=consis_cfg.mask_threshold,
-            consistency_threshold=pseudo_labeler_config.consistency_threshold,
-            seg_params=pseudo_labeler_config.seg_params,
-        )
+        assert_never(pseudo_labeler_config.name)
 
     loss = self_training.DefaultSelfTrainingLoss()
     loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric()

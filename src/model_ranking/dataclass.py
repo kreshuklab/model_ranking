@@ -15,6 +15,7 @@ from typing import (
 import numpy as np
 from numpy.typing import NDArray
 import torch
+import torch.nn
 
 from model_ranking.metrics import (
     MultiClassF1Eval,
@@ -3130,26 +3131,54 @@ segmentation_type = Annotated[
 ]
 
 
-class PseudoLabelerConfig(BaseModel):
+class ConsistencyPseudoLabelerConfig(BaseModel):
     # consistency_metric: consistency_metric_type
     consistency_threshold: Optional[float]
     seg_params: segmentation_type
     consistency_metric: consistency_metric_type
 
 
-class InputConsisPseudoLabelerConfig(PseudoLabelerConfig):
+class InputConsisPseudoLabelerConfig(ConsistencyPseudoLabelerConfig):
     name: Literal["input_consistency"]
     transformer_cfg: Dict[str, List[Any]]
     stats_cfg: Dict[str, Any]
 
 
-class ModelConsisPseudoLabelerConfig(PseudoLabelerConfig):
+class ModelConsisPseudoLabelerConfig(ConsistencyPseudoLabelerConfig):
     name: Literal["model_consistency"]
     perturbed_model_config: Pytorch3DUnetModelConfig
 
 
+class DefaultPseudoLabelerConfig(BaseModel):
+    name: Literal["default_pseudo_labeler"]
+    activation: Optional[torch.nn.Module] = None
+    confidence_threshold: Optional[float] = None
+    threshold_from_both_sides: bool = True
+    mask_channel: Optional[int] = None
+
+
+class ScheduledPseudoLabelerConfig(BaseModel):
+    name: Literal["scheduled_pseudo_labeler"]
+    activation: Optional[torch.nn.Module] = None
+    confidence_threshold: Optional[float] = None
+    threshold_from_both_sides: bool = True
+    mode: Literal["min", "max"] = "min"
+    factor: float = 0.05
+    patience: int = 10
+    threshold: float = 1e-4
+    threshold_mode: Literal["rel", "abs"] = "abs"
+    min_ct: float = 0.5
+    eps: float = 1e-8
+    verbose: bool = True
+
+
 pseudo_labeler_type = Annotated[
-    Union[InputConsisPseudoLabelerConfig, ModelConsisPseudoLabelerConfig],
+    Union[
+        InputConsisPseudoLabelerConfig,
+        ModelConsisPseudoLabelerConfig,
+        DefaultPseudoLabelerConfig,
+        ScheduledPseudoLabelerConfig,
+    ],
     Discriminator("name"),
 ]
 
