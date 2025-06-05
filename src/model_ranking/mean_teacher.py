@@ -110,13 +110,13 @@ def run_mean_teacher(
 
     elif pseudo_labeler_config.name == "default_pseudo_labeler":
         pseudo_labeler = self_training.DefaultPseudoLabeler(
-            activation=pseudo_labeler_config.activation,
+            activation=None,
             confidence_threshold=pseudo_labeler_config.confidence_threshold,
             threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
         )
     elif pseudo_labeler_config.name == "scheduled_pseudo_labeler":
         pseudo_labeler = ScheduledPseudoLabeler(
-            activation=pseudo_labeler_config.activation,
+            activation=None,
             confidence_threshold=pseudo_labeler_config.confidence_threshold,
             threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
             mode=pseudo_labeler_config.mode,

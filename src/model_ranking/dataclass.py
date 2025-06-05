@@ -15,7 +15,6 @@ from typing import (
 import numpy as np
 from numpy.typing import NDArray
 import torch
-import torch.nn
 
 from model_ranking.metrics import (
     MultiClassF1Eval,
@@ -3151,7 +3150,6 @@ class ModelConsisPseudoLabelerConfig(ConsistencyPseudoLabelerConfig):
 
 class DefaultPseudoLabelerConfig(BaseModel):
     name: Literal["default_pseudo_labeler"]
-    activation: Optional[torch.nn.Module] = None
     confidence_threshold: Optional[float] = None
     threshold_from_both_sides: bool = True
     mask_channel: Optional[int] = None
@@ -3159,7 +3157,6 @@ class DefaultPseudoLabelerConfig(BaseModel):
 
 class ScheduledPseudoLabelerConfig(BaseModel):
     name: Literal["scheduled_pseudo_labeler"]
-    activation: Optional[torch.nn.Module] = None
     confidence_threshold: Optional[float] = None
     threshold_from_both_sides: bool = True
     mode: Literal["min", "max"] = "min"
