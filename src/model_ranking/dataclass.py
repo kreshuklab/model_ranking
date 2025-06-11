@@ -11,6 +11,7 @@ from typing import (
     Tuple,
     Dict,
     Any,
+    assert_never,
 )
 import numpy as np
 from numpy.typing import NDArray
@@ -618,24 +619,38 @@ class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
 
 class Pytorch3DUnetLoaderConfig(BaseModel, frozen=True):
     dataset: Literal["StandardHDF5Dataset"]
-    output_dir: str
     batch_size: int
     num_workers: int
     raw_internal_path: str
     label_internal_path: str
     global_normalization: bool
     global_percentiles: Optional[Sequence[float]]
+
+
+class Pytorch3DUnetTestLoaderConfig(Pytorch3DUnetLoaderConfig, frozen=True):
+    output_dir: str
     test: Pytorch3DUnetDatasetConfig
+
+
+class Pytorch3DUnetTrainLoaderConfig(Pytorch3DUnetLoaderConfig, frozen=True):
+    train: Pytorch3DUnetDatasetConfig
 
 
 class SBIAD1410LoaderConfig(BaseModel, frozen=True):
     dataset: Literal["S_BIAD1410_Dataset"]
-    output_dir: str
     batch_size: int
     num_workers: int
     global_normalization: bool
     global_percentiles: Optional[Sequence[Union[float, int]]]
+
+
+class SBIAD1410LoaderTestConfig(SBIAD1410LoaderConfig, frozen=True):
+    output_dir: str
     test: SBIAD1410PhaseConfig
+
+
+class SBIAD1410LoaderTrainConfig(SBIAD1410LoaderConfig, frozen=True):
+    train: SBIAD1410PhaseConfig
 
 
 class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
@@ -654,27 +669,56 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
         Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
     ]
 
-    def create_config(self, output_dir: str, data_base_path: str):
+    def create_config(
+        self,
+        output_dir: Optional[str],
+        data_base_path: str,
+        phase: Literal["train", "test"] = "test",
+    ):
         img_paths: List[str] = []
         mask_paths: List[str] = []
         for i in range(len(self.img_paths)):
             img_paths.append(data_base_path + self.img_paths[i])
             mask_paths.append(data_base_path + self.mask_paths[i])
-        return SBIAD1410LoaderConfig(
-            dataset=self.dataset,
-            output_dir=output_dir,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            global_normalization=self.global_normalization,
-            global_percentiles=self.global_percentiles,
-            test=SBIAD1410PhaseConfig(
-                img_paths=img_paths,
-                mask_paths=mask_paths,
-                roi=self.roi,
-                transformer=self.transformer,
-                slice_builder=self.slice_builder,
-            ),
-        )
+        if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
+            loader = SBIAD1410LoaderTestConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                test=SBIAD1410PhaseConfig(
+                    img_paths=img_paths,
+                    mask_paths=mask_paths,
+                    roi=self.roi,
+                    transformer=self.transformer,
+                    slice_builder=self.slice_builder,
+                ),
+            )
+        elif phase == "train":
+            for i in range(len(img_paths)):
+                img_paths[i] = img_paths[i].replace("test", "train")
+                mask_paths[i] = mask_paths[i].replace("test", "train")
+            loader = SBIAD1410LoaderTrainConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                train=SBIAD1410PhaseConfig(
+                    img_paths=img_paths,
+                    mask_paths=mask_paths,
+                    roi=self.roi,
+                    transformer=self.transformer,
+                    slice_builder=self.slice_builder,
+                ),
+            )
+        else:
+            assert_never(phase)
+
+        return loader
 
 
 class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
@@ -695,26 +739,55 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
     ]
     roi: Optional[Sequence[Sequence[int]]]
 
-    def create_config(self, output_dir: str, data_base_path: str):
+    def create_config(
+        self,
+        output_dir: Optional[str],
+        data_base_path: str,
+        phase: Literal["train", "test"] = "test",
+    ):
         file_paths: List[str] = []
         for i in range(len(self.file_paths)):
             file_paths.append(data_base_path + self.file_paths[i])
-        return Pytorch3DUnetLoaderConfig(
-            dataset=self.dataset,
-            output_dir=output_dir,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            raw_internal_path=self.raw_internal_path,
-            label_internal_path=self.label_internal_path,
-            global_normalization=self.global_normalization,
-            global_percentiles=self.global_percentiles,
-            test=Pytorch3DUnetDatasetConfig(
-                file_paths=file_paths,
-                slice_builder=self.slice_builder,
-                transformer=self.transformer,
-                roi=self.roi,
-            ),
-        )
+
+        if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
+            loader = Pytorch3DUnetTestLoaderConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                raw_internal_path=self.raw_internal_path,
+                label_internal_path=self.label_internal_path,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                test=Pytorch3DUnetDatasetConfig(
+                    file_paths=file_paths,
+                    slice_builder=self.slice_builder,
+                    transformer=self.transformer,
+                    roi=self.roi,
+                ),
+            )
+        elif phase == "train":
+            # for i in range(len(file_paths)):
+            #    file_paths[i] = file_paths[i].replace("test", "train")
+            loader = Pytorch3DUnetTrainLoaderConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                raw_internal_path=self.raw_internal_path,
+                label_internal_path=self.label_internal_path,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                train=Pytorch3DUnetDatasetConfig(
+                    file_paths=file_paths,
+                    slice_builder=self.slice_builder,
+                    transformer=self.transformer,
+                    roi=self.roi,
+                ),
+            )
+        else:
+            assert_never(phase)
+        return loader
 
 
 class TIFNucleiSemanticPredictorConfig(BaseModel):
@@ -729,19 +802,23 @@ class TIFNucleiInstancePredictorConfig(BaseModel):
     no_adjust_background: bool = False
 
 
-class TIFPredictionLoadersConfig(BaseModel, frozen=True):
+class TIFLoadersConfig(BaseModel, frozen=True):
     dataset: Literal[
         "Standard_TIF_Dataset", "TIF_txt_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"
     ]
-    output_dir: str
     batch_size: int
     num_workers: int
     global_norm: bool
     percentiles: Optional[Sequence[Union[float, int]]]
-    # test: Annotated[
-    #    Union[TIFPhaseConfig, TIFtxtPhaseConfig], Discriminator("dataset_name")
-    # ]
+
+
+class TIFPredictionLoadersConfig(TIFLoadersConfig, frozen=True):
+    output_dir: str
     test: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
+
+
+class TIFTrainLoadersConfig(TIFLoadersConfig, frozen=True):
+    train: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
 
 
 class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
@@ -808,51 +885,100 @@ class LoaderMetaConfig(BaseModel):
 class TIFLoaderMetaConfig(LoaderMetaConfig):
     dataset: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
 
-    def create_config(self, output_dir: str, data_base_path: str):
+    def create_config(
+        self,
+        output_dir: str,
+        data_base_path: str,
+        phase: Literal["train", "test"] = "test",
+    ):
         mask_dir: List[str] = []
         image_dir: List[str] = []
         for i in range(len(self.mask_dir)):
             mask_dir.append(data_base_path + self.mask_dir[i])
             image_dir.append(data_base_path + self.image_dir[i])
-        return TIFPredictionLoadersConfig(
-            dataset=self.dataset,
-            output_dir=output_dir,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            global_norm=self.global_norm,
-            percentiles=self.percentiles,
-            test=TIFPhaseConfig(
-                image_dir=image_dir,
-                mask_dir=mask_dir,
-                transformer=self.transformer,
-            ),
-        )
+        if phase == "test":
+            loader = TIFPredictionLoadersConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                test=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "train":
+            for i in range(len(image_dir)):
+                image_dir[i] = image_dir[i].replace("test", "train")
+                mask_dir[i] = mask_dir[i].replace("test", "train")
+            loader = TIFTrainLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                train=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
+        else:
+            assert_never(phase)
+        return loader
 
 
 class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
     dataset: Literal["TIF_txt_Dataset"]
     filenames_path: str
 
-    def create_config(self, output_dir: str, data_base_path: str):
+    def create_config(
+        self,
+        output_dir: Optional[str],
+        data_base_path: str,
+        phase: Literal["test", "train"] = "test",
+    ):
         mask_dir: List[str] = []
         image_dir: List[str] = []
         for i in range(len(self.mask_dir)):
             mask_dir.append(data_base_path + self.mask_dir[i])
             image_dir.append(data_base_path + self.image_dir[i])
-        return TIFPredictionLoadersConfig(
-            dataset=self.dataset,
-            output_dir=output_dir,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            global_norm=self.global_norm,
-            percentiles=self.percentiles,
-            test=TIFtxtPhaseConfig(
-                image_dir=image_dir,
-                mask_dir=mask_dir,
-                filenames_path=data_base_path + self.filenames_path,
-                transformer=self.transformer,
-            ),
-        )
+        if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
+            loader = TIFPredictionLoadersConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                test=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "train":
+            loader = TIFTrainLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                train=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        else:
+            assert_never(phase)
+        return loader
 
 
 class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
@@ -2691,6 +2817,32 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "Normalize"},
                 {"name": "ToTensor", "expand_dims": True},
             ]
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=10,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/EPFL/train.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
