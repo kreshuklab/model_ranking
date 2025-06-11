@@ -1,7 +1,7 @@
 import torch
 from torchvision import transforms  # pyright: ignore[reportMissingTypeStubs]
 from typing import Callable, Optional, Tuple, Union, List, Any
-
+from torch.utils.data import ConcatDataset
 
 from torch_em.data import RawDataset  # pyright: ignore[reportMissingTypeStubs]
 from torch_em.segmentation import (  # pyright: ignore[reportMissingTypeStubs]
@@ -40,18 +40,13 @@ def weak_augmentations(p: float = 0.75):  # pyright: ignore[reportUnknownParamet
     )  # pyright: ignore[reportUnknownVariableType]
 
 
-def get_unsupervised_loader(
+def get_unsupervised_dataset(
     paths: List[str],
     raw_key: str,
     patch_shape: Tuple[int, ...],
-    batch_size: int,
-    num_workers: int = 8,
-    n_samples: Optional[int] = None,
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
-) -> torch.utils.data.DataLoader[Any]:
-    roi = None
-
-    # Standardization
+    n_samples: Optional[int] = None,
+) -> ConcatDataset[RawDataset]:
     raw_transform = get_raw_transform()  # pyright: ignore[reportUnknownVariableType]
     transform = get_augmentations(ndim=3)  # Flips
 
@@ -72,11 +67,34 @@ def get_unsupervised_loader(
         )
         for path in paths
     ]
-    ds = torch.utils.data.ConcatDataset(  # pyright: ignore[reportUnknownVariableType]
-        datasets
+    ds: ConcatDataset[RawDataset] = ConcatDataset(datasets)
+    return ds
+
+
+def get_unsupervised_loader(
+    paths: List[str],
+    raw_key: str,
+    patch_shape: Tuple[int, ...],
+    batch_size: int,
+    num_workers: int = 8,
+    n_samples: Optional[int] = None,
+    roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    shuffle: bool = True,
+) -> torch.utils.data.DataLoader[Any]:
+    roi = None
+
+    ds = get_unsupervised_dataset(
+        paths,
+        raw_key,
+        patch_shape,
+        roi=roi,
+        n_samples=n_samples,
     )
 
     loader = get_data_loader(  # pyright: ignore[reportUnknownVariableType]
-        ds, batch_size=batch_size, num_workers=num_workers, shuffle=True
+        ds,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=shuffle,
     )
     return loader  # pyright: ignore[reportUnknownVariableType]
