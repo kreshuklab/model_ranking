@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 import torch
-from typing import Optional, Any, Tuple, Union, Literal
+from typing import Optional, Any, Tuple, Union, Literal, List
 
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
@@ -72,10 +72,11 @@ class AbstractConsistencyPatchwisePseudoLabeler:
         self.consistency_threshold = consistency_threshold
         self.seg_params = seg_params
         # TODO serialize the class names and kwargs for activation instead
+        self.consistency_log: List[float] = []
 
     def _compute_label_mask(
         self, pseudo_labels: NDArray[Any], perturbed_pseudo_labels: NDArray[Any]
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, NDArray[Any]]:
         if isinstance(self.consistency_metric, AdaptedRandErrorEval):
             consis_score, consis_mask = self.consistency_metric(
                 perturbed_pseudo_labels, pseudo_labels
@@ -95,9 +96,11 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             # Hamming distance is a measure of dissimilarity, so we want to keep
             # the patches with a low distance
             ids = np.argwhere(consis_score < self.consistency_threshold)
+            consis_score_PP = consis_score
 
         elif isinstance(self.consistency_metric, AdaptedRandErrorEval):
             ids = np.argwhere(consis_score[:, 0] > self.consistency_threshold)
+            consis_score_PP = consis_score[:, 0]
 
         else:
             consis_score_PP = np.array(
@@ -107,7 +110,10 @@ class AbstractConsistencyPatchwisePseudoLabeler:
 
         mask[ids] = 1
 
-        return torch.from_numpy(mask)
+        for score in consis_score_PP:
+            self.consistency_log.append(score)
+
+        return torch.from_numpy(mask), consis_score_PP
 
     def get_instance_labels(
         self, pseudo_labels: torch.Tensor, pseudo_labels_perturbed: torch.Tensor
@@ -122,7 +128,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             ps_labels[i] = (
                 torch.from_numpy(
                     pmaps_to_IN_seg(
-                        pseudo_labels[i].cpu().numpy().squeeze(),
+                        pseudo_labels[i].detach().cpu().numpy().squeeze(),
                         min_size=self.seg_params.min_size,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
                         no_adjust_background=self.seg_params.no_adjust_background,
@@ -134,7 +140,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             ps_labels_perturbed[i] = (
                 torch.from_numpy(
                     pmaps_to_IN_seg(
-                        pseudo_labels_perturbed[i].cpu().numpy().squeeze(),
+                        pseudo_labels_perturbed[i].detach().cpu().numpy().squeeze(),
                         min_size=self.seg_params.min_size,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
                         no_adjust_background=self.seg_params.no_adjust_background,
@@ -144,6 +150,13 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                 .to(ps_labels_perturbed.device)
             )
         return ps_labels, ps_labels_perturbed
+
+    def save_consistency_log(self, consistency_scores: NDArray[Any], path: str):
+        """Save the consistency log to a file."""
+        np.savez(
+            path,
+            np.array(self.consistency_log, dtype=np.float32),
+        )
 
 
 class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoLabeler):
@@ -185,7 +198,9 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         # input_ = input_.squeeze(2)
         pseudo_labels = teacher(input_)
         perturbed_input_ = (
-            torch.from_numpy(self.transform(input_.cpu().numpy().astype("float32")))
+            torch.from_numpy(
+                self.transform(input_.detach().cpu().numpy().astype("float32"))
+            )
             .to(input_.dtype)
             .to(input_.device)
         )
@@ -202,14 +217,17 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
-            ps_lab = pseudo_labels.cpu().numpy().astype("float32")
-            ps_lab_perturbed = pseudo_labels_perturbed.cpu().numpy().astype("float32")
+            ps_lab = pseudo_labels.detach().cpu().numpy().astype("float32")
+            ps_lab_perturbed = (
+                pseudo_labels_perturbed.detach().cpu().numpy().astype("float32")
+            )
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
-            label_mask = self._compute_label_mask(
+            label_mask, _ = self._compute_label_mask(
                 ps_lab,
                 ps_lab_perturbed,
-            ).to(input_.device)
+            )
+            label_mask = label_mask.to(input_.device)
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
             "Either pseudo_labels or label_mask must be a torch.Tensor."
@@ -266,14 +284,17 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         if self.consistency_threshold is None:
             label_mask = None
         else:
-            ps_lab = pseudo_labels.cpu().numpy().astype("float32")
-            ps_lab_perturbed = pseudo_labels_perturbed.cpu().numpy().astype("float32")
+            ps_lab = pseudo_labels.detach().cpu().numpy().astype("float32")
+            ps_lab_perturbed = (
+                pseudo_labels_perturbed.detach().cpu().numpy().astype("float32")
+            )
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
-            label_mask = self._compute_label_mask(
+            label_mask, _ = self._compute_label_mask(
                 ps_lab,
                 ps_lab_perturbed,
-            ).to(input_.device)
+            )
+            label_mask = label_mask.to(input_.device)
         assert is_torch_tensor(pseudo_labels), (
             "pseudo_labels is not a torch.Tensor. "
             "Either pseudo_labels or label_mask must be a torch.Tensor."
