@@ -498,28 +498,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         pred_loader = target_cfg.loader
 
-                    if pred_loader.dataset in (
-                        "StandardHDF5Dataset",
-                        "S_BIAD1410_Dataset",
-                    ):
-                        pred_loader_cfg = pred_loader.create_config(
-                            output_dir=pred_dir_path,
-                            data_base_path=meta_cfg.data_base_path,
-                        )
-
-                    elif pred_loader.dataset in (
-                        "Standard_TIF_Dataset",
-                        "HeLaNuc_Dataset",
-                        "Hoechst_Dataset",
-                        "TIF_txt_Dataset",
-                    ):
-                        pred_loader_cfg = pred_loader.create_config(
-                            output_dir=pred_dir_path,
-                            data_base_path=meta_cfg.data_base_path,
-                        )
-
-                    else:
-                        assert_never(pred_loader.dataset)
+                    pred_loader_cfg = pred_loader.create_config(
+                        output_dir=pred_dir_path,
+                        data_base_path=meta_cfg.data_base_path,
+                    )
 
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
                     if target_cfg.filter_results is not None:
