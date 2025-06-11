@@ -1,11 +1,11 @@
-from typing import List, Optional, Any, Tuple, Sequence
+from typing import List, Optional, Any, Tuple, Sequence, Literal
 from numpy.typing import NDArray
 import os
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import glob
 from itertools import chain
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import skimage.morphology
 
 from pytorch3dunet.augment.transforms import StandardLabelToBoundary, Relabel
@@ -18,8 +18,11 @@ from pytorch3dunet.unet3d.utils import (
 )
 
 
-from model_ranking.utils import load_h5, get_roi_slice, is_ndarray
-from model_ranking.dataclass import EvalDatasetConfig
+from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
+from model_ranking.dataclass import (
+    EvalDatasetConfig,
+    EPFLTargetConfig,
+)
 
 
 def traverse_pred_files(file_paths: Sequence[str], save_postfix: str) -> List[str]:
@@ -34,6 +37,51 @@ def traverse_pred_files(file_paths: Sequence[str], save_postfix: str) -> List[st
         else:
             results.append(file_path)
     return results
+
+
+def get_datasets(
+    config: EPFLTargetConfig,
+    phase: Literal["train", "test"],
+    output_path: Optional[str] = None,
+    data_base_path: str = "/scratch/talks/data",
+):
+    if phase == "train":
+        loader_cfg = config.train_loader.create_config(
+            output_dir=None,
+            data_base_path=data_base_path,
+            phase=phase,
+        )
+    else:
+        loader_cfg = config.loader.create_config(
+            output_dir=output_path,
+            data_base_path=data_base_path,
+            phase=phase,
+        )
+    dataset_class = loader_classes(loader_cfg.dataset)
+    datasets = dataset_class.create_datasets(loader_cfg.model_dump(), phase=phase)
+    return datasets, loader_cfg
+
+
+def get_loaders(
+    config: EPFLTargetConfig,
+    phase: Literal["train", "test"],
+    output_path: Optional[str],
+    shuffle: bool = True,
+    data_base_path: str = "/scratch/talks/data",
+):
+    datasets, loader_cfg = get_datasets(
+        config=config,
+        phase=phase,
+        output_path=output_path,
+        data_base_path=data_base_path,
+    )
+    for dataset in datasets:
+        yield DataLoader(
+            dataset,
+            batch_size=loader_cfg.batch_size,
+            num_workers=loader_cfg.num_workers,
+            shuffle=shuffle,
+        )
 
 
 class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
