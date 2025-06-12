@@ -9,6 +9,9 @@ from torch.utils.data import Dataset, DataLoader
 import skimage.morphology
 
 from pytorch3dunet.augment.transforms import StandardLabelToBoundary, Relabel
+from pytorch3dunet.datasets.utils import (
+    default_prediction_collate,  # pyright: ignore[reportUnknownVariableType]
+)
 
 from plantseg.functionals.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
     set_background_to_value,  # pyright: ignore[reportUnknownVariableType]
@@ -76,11 +79,18 @@ def get_loaders(
         data_base_path=data_base_path,
     )
     for dataset in datasets:
+        if hasattr(dataset, "prediction_collate"):
+            collate_fn = dataset.prediction_collate
+        else:
+            collate_fn = (  # pyright: ignore[reportUnknownVariableType]
+                default_prediction_collate
+            )
         yield DataLoader(
             dataset,
             batch_size=loader_cfg.batch_size,
             num_workers=loader_cfg.num_workers,
             shuffle=shuffle,
+            collate_fn=collate_fn,
         )
 
 
