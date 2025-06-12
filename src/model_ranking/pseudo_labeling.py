@@ -266,6 +266,8 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             seg_params=seg_params,
         )
         self.perturbed_teacher = get_model(perturbed_model_config.model_dump())
+        # self.log_pseudo_labels: List[NDArray[Any]] = []
+        # self.log_pseudo_labels_perturbed: List[NDArray[Any]] = []
 
     def __call__(
         self, teacher: torch.nn.Module, input_: torch.Tensor
@@ -285,9 +287,11 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             label_mask = None
         else:
             ps_lab = pseudo_labels.detach().cpu().numpy().astype("float32")
+            # self.log_pseudo_labels.append(ps_lab)
             ps_lab_perturbed = (
                 pseudo_labels_perturbed.detach().cpu().numpy().astype("float32")
             )
+            # self.log_pseudo_labels_perturbed.append(ps_lab_perturbed)
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
             label_mask, _ = self._compute_label_mask(
