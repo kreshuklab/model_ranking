@@ -14,6 +14,8 @@ from model_ranking.dataclass import (
 from model_ranking.datasets import get_loaders
 from model_ranking.pseudo_labeling import ModelConsistencyPatchWisePseudoLabeler
 
+# from model_ranking.utils import save_h5
+
 # from model_ranking.utils import is_torch_tensor
 from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
@@ -73,7 +75,7 @@ def run_pseudolabeler_patch_selection(config: MeanTeacherConfig, run_name: str):
     pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
         perturbed_model_config=pseudo_labeler_cfg.perturbed_model_config,
         consistency_metric=consistency_metric,
-        mask_threshold=pseudo_labeler_cfg.consistency_threshold,
+        mask_threshold=consis_cfg.mask_threshold,
         consistency_threshold=pseudo_labeler_cfg.consistency_threshold,
         seg_params=pseudo_labeler_cfg.seg_params,
     )
@@ -133,6 +135,18 @@ def run_pseudolabeler_patch_selection(config: MeanTeacherConfig, run_name: str):
                 accepted_ids=np.array(all_one_ids, dtype=int),
                 consis_scores=np.array(pseudo_labeler.consistency_log, dtype=float),
             )
+
+            # logging for debugging purposes
+            # save_h5(
+            #     save_path.parent / "pseudo_labels.h5",
+            #     "pseudo_labels",
+            #     np.concatenate(pseudo_labeler.log_pseudo_labels, axis=0),
+            # )
+            # save_h5(
+            #     save_path.parent / "pseudo_labels.h5",
+            #     "perturbed_pseudo_labels",
+            #     np.concatenate(pseudo_labeler.log_pseudo_labels_perturbed, axis=0),
+            # )
     assert isinstance(
         save_path, Path  # pyright: ignore[reportPossiblyUnboundVariable]
     ), "Save path should be a Path object"
