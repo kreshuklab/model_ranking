@@ -3093,11 +3093,14 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         dataset="StandardHDF5Dataset",
         batch_size=32,
         num_workers=8,
-        raw_internal_path="raw",
-        label_internal_path="label",
+        # raw_internal_path="raw",
+        # label_internal_path="label",
+        raw_internal_path="resized_raw",
+        label_internal_path="resized_labels",
         global_normalization=True,
         global_percentiles=None,
-        file_paths=("/VNC/data_labeled_mito.h5",),
+        # file_paths=("/VNC/data_labeled_mito.h5",),
+        file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -3125,9 +3128,11 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     predictor_instance: None = None
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
-        gt_path=("/VNC/data_labeled_mito.h5",),
+        # gt_path=("/VNC/data_labeled_mito.h5",),
+        gt_path=("/VNC/resized_pixels/source_mitoEM_true.h5",),
         pred_key="predictions",
-        gt_key="label",
+        # gt_key="label",
+        gt_key="resized_labels",
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
@@ -3167,7 +3172,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="ForegroundFilter",
         foreground_threshold=0.02,
         gt_dir_path="/VNC/",
-        gt_key="labels",
+        # gt_key="labels",
+        gt_key="resized_labels",
         roi=None,
         save_selection=True,
         overwrite=False,
@@ -3345,6 +3351,8 @@ class SelfTrainingDataConfig(BaseModel):
     num_workers: int
     n_samples_train: Optional[int]
     n_samples_val: Optional[int]
+    roi_train: Optional[Sequence[Sequence[int]]] = None
+    roi_val: Optional[Sequence[Sequence[int]]] = None
 
 
 class SelfTrainingModelConfig(BaseModel):
