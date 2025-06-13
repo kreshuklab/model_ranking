@@ -6,3 +6,4 @@ wandb/
 *.npz
 /tests
 */SLURM
+*.sh
