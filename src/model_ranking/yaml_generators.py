@@ -533,7 +533,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                         summary_results_cfg = SummaryResultsConfig(
                             filter_patches=filter_patches_cfg,
-                            output_path=str(Path(pred_dir_path).parent),
+                            # output_path=str(Path(pred_dir_path).parent),
+                            output_path=pred_dir_path,
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=consis_cfg.consistency_metric.save_key,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
