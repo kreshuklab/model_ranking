@@ -4,6 +4,7 @@ from typing import Annotated
 from model_ranking.config import copy_config
 from model_ranking.dataclass import MeanTeacherConfig
 from model_ranking.mean_teacher import run_mean_teacher
+from model_ranking.utils import get_roi_slice
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -12,6 +13,16 @@ from pytorch3dunet.unet3d.config import (
 def self_training_mean_teacher(
     mean_teacher_config: MeanTeacherConfig, config_path: str
 ):
+    if mean_teacher_config.data_cfg.roi_train is not None:
+        roi_train = get_roi_slice(mean_teacher_config.data_cfg.roi_train)
+    else:
+        roi_train = None
+
+    if mean_teacher_config.data_cfg.roi_val is not None:
+        roi_val = get_roi_slice(mean_teacher_config.data_cfg.roi_val)
+    else:
+        roi_val = None
+
     run_mean_teacher(
         name=mean_teacher_config.name,
         output_root_path=mean_teacher_config.output_root_path,
@@ -34,6 +45,8 @@ def self_training_mean_teacher(
         n_samples_val=mean_teacher_config.data_cfg.n_samples_val,
         save_ckpt_every_kth_epoch=mean_teacher_config.training_cfg.save_ckpt_every_kth_epoch,
         wandb_config=mean_teacher_config.wandb_cfg,
+        roi_train=roi_train,
+        roi_val=roi_val,
     )
     copy_config(mean_teacher_config, config_path)
 
