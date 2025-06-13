@@ -5,3 +5,4 @@ wandb/
 *.h5
 *.npz
 /tests
+*/SLURM
