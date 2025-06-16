@@ -887,7 +887,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
 
     def create_config(
         self,
-        output_dir: str,
+        output_dir: Optional[str],
         data_base_path: str,
         phase: Literal["train", "test"] = "test",
     ):
@@ -897,6 +897,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
             mask_dir.append(data_base_path + self.mask_dir[i])
             image_dir.append(data_base_path + self.image_dir[i])
         if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
             loader = TIFPredictionLoadersConfig(
                 dataset=self.dataset,
                 output_dir=output_dir,
@@ -2938,6 +2939,32 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
+    train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/Hmito/train.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 0, 0),
+        ),
+    )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3025,6 +3052,32 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
+    train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/Rmito/train.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 0, 0),
+        ),
+    )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3095,12 +3148,15 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         # raw_internal_path="raw",
         # label_internal_path="label",
-        raw_internal_path="resized_raw",
-        label_internal_path="resized_labels",
+        # raw_internal_path="resized_raw",
+        # label_internal_path="resized_labels",
+        raw_internal_path="raw",
+        label_internal_path="labels",
         global_normalization=True,
         global_percentiles=None,
         # file_paths=("/VNC/data_labeled_mito.h5",),
-        file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        file_paths=("/VNC/resized_pixels/test.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -3113,6 +3169,38 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 32, 32),
+        ),
+    )
+    train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=32,
+        num_workers=8,
+        # raw_internal_path="raw",
+        # label_internal_path="label",
+        # raw_internal_path="resized_raw",
+        # label_internal_path="resized_labels",
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        # file_paths=("/VNC/data_labeled_mito.h5",),
+        # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        file_paths=("/VNC/resized_pixels/train.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 0, 0),
         ),
     )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
@@ -3129,10 +3217,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         # gt_path=("/VNC/data_labeled_mito.h5",),
-        gt_path=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        # gt_path=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        gt_path=("/VNC/resized_pixels/test.h5",),
         pred_key="predictions",
         # gt_key="label",
-        gt_key="resized_labels",
+        # gt_key="resized_labels",
+        gt_key="labels",
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
@@ -3171,7 +3261,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     filter_results: ForegroundFilterConfig = ForegroundFilterConfig(
         name="ForegroundFilter",
         foreground_threshold=0.02,
-        gt_dir_path="/VNC/",
+        gt_dir_path="/VNC/resized_pixels/",
         # gt_key="labels",
         gt_key="resized_labels",
         roi=None,
@@ -3198,6 +3288,16 @@ target_dataset_type = Annotated[
         FlyWingTargetConfig,
         OvulesTargetConfig,
         PNASTargetConfig,
+        EPFLTargetConfig,
+        HmitoTargetConfig,
+        RmitoTargetConfig,
+        VNCTargetConfig,
+    ],
+    Discriminator("name"),
+]
+
+mito_target_dataset_type = Annotated[
+    Union[
         EPFLTargetConfig,
         HmitoTargetConfig,
         RmitoTargetConfig,

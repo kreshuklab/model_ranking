@@ -8,11 +8,15 @@ from tqdm import tqdm
 
 # from model_ranking.self_training import get_unsupervised_loader
 from model_ranking.dataclass import (
+    HmitoTargetConfig,
     MeanTeacherConfig,
     EPFLTargetConfig,
+    RmitoTargetConfig,
+    VNCTargetConfig,
 )
 from model_ranking.datasets import get_loaders
 from model_ranking.pseudo_labeling import ModelConsistencyPatchWisePseudoLabeler
+from model_ranking.utils import find_transfer_from_pred_path
 
 # from model_ranking.utils import save_h5
 
@@ -93,9 +97,23 @@ def run_pseudolabeler_patch_selection(config: MeanTeacherConfig, run_name: str):
     model = model.to("cuda:0")
     model = model.eval()
 
+    target = find_transfer_from_pred_path(config.output_root_path).split("_to_")[-1]
+
+    # Set the appropriate target_config based on the target string
+    if target == "EPFL":
+        target_config = EPFLTargetConfig()
+    elif target == "Hmito":
+        target_config = HmitoTargetConfig()
+    elif target == "Rmito":
+        target_config = RmitoTargetConfig()
+    elif target == "VNC":
+        target_config = VNCTargetConfig()
+    else:
+        raise ValueError(f"Unknown target dataset: {target}")
+
     with torch.no_grad():
         for loader in get_loaders(
-            EPFLTargetConfig(),
+            target_config,
             phase="train",
             output_path=None,
             shuffle=False,
