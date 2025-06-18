@@ -1,12 +1,15 @@
-from typing import List, Optional, Any, Tuple, Sequence, Literal
+from typing import Callable, Dict, List, Optional, Any, Tuple, Sequence, Literal, Union
+import warnings
 from numpy.typing import NDArray
 import os
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import glob
 from itertools import chain
+import torch
 from torch.utils.data import Dataset, DataLoader
 import skimage.morphology
+from elf.wrapper import RoiWrapper  # pyright: ignore[reportMissingTypeStubs]
 
 from pytorch3dunet.augment.transforms import StandardLabelToBoundary, Relabel
 from pytorch3dunet.datasets.utils import (
@@ -20,11 +23,18 @@ from pytorch3dunet.unet3d.utils import (
     remove_background_seg,  # pyright: ignore[reportUnknownVariableType]
 )
 
-
 from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
 from model_ranking.dataclass import (
     EvalDatasetConfig,
     mito_target_dataset_type,
+)
+from torch_em.util.image import load_data  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.util.util import (  # pyright: ignore[reportMissingTypeStubs]
+    ensure_tensor_with_channels,
+    ensure_patch_shape,  # pyright: ignore[reportUnknownVariableType]
+)
+from torch_em.data.raw_dataset import (  # pyright: ignore[reportMissingTypeStubs]
+    RawDataset,
 )
 
 
@@ -288,3 +298,170 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             )
             datasets.append(dataset)
         return datasets
+
+
+class DummySelfTrainingDataset(RawDataset):
+    def __init__(
+        self,
+        raw_path: Union[List[str], str, os.PathLike[str]],
+        raw_key: Optional[str],
+        label_path: Union[List[str], str],
+        label_key: Optional[str],
+        patch_shape: Tuple[int, ...],
+        raw_transform: Optional[Callable[..., Any]] = None,
+        transform: Optional[Callable[..., Any]] = None,
+        roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
+        dtype: torch.dtype = torch.float32,
+        n_samples: Optional[int] = None,
+        sampler: Optional[Callable[..., Any]] = None,
+        ndim: Optional[int] = None,
+        with_channels: bool = False,
+        augmentations: Optional[Tuple[Callable[..., Any], Callable[..., Any]]] = None,
+    ):
+        super().__init__(
+            raw_path=raw_path,
+            raw_key=raw_key,
+            patch_shape=patch_shape,
+            raw_transform=raw_transform,
+            transform=transform,
+            roi=roi,
+            dtype=dtype,
+            n_samples=n_samples,
+            sampler=sampler,
+            ndim=ndim,
+            with_channels=with_channels,
+            augmentations=augmentations,
+        )
+        self.label_path = label_path
+        self.label_key = label_key
+        self.label = load_data(label_path, label_key)
+
+        if self.roi is not None:
+            self.label = (
+                RoiWrapper(self.label, (slice(None),) + self.roi)
+                if self._with_channels
+                else RoiWrapper(self.label, self.roi)
+            )
+
+    def __len__(self):
+        return self._len
+
+    def _get_sample(self, index: int):  # pyright: ignore
+        if (self.raw is None) or (self.label is None):  # pyright: ignore
+            raise RuntimeError(
+                "DummySelfTrainingDataset has not been properly deserialized."
+            )
+
+        bb = self._sample_bounding_box()  # pyright: ignore[reportUnknownVariableType]
+        assert isinstance(bb, tuple)
+        raw = (  # pyright: ignore
+            self.raw[(slice(None),) + bb]  # pyright: ignore
+            if self._with_channels
+            else self.raw[bb]  # pyright: ignore
+        )
+        label = (  # pyright: ignore
+            self.label[(slice(None),) + bb]  # pyright: ignore
+            if self._with_channels
+            else self.label[bb]  # pyright: ignore
+        )
+
+        if self.sampler is not None:
+            sample_id = 0
+            while not self.sampler(raw):
+                bb = self._sample_bounding_box()  # pyright: ignore
+                raw = (  # pyright: ignore
+                    self.raw[(slice(None),) + bb]  # pyright: ignore
+                    if self._with_channels
+                    else self.raw[bb]  # pyright: ignore
+                )
+                label = (  # pyright: ignore
+                    self.label[(slice(None),) + bb]  # pyright: ignore
+                    if self._with_channels
+                    else self.label[bb]  # pyright: ignore
+                )
+                sample_id += 1
+                if sample_id > self.max_sampling_attempts:
+                    raise RuntimeError(
+                        f"Could not sample a valid batch in {self.max_sampling_attempts} attempts"
+                    )
+
+        if self.patch_shape is not None:  # pyright: ignore
+            raw = ensure_patch_shape(  # pyright: ignore
+                raw=raw,  # pyright: ignore
+                labels=None,
+                patch_shape=self.patch_shape,
+                have_raw_channels=self._with_channels,
+            )
+            label = ensure_patch_shape(  # pyright: ignore
+                raw=label,  # pyright: ignore
+                labels=None,
+                patch_shape=self.patch_shape,
+                have_raw_channels=self._with_channels,
+            )
+
+        # squeeze the singleton spatial axis if we have a spatial shape that is larger by one than self._ndim
+        if len(self.patch_shape) == self._ndim + 1:
+            raw = raw.squeeze(1 if self._with_channels else 0)  # pyright: ignore
+            label = label.squeeze(1 if self._with_channels else 0)  # pyright: ignore
+
+        return raw, label  # pyright: ignore
+
+    def __getitem__(self, index: int):  # pyright: ignore
+        raw, label = self._get_sample(index)  # pyright: ignore
+
+        if self.raw_transform is not None:
+            raw = self.raw_transform(raw)  # pyright: ignore
+
+        if self.transform is not None:
+            raw = self.transform(raw)  # pyright: ignore
+            if isinstance(raw, list):
+                assert len(raw) == 1  # pyright: ignore
+                raw = raw[0]  # pyright: ignore
+
+            if self.trafo_halo is not None:
+                raw = self.crop(raw)  # pyright: ignore
+                label = self.crop(label)  # pyright: ignore
+
+        raw = ensure_tensor_with_channels(
+            raw, ndim=self._ndim, dtype=self.dtype  # pyright: ignore
+        )
+        label = ensure_tensor_with_channels(
+            label, ndim=self._ndim, dtype=self.dtype  # pyright: ignore
+        )
+
+        if self.augmentations is not None:
+            aug1, aug2 = self.augmentations  # pyright: ignore
+            raw1, raw2 = aug1(raw), aug2(raw)  # pyright: ignore
+            # concatenate raw1 with label
+            raw1_label = torch.cat((raw1, label), dim=0)  # pyright: ignore
+            return raw1_label, raw2  # pyright: ignore
+
+        return raw, label
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        del state["label"]
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]):
+        super().__setstate__(state)
+
+        label_path, label_key = state["label_path"], state["label_key"]
+        roi = state["roi"]
+        try:
+            label = load_data(label_path, label_key)
+            if roi is not None:
+                label = (
+                    RoiWrapper(label, (slice(None),) + roi)
+                    if state["_with_channels"]
+                    else RoiWrapper(label, roi)
+                )
+            state["label"] = label
+        except Exception:
+            msg = f"DummySelfTrainingDataset could not be deserialized because of missing {label_path}, {label_key}.\n"
+            msg += "The dataset is deserialized in order to allow loading trained models from a checkpoint.\n"
+            msg += "But it cannot be used for further training and wil throw an error."
+            warnings.warn(msg)
+            state["label"] = None
+
+        self.__dict__.update(state)

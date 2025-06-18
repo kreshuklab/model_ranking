@@ -3413,6 +3413,11 @@ class DefaultPseudoLabelerConfig(BaseModel):
     mask_channel: Optional[int] = None
 
 
+class DummyDirectEvalPseudoLabelerConfig(BaseModel):
+    name: Literal["direct_eval_pseudo_labeler"]
+    score_threshold: float = 0.5
+
+
 class ScheduledPseudoLabelerConfig(BaseModel):
     name: Literal["scheduled_pseudo_labeler"]
     confidence_threshold: Optional[float] = None
@@ -3433,6 +3438,7 @@ pseudo_labeler_type = Annotated[
         ModelConsisPseudoLabelerConfig,
         DefaultPseudoLabelerConfig,
         ScheduledPseudoLabelerConfig,
+        DummyDirectEvalPseudoLabelerConfig,
     ],
     Discriminator("name"),
 ]
@@ -3474,4 +3480,4 @@ class MeanTeacherConfig(BaseModel):
     pseudo_labeler_cfg: pseudo_labeler_type
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
-    wandb_cfg: WandbConfig
+    wandb_cfg: Optional[WandbConfig]
