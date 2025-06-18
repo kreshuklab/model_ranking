@@ -18,6 +18,7 @@ from model_ranking.metrics import (
     DifferenceImageEval,
     EntropyEval,
     KLDivergenceEval,
+    MultiClassF1Eval,
 )
 from model_ranking.utils import (
     is_torch_tensor,
@@ -151,7 +152,10 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             )
         return ps_labels, ps_labels_perturbed
 
-    def save_consistency_log(self, consistency_scores: NDArray[Any], path: str):
+    def step(self, metric: Optional[float], epoch: int):
+        pass
+
+    def save_consistency_log(self, path: str):
         """Save the consistency log to a file."""
         np.savez(
             path,
@@ -479,3 +483,52 @@ class ScheduledPseudoLabeler:
             if self.num_bad_epochs > self.patience:
                 self._reduce_ct(epoch)
                 self.num_bad_epochs = 0
+
+
+class DummyDirectEvalPseudoLabeler:
+    def __init__(self, score_threshold: Optional[float]):
+        super().__init__()
+        self.score_threshold = score_threshold
+        self.consistency_log: List[float] = []
+
+    def _compute_label_mask(
+        self, pseudo_labels: torch.Tensor, labels: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        eval_scores = MultiClassF1Eval()(pseudo_labels, labels)
+        mask = torch.zeros_like(pseudo_labels, dtype=torch.int8)
+        # find ids where eval_scores is greater than score_threshold
+        assert (
+            self.score_threshold is not None
+        ), "score_threshold must be set to compute label mask."
+        ids = torch.argwhere(eval_scores[:, 1] > self.score_threshold).squeeze()
+        mask[ids] = 1
+
+        for score in eval_scores[:, 1]:
+            self.consistency_log.append(score.item())
+
+        return mask, eval_scores
+
+    def __call__(
+        self, teacher: torch.nn.Module, input_: torch.Tensor
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        raw_input_ = input_[:, 0:1, ...]  # Assuming input is of shape (B, C, D, H, W)
+        label_gt_ = input_[:, 1:2, ...]  # Assuming input is of shape (B, C, D, H, W)
+        pseudo_labels = teacher(raw_input_)
+        assert is_torch_tensor(pseudo_labels), "pseudo_labels is not a torch.Tensor."
+
+        if self.score_threshold is None:
+            label_mask = None
+        else:
+            label_mask, _ = self._compute_label_mask(
+                pseudo_labels,
+                label_gt_,
+            )
+            label_mask = label_mask.to(input_.device)
+        assert is_torch_tensor(pseudo_labels), (
+            "pseudo_labels is not a torch.Tensor. "
+            "Either pseudo_labels or label_mask must be a torch.Tensor."
+        )
+        return pseudo_labels, label_mask
+
+    def step(self, metric: Optional[float], epoch: int):
+        pass
