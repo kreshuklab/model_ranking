@@ -68,6 +68,28 @@ def save_h5(
             _ = f.create_dataset(out_key, data=data, chunks=(1, *data.shape[1:]))
 
 
+def copy_h5_dataset(
+    source_path: Union[str, Path], target_path: Union[str, Path], dataset_name: str
+):
+    # Check if the target file exists
+    if not os.path.exists(target_path):
+        # Create a new target file
+        with h5py.File(target_path, "w") as f:
+            pass
+
+    # Check if the dataset already exists in the target file
+    with h5py.File(target_path, "r") as f:
+        if dataset_name in f:
+            raise ValueError(
+                f"Dataset '{dataset_name}' already exists in the target file"
+            )
+
+    # Copy the dataset from the source file to the target file
+    with h5py.File(source_path, "r") as source, h5py.File(target_path, "a") as target:
+        source_dataset = source[dataset_name]
+        _ = target.create_dataset(dataset_name, data=source_dataset)
+
+
 def get_roi_slice(roi: Sequence[Sequence[int]]) -> tuple[slice, ...]:
     # Create a tuple of slice objects based on the input list
     slices = tuple(slice(start, stop) for start, stop in roi)
@@ -340,3 +362,26 @@ def add_device_to_config(config: Dict[str, Any]) -> Dict[str, Any]:
     else:
         config["device"] = "cpu"
     return config
+
+
+def find_finetuning_result_paths(
+    model_names: List[str],
+    approach: str = "feature_perturbation",
+    output_folder: str = "predictions",
+    base_path: Path = Path(
+        "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+    ),
+) -> List[Path]:
+    paths: List[Path] = []
+    for model in model_names:
+        transfer = model.split("_")[0]
+        source = transfer.split("to")[0]
+        target = transfer.split("to")[1]
+        path = list(
+            base_path.glob(
+                f"{source}*_to_{target}*_gap/{approach}/{output_folder}/{model}"
+            )
+        )
+        assert len(path) == 1, f"Found {len(path)} paths for {model} in {base_path}"
+        paths.append(path[0])
+    return paths
