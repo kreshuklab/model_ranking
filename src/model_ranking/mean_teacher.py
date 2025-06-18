@@ -13,8 +13,12 @@ from model_ranking.pseudo_labeling import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
     ScheduledPseudoLabeler,
+    DummyDirectEvalPseudoLabeler,
 )
-from model_ranking.self_training import get_unsupervised_loader
+from model_ranking.self_training import (
+    get_unsupervised_loader,
+    get_DummySelfTraining_loader,
+)
 from model_ranking.supervised_training import get_supervised_loader
 
 from pytorch3dunet.unet3d.model import (
@@ -36,7 +40,7 @@ def run_mean_teacher(
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
     model_config: Pytorch3DUnetModelConfig,
-    wandb_config: WandbConfig,
+    wandb_config: Optional[WandbConfig],
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_train_paths: Optional[List[str]] = None,
     supervised_val_paths: Optional[List[str]] = None,
@@ -131,31 +135,61 @@ def run_mean_teacher(
             verbose=pseudo_labeler_config.verbose,
         )
 
+    elif pseudo_labeler_config.name == "direct_eval_pseudo_labeler":
+        pseudo_labeler = DummyDirectEvalPseudoLabeler(
+            score_threshold=pseudo_labeler_config.score_threshold,
+        )
+
     else:
         assert_never(pseudo_labeler_config.name)
 
     loss = self_training.DefaultSelfTrainingLoss()
     loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric()
 
-    print("Get unsup loaders")
-    unsupervised_train_loader = get_unsupervised_loader(
-        unsupervised_train_paths,
-        raw_key,
-        patch_shape,
-        batch_size,
-        num_workers=num_workers,
-        n_samples=n_samples_train,
-        roi=roi_train,
-    )
-    unsupervised_val_loader = get_unsupervised_loader(
-        unsupervised_val_paths,
-        raw_key,
-        patch_shape,
-        batch_size,
-        num_workers=num_workers,
-        n_samples=n_samples_val,
-        roi=roi_val,
-    )
+    if isinstance(pseudo_labeler, DummyDirectEvalPseudoLabeler):
+        # For the dummy pseudo labeler, we use the DummySelfTrainingLoader
+        assert (
+            label_key is not None
+        ), "label_key must be provided for DummySelfTrainingLoader"
+        unsupervised_train_loader = get_DummySelfTraining_loader(
+            unsupervised_train_paths,
+            raw_key,
+            label_key,
+            patch_shape,
+            batch_size,
+            n_samples=n_samples_train,
+            roi=roi_train,
+        )
+        unsupervised_val_loader = get_DummySelfTraining_loader(
+            unsupervised_val_paths,
+            raw_key,
+            label_key,
+            patch_shape,
+            batch_size,
+            n_samples=n_samples_val,
+            roi=roi_val,
+        )
+
+    else:
+        print("Get unsup loaders")
+        unsupervised_train_loader = get_unsupervised_loader(
+            unsupervised_train_paths,
+            raw_key,
+            patch_shape,
+            batch_size,
+            num_workers=num_workers,
+            n_samples=n_samples_train,
+            roi=roi_train,
+        )
+        unsupervised_val_loader = get_unsupervised_loader(
+            unsupervised_val_paths,
+            raw_key,
+            patch_shape,
+            batch_size,
+            num_workers=num_workers,
+            n_samples=n_samples_val,
+            roi=roi_val,
+        )
 
     if supervised_train_paths is not None:
         print("Get sup loaders")
@@ -187,13 +221,17 @@ def run_mean_teacher(
         supervised_train_loader = None
         supervised_val_loader = None
 
-    logger_kwargs = {
-        "project_name": wandb_config.project,
-        "mode": wandb_config.mode,
-    }
-
     print("Lift off!")
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    if wandb_config is not None:
+        logger_kwargs = {
+            "project_name": wandb_config.project,
+            "mode": wandb_config.mode,
+        }
+        logger = SelfTrainingWandbLogger
+    else:
+        logger = None
+        logger_kwargs = None
     trainer = self_training.MeanTeacherTrainer(
         name=name,
         model=model,
@@ -208,7 +246,7 @@ def run_mean_teacher(
         unsupervised_val_loader=unsupervised_val_loader,
         supervised_loss=loss,
         supervised_loss_and_metric=loss_and_metric,
-        logger=SelfTrainingWandbLogger,  # pyright: ignore[reportArgumentType]
+        logger=logger,  # pyright: ignore[reportArgumentType]
         logger_kwargs=logger_kwargs,
         mixed_precision=True,
         log_image_interval=100,
