@@ -1,6 +1,6 @@
 from typing import Dict, Any
 import torch
-from torch_em.segmentation import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
 
@@ -24,8 +24,8 @@ data_cfg: Dict[str, Any] = {
     "raw_key": "raw",
     "raw_key_supervised": None,
     "label_key": "labels",
-    "batch_size": 32,
-    "num_workers": 32,
+    "batch_size": 10,
+    "num_workers": 1,
     "n_samples_train": None,
     "n_samples_val": None,
 }
