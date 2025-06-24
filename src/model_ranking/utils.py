@@ -385,3 +385,28 @@ def find_finetuning_result_paths(
         assert len(path) == 1, f"Found {len(path)} paths for {model} in {base_path}"
         paths.append(path[0])
     return paths
+
+
+def extract_transfer_section(path: Path) -> Optional[str]:
+    match = re.search(r"[^/]*_to_[^/]*_gap", str(path))
+    return match.group(0) if match else None
+
+
+def find_selftraining_pred_paths(
+    model_names: List[str],
+    approach: str = "feature_perturbation",
+    base_path: Path = Path(
+        "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+    ),
+) -> List[Path]:
+    paths: List[Path] = []
+    for model in model_names:
+        transfer = model.split("_")[0]
+        source = transfer.split("to")[0]
+        target = transfer.split("to")[1]
+        path = list(
+            base_path.glob(f"{source}*_to_{target}*_gap/{approach}/predictions/{model}")
+        )
+        assert len(path) == 1, f"Found {len(path)} paths for {model} in {base_path}"
+        paths.append(path[0])
+    return paths
