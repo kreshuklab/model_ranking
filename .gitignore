@@ -7,3 +7,4 @@ wandb/
 /tests
 */SLURM
 *.sh
+*.png
