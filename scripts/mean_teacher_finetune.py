@@ -28,16 +28,16 @@ def self_training_mean_teacher(
         roi_unsupervised_val = None
 
     if mean_teacher_config.data_cfg.roi_supervised_train is not None:
-        roi_supervised_train = get_roi_slice(
-            mean_teacher_config.data_cfg.roi_supervised_train
-        )
+        roi_supervised_train = [
+            get_roi_slice(mean_teacher_config.data_cfg.roi_supervised_train)
+        ]
     else:
         roi_supervised_train = None
 
     if mean_teacher_config.data_cfg.roi_supervised_val is not None:
-        roi_supervised_val = get_roi_slice(
-            mean_teacher_config.data_cfg.roi_supervised_val
-        )
+        roi_supervised_val = [
+            get_roi_slice(mean_teacher_config.data_cfg.roi_supervised_val)
+        ]
     else:
         roi_supervised_val = None
 

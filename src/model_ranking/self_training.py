@@ -5,16 +5,16 @@ from torch.utils.data import ConcatDataset
 
 from model_ranking.datasets import DummySelfTrainingDataset
 
-from torch_em.data import RawDataset  # pyright: ignore[reportMissingTypeStubs]
-from torch_em.segmentation import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.data import RawDataset
+from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
-from torch_em.transform.raw import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.transform.raw import (
     standardize,  # pyright: ignore[reportUnknownVariableType]
     GaussianBlur,
     AdditiveGaussianNoise,
 )
-from torch_em.transform import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.transform import (
     get_raw_transform,  # pyright: ignore[reportUnknownVariableType]
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )

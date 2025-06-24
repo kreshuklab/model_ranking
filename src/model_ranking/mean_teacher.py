@@ -57,8 +57,8 @@ def run_mean_teacher(
     save_ckpt_every_kth_epoch: Optional[int] = None,
     roi_unsupervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
     roi_unsupervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
-    roi_supervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
-    roi_supervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    roi_supervised_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
+    roi_supervised_val: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
 ):
     assert (n_iterations is None) != (
         epochs is None

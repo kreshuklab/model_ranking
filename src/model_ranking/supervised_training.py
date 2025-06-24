@@ -101,7 +101,7 @@ def get_supervised_loader(
     crop_to_labels: bool = False,  # NOTE: war vorher True
     add_boundary_transform: bool = True,
     label_dtype: torch.dtype = torch.float32,
-    rois: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    rois: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
 ) -> torch.utils.data.DataLoader[Any]:
 
     if crop_to_labels:
@@ -113,7 +113,7 @@ def get_supervised_loader(
         rois = [
             tuple(slice(sta, sto) for sta, sto in zip(start, stop))
             for start, stop in rois_from_labels
-        ][0]
+        ]
 
     if add_boundary_transform:
         label_transform = BoundaryTransform(add_binary_target=True)
