@@ -2,7 +2,7 @@ import torch
 from typing import Optional, Union, Tuple, List, assert_never
 from pathlib import Path
 
-import torch_em.self_training as self_training  # pyright: ignore[reportMissingTypeStubs]
+import torch_em.self_training as self_training
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
@@ -55,8 +55,10 @@ def run_mean_teacher(
     n_samples_train: Optional[int] = None,
     n_samples_val: Optional[int] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
-    roi_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
-    roi_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    roi_unsupervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    roi_unsupervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    roi_supervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    roi_supervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
 ):
     assert (n_iterations is None) != (
         epochs is None
@@ -73,7 +75,11 @@ def run_mean_teacher(
         reinit_teacher = True
     else:
         print("Mean teacher training initialized from source model:", source_checkpoint)
-        _ = load_checkpoint(source_checkpoint, model)
+        if Path(source_checkpoint).suffix == ".pt":
+            model_key = "model_state"
+        else:
+            model_key = "model_state_dict"
+        _ = load_checkpoint(source_checkpoint, model, model_key=model_key)
         reinit_teacher = False
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -158,7 +164,7 @@ def run_mean_teacher(
             patch_shape,
             batch_size,
             n_samples=n_samples_train,
-            roi=roi_train,
+            roi=roi_unsupervised_train,
         )
         unsupervised_val_loader = get_DummySelfTraining_loader(
             unsupervised_val_paths,
@@ -167,7 +173,7 @@ def run_mean_teacher(
             patch_shape,
             batch_size,
             n_samples=n_samples_val,
-            roi=roi_val,
+            roi=roi_unsupervised_val,
         )
 
     else:
@@ -179,7 +185,7 @@ def run_mean_teacher(
             batch_size,
             num_workers=num_workers,
             n_samples=n_samples_train,
-            roi=roi_train,
+            roi=roi_unsupervised_train,
         )
         unsupervised_val_loader = get_unsupervised_loader(
             unsupervised_val_paths,
@@ -188,7 +194,7 @@ def run_mean_teacher(
             batch_size,
             num_workers=num_workers,
             n_samples=n_samples_val,
-            roi=roi_val,
+            roi=roi_unsupervised_val,
         )
 
     if supervised_train_paths is not None:
@@ -205,6 +211,7 @@ def run_mean_teacher(
             output_root_path,
             num_workers=num_workers,
             n_samples=n_samples_train,
+            rois=roi_supervised_train,
         )
         assert supervised_val_paths is not None
         supervised_val_loader = get_supervised_loader(
@@ -216,6 +223,7 @@ def run_mean_teacher(
             output_root_path,
             num_workers=num_workers,
             n_samples=n_samples_val,
+            rois=roi_supervised_val,
         )
     else:
         supervised_train_loader = None
