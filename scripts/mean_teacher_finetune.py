@@ -13,15 +13,33 @@ from pytorch3dunet.unet3d.config import (
 def self_training_mean_teacher(
     mean_teacher_config: MeanTeacherConfig, config_path: str
 ):
-    if mean_teacher_config.data_cfg.roi_train is not None:
-        roi_train = get_roi_slice(mean_teacher_config.data_cfg.roi_train)
+    if mean_teacher_config.data_cfg.roi_unsupervised_train is not None:
+        roi_unsupervised_train = get_roi_slice(
+            mean_teacher_config.data_cfg.roi_unsupervised_train
+        )
     else:
-        roi_train = None
+        roi_unsupervised_train = None
 
-    if mean_teacher_config.data_cfg.roi_val is not None:
-        roi_val = get_roi_slice(mean_teacher_config.data_cfg.roi_val)
+    if mean_teacher_config.data_cfg.roi_unsupervised_val is not None:
+        roi_unsupervised_val = get_roi_slice(
+            mean_teacher_config.data_cfg.roi_unsupervised_val
+        )
     else:
-        roi_val = None
+        roi_unsupervised_val = None
+
+    if mean_teacher_config.data_cfg.roi_supervised_train is not None:
+        roi_supervised_train = get_roi_slice(
+            mean_teacher_config.data_cfg.roi_supervised_train
+        )
+    else:
+        roi_supervised_train = None
+
+    if mean_teacher_config.data_cfg.roi_supervised_val is not None:
+        roi_supervised_val = get_roi_slice(
+            mean_teacher_config.data_cfg.roi_supervised_val
+        )
+    else:
+        roi_supervised_val = None
 
     run_mean_teacher(
         name=mean_teacher_config.name,
@@ -45,8 +63,10 @@ def self_training_mean_teacher(
         n_samples_val=mean_teacher_config.data_cfg.n_samples_val,
         save_ckpt_every_kth_epoch=mean_teacher_config.training_cfg.save_ckpt_every_kth_epoch,
         wandb_config=mean_teacher_config.wandb_cfg,
-        roi_train=roi_train,
-        roi_val=roi_val,
+        roi_unsupervised_train=roi_unsupervised_train,
+        roi_unsupervised_val=roi_unsupervised_val,
+        roi_supervised_train=roi_supervised_train,
+        roi_supervised_val=roi_supervised_val,
     )
     copy_config(mean_teacher_config, config_path)
 
