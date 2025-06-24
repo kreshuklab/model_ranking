@@ -4,18 +4,18 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch_em  # pyright: ignore[reportMissingTypeStubs]
+import torch_em
 from tqdm import tqdm
 from typing import List, Tuple, Union, Optional, Any
 
-from torch_em.transform import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.transform import (
     BoundaryTransform,
     label,
     Compose,
     PadIfNecessary,
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
-from torch_em.data.sampler import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.data.sampler import (
     MinInstanceSampler,
 )
 
@@ -101,17 +101,19 @@ def get_supervised_loader(
     crop_to_labels: bool = False,  # NOTE: war vorher True
     add_boundary_transform: bool = True,
     label_dtype: torch.dtype = torch.float32,
+    rois: Optional[Union[slice, Tuple[slice, ...]]] = None,
 ) -> torch.utils.data.DataLoader[Any]:
 
     if crop_to_labels:
+        print(
+            "Warning: crop_to_labels is set to True, this will crop the patches to the labels. "
+            + "This will overwrite rois selection if rois is not None."
+        )
         rois_from_labels = _compute_rois(data_paths, label_key, root, patch_shape)
         rois = [
             tuple(slice(sta, sto) for sta, sto in zip(start, stop))
             for start, stop in rois_from_labels
         ][0]
-
-    else:
-        rois = None
 
     if add_boundary_transform:
         label_transform = BoundaryTransform(add_binary_target=True)
