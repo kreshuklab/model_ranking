@@ -143,6 +143,10 @@ def get_model_path(
         )
     )
     if len(model_paths) == 0:
+        model_paths = list(
+            base_dir.glob(f"**/{model_name}/**/{checkpoint_name}.pytorch")
+        )
+    if len(model_paths) == 0:
         model_paths = list(base_dir.glob(f"**/{model_name}/**/{checkpoint_name}.pt"))
     assert (
         len(model_paths) == 1
@@ -574,10 +578,15 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
                         yaml_save_path = Path(yaml_dir_path) / "pred.yml"
 
+                        if source_model_path.endswith(".pt"):
+                            model_key = "model_state"
+                        else:
+                            model_key = "model_state_dict"
+
                         yaml_dict_order = [
                             {"wandb": wandb_cfg.model_dump()},
                             {"model_path": source_model_path},
-                            {"model_key": "model_state"},
+                            {"model_key": model_key},
                             {"summary_results": summary_results_cfg.model_dump()},
                             {"model": model_cfg.model_dump()},
                             {"predictor": predictor_cfg.model_dump()},
