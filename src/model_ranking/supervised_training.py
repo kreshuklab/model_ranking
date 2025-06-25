@@ -10,22 +10,41 @@ from typing import List, Tuple, Union, Optional, Any
 
 from torch_em.transform import (
     BoundaryTransform,
-    label,
+    # label,
     Compose,
     PadIfNecessary,
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
+from torch_em.transform.raw import (
+    get_default_mean_teacher_augmentations,  # pyright: ignore[reportUnknownVariableType]
+)
 from torch_em.data.sampler import (
     MinInstanceSampler,
+    MinForegroundSampler,
+    MinSemanticLabelForegroundSampler,
 )
+from torch_em.trainer.wandb_logger import WandbLogger
+
 
 from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
     open_file,  # pyright: ignore[reportUnknownVariableType]
 )
 
+from model_ranking.dataclass import Pytorch3DUnetModelConfig, WandbConfig
 from model_ranking.utils import (
     is_ndarray,
 )
+
+from pytorch3dunet.unet3d.model import (
+    get_model,  # pyright: ignore[reportUnknownVariableType]
+)
+from pytorch3dunet.unet3d.utils import (
+    load_checkpoint,  # pyright: ignore[reportUnknownVariableType]
+)
+
+sampler_type = Union[
+    MinInstanceSampler, MinForegroundSampler, MinSemanticLabelForegroundSampler
+]
 
 
 def _compute_rois(
@@ -99,8 +118,9 @@ def get_supervised_loader(
     num_workers: int = 8,
     n_samples: Optional[int] = None,
     crop_to_labels: bool = False,  # NOTE: war vorher True
-    add_boundary_transform: bool = True,
+    add_boundary_transform: bool = False,
     label_dtype: torch.dtype = torch.float32,
+    sampler: sampler_type = MinForegroundSampler(0.01),
     rois: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
 ) -> torch.utils.data.DataLoader[Any]:
 
@@ -118,15 +138,20 @@ def get_supervised_loader(
     if add_boundary_transform:
         label_transform = BoundaryTransform(add_binary_target=True)
     else:
-        label_transform = (  # pyright: ignore[reportUnknownVariableType]
-            label.connected_components
-        )
+        label_transform = None
+    # else:
+    #    label_transform = (
+    #        label.connected_components
+    #    )
     transform = Compose(
         PadIfNecessary(patch_shape),
-        get_augmentations(3),
+        get_augmentations(len(patch_shape)),
     )
 
-    sampler = MinInstanceSampler(min_num_instances=4)
+    raw_transform = (  # pyright: ignore[reportUnknownVariableType]
+        get_default_mean_teacher_augmentations()
+    )
+
     loader = torch_em.default_segmentation_loader(  # pyright: ignore[reportUnknownVariableType]
         data_paths,
         raw_key,
@@ -139,9 +164,102 @@ def get_supervised_loader(
         is_seg_dataset=True,
         label_transform=label_transform,
         transform=transform,
+        raw_transform=raw_transform,
         num_workers=num_workers,
         shuffle=True,
         n_samples=n_samples,
         label_dtype=label_dtype,  # pyright: ignore[reportArgumentType]
     )
     return loader  # pyright: ignore[reportUnknownVariableType]
+
+
+def run_supervised_training(
+    name: str,
+    output_root: str,
+    train_paths: List[str],
+    val_paths: List[str],
+    label_key: str,
+    patch_shape: Tuple[int, ...],
+    model_config: Pytorch3DUnetModelConfig,
+    wandb_config: Optional[WandbConfig],
+    raw_key: str = "raw",
+    batch_size: int = 1,
+    lr: float = 1e-4,
+    n_iterations: Optional[int] = None,
+    epochs: Optional[int] = 20,
+    n_samples_train: Optional[int] = None,
+    n_samples_val: Optional[int] = None,
+    check: bool = False,
+    rois_val: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
+    rois_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
+    save_ckpt_every_kth_epoch: Optional[int] = None,
+    source_checkpoint: Optional[Union[str, Path]] = None,
+):
+    train_loader = get_supervised_loader(
+        train_paths,
+        raw_key,
+        label_key,
+        patch_shape,
+        batch_size,
+        output_root,
+        n_samples=n_samples_train,
+        rois=rois_train,
+    )
+    val_loader = get_supervised_loader(
+        val_paths,
+        raw_key,
+        label_key,
+        patch_shape,
+        batch_size,
+        output_root,
+        n_samples=n_samples_val,
+        rois=rois_val,
+    )
+
+    if check:
+        from torch_em.util.debug import (
+            check_loader,  # pyright: ignore[reportUnknownVariableType]
+        )
+
+        check_loader(train_loader, n_samples=4)
+        check_loader(val_loader, n_samples=4)
+        return
+
+    model = get_model(model_config.model_dump())
+
+    if source_checkpoint is not None:
+        if Path(source_checkpoint).suffix == ".pt":
+            model_key = "model_state"
+        else:
+            model_key = "model_state_dict"
+        _ = load_checkpoint(source_checkpoint, model, model_key=model_key)
+
+    if wandb_config is not None:
+        logger_kwargs = {
+            "project_name": wandb_config.project,
+            "mode": wandb_config.mode,
+        }
+        logger = WandbLogger
+    else:
+        logger = None
+        logger_kwargs = None
+
+    trainer = torch_em.default_segmentation_trainer(
+        name=name,
+        model=model,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        learning_rate=lr,
+        mixed_precision=True,
+        log_image_interval=100,
+        compile_model=False,
+        save_root=output_root,
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        logger=logger,  # pyright: ignore[reportArgumentType]
+        logger_kwargs=logger_kwargs,
+    )
+    trainer.fit(
+        iterations=n_iterations,
+        save_every_kth_epoch=save_ckpt_every_kth_epoch,
+        epochs=epochs,
+    )

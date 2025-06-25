@@ -3483,3 +3483,26 @@ class MeanTeacherConfig(BaseModel):
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
+
+
+class SupervisedDataConfig(BaseModel):
+    patch_shape: Tuple[int, ...]
+    supervised_train_paths: List[str]
+    supervised_val_paths: List[str]
+    raw_key: str
+    label_key: str
+    batch_size: int
+    num_workers: int
+    n_samples_train: Optional[int]
+    n_samples_val: Optional[int]
+    roi_supervised_train: Optional[Sequence[Sequence[int]]] = None
+    roi_supervised_val: Optional[Sequence[Sequence[int]]] = None
+
+
+class SupervisedFinetuningConfig(BaseModel):
+    name: str
+    output_root_path: str
+    data_cfg: SupervisedDataConfig
+    model_cfg: SelfTrainingModelConfig
+    training_cfg: SelfTrainingTrainConfig
+    wandb_cfg: Optional[WandbConfig]
