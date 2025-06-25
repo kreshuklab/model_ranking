@@ -2,10 +2,16 @@ from pathlib import Path
 from typing import Union
 import shutil
 
-from model_ranking.dataclass import MeanTeacherConfig
+from model_ranking.dataclass import (
+    MeanTeacherConfig,
+    SupervisedFinetuningConfig,
+)
 
 
-def copy_config(config: MeanTeacherConfig, config_path: Union[str, Path]):
+def copy_config(
+    config: Union[MeanTeacherConfig, SupervisedFinetuningConfig],
+    config_path: Union[str, Path],
+):
     if not isinstance(config_path, Path):
         config_path = Path(config_path)
     checkpoint_path = Path(config.output_root_path) / "checkpoints"
