@@ -387,7 +387,7 @@ def find_finetuning_result_paths(
     return paths
 
 
-def extract_transfer_section(path: Path) -> Optional[str]:
+def identify_transfer(path: Path) -> Optional[str]:
     match = re.search(r"[^/]*_to_[^/]*_gap", str(path))
     return match.group(0) if match else None
 
