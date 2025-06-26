@@ -66,6 +66,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
         mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
+        activation: Optional[torch.nn.Module] = None,
     ):
         super().__init__()
         self.consistency_metric = consistency_metric
@@ -74,6 +75,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
         self.seg_params = seg_params
         # TODO serialize the class names and kwargs for activation instead
         self.consistency_log: List[float] = []
+        self.activation = activation
 
     def _compute_label_mask(
         self, pseudo_labels: NDArray[Any], perturbed_pseudo_labels: NDArray[Any]
@@ -187,12 +189,14 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
+        activation: Optional[torch.nn.Module] = None,
     ):
         super().__init__(
             consistency_metric=consistency_metric,
             mask_threshold=mask_threshold,
             consistency_threshold=consistency_threshold,
             seg_params=seg_params,
+            activation=activation,
         )
         self.transform = transformer.raw_transform()
 
@@ -213,6 +217,11 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         assert is_torch_tensor(
             pseudo_labels_perturbed
         ), "pseudo_labels_perturbed is not a torch.Tensor."
+
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
+            pseudo_labels_perturbed = self.activation(pseudo_labels_perturbed)
+
         if self.seg_params.name == "instance":
             pseudo_labels, pseudo_labels_perturbed = self.get_instance_labels(
                 pseudo_labels, pseudo_labels_perturbed
@@ -262,12 +271,14 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         mask_threshold: Optional[float] = None,
         consistency_threshold: Optional[float] = None,
         seg_params: segmentation_type = SemanticSegmentationConfig(),
+        activation: Optional[torch.nn.Module] = None,
     ):
         super().__init__(
             consistency_metric=consistency_metric,
             mask_threshold=mask_threshold,
             consistency_threshold=consistency_threshold,
             seg_params=seg_params,
+            activation=activation,
         )
         self.perturbed_teacher = get_model(perturbed_model_config.model_dump())
         # self.log_pseudo_labels: List[NDArray[Any]] = []
@@ -281,6 +292,10 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         perturbed_teacher = self.perturbed_teacher.to(next(teacher.parameters()).device)
         perturbed_teacher = perturbed_teacher.eval()
         pseudo_labels_perturbed = perturbed_teacher(input_)
+
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
+            pseudo_labels_perturbed = self.activation(pseudo_labels_perturbed)
 
         if self.seg_params.name == "instance":
             pseudo_labels, pseudo_labels_perturbed = self.get_instance_labels(
@@ -486,10 +501,15 @@ class ScheduledPseudoLabeler:
 
 
 class DummyDirectEvalPseudoLabeler:
-    def __init__(self, score_threshold: Optional[float]):
+    def __init__(
+        self,
+        score_threshold: Optional[float],
+        activation: Optional[torch.nn.Module] = None,
+    ):
         super().__init__()
         self.score_threshold = score_threshold
         self.consistency_log: List[float] = []
+        self.activation = activation
 
     def _compute_label_mask(
         self, pseudo_labels: torch.Tensor, labels: torch.Tensor
@@ -515,6 +535,9 @@ class DummyDirectEvalPseudoLabeler:
         label_gt_ = input_[:, 1:2, ...]  # Assuming input is of shape (B, C, D, H, W)
         pseudo_labels = teacher(raw_input_)
         assert is_torch_tensor(pseudo_labels), "pseudo_labels is not a torch.Tensor."
+
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
 
         if self.score_threshold is None:
             label_mask = None

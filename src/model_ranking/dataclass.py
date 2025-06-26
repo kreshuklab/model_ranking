@@ -3393,6 +3393,7 @@ class ConsistencyPseudoLabelerConfig(BaseModel):
     consistency_threshold: Optional[float]
     seg_params: segmentation_type
     consistency_metric: consistency_metric_type
+    activation: Optional[Literal["softmax", "sigmoid"]] = "sigmoid"
 
 
 class InputConsisPseudoLabelerConfig(ConsistencyPseudoLabelerConfig):
@@ -3411,11 +3412,13 @@ class DefaultPseudoLabelerConfig(BaseModel):
     confidence_threshold: Optional[float] = None
     threshold_from_both_sides: bool = True
     mask_channel: Optional[int] = None
+    activation: Optional[Literal["softmax", "sigmoid"]] = "sigmoid"
 
 
 class DummyDirectEvalPseudoLabelerConfig(BaseModel):
     name: Literal["direct_eval_pseudo_labeler"]
     score_threshold: float = 0.5
+    activation: Optional[Literal["softmax", "sigmoid"]] = "sigmoid"
 
 
 class ScheduledPseudoLabelerConfig(BaseModel):
@@ -3430,6 +3433,7 @@ class ScheduledPseudoLabelerConfig(BaseModel):
     min_ct: float = 0.5
     eps: float = 1e-8
     verbose: bool = True
+    activation: Optional[Literal["softmax", "sigmoid"]] = "sigmoid"
 
 
 pseudo_labeler_type = Annotated[

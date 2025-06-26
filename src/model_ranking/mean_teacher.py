@@ -20,6 +20,7 @@ from model_ranking.self_training import (
     get_DummySelfTraining_loader,
 )
 from model_ranking.supervised_training import get_supervised_loader
+from model_ranking.metrics import DiceMetric
 
 from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
@@ -87,6 +88,19 @@ def run_mean_teacher(
         optimizer, mode="min", factor=0.5, patience=5
     )
 
+    if pseudo_labeler_config.activation is not None:
+        if pseudo_labeler_config.activation == "softmax":
+            activation = torch.nn.Softmax(dim=1)
+        elif pseudo_labeler_config.activation == "sigmoid":
+            activation = torch.nn.Sigmoid()
+        else:
+            raise ValueError(
+                f"Unknown activation: {pseudo_labeler_config.activation}. "
+                + "Supported are 'softmax' and 'sigmoid'."
+            )
+    else:
+        activation = None
+
     # Get the consistency metric
     if (pseudo_labeler_config.name == "input_consistency") or (
         pseudo_labeler_config.name == "model_consistency"
@@ -109,6 +123,7 @@ def run_mean_teacher(
                 mask_threshold=consis_cfg.mask_threshold,
                 consistency_threshold=pseudo_labeler_config.consistency_threshold,
                 seg_params=pseudo_labeler_config.seg_params,
+                activation=activation,
             )
 
         else:
@@ -118,17 +133,18 @@ def run_mean_teacher(
                 mask_threshold=consis_cfg.mask_threshold,
                 consistency_threshold=pseudo_labeler_config.consistency_threshold,
                 seg_params=pseudo_labeler_config.seg_params,
+                activation=activation,
             )
 
     elif pseudo_labeler_config.name == "default_pseudo_labeler":
         pseudo_labeler = self_training.DefaultPseudoLabeler(
-            activation=None,
+            activation=activation,
             confidence_threshold=pseudo_labeler_config.confidence_threshold,
             threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
         )
     elif pseudo_labeler_config.name == "scheduled_pseudo_labeler":
         pseudo_labeler = ScheduledPseudoLabeler(
-            activation=None,
+            activation=activation,
             confidence_threshold=pseudo_labeler_config.confidence_threshold,
             threshold_from_both_sides=pseudo_labeler_config.threshold_from_both_sides,
             mode=pseudo_labeler_config.mode,
@@ -149,8 +165,11 @@ def run_mean_teacher(
     else:
         assert_never(pseudo_labeler_config.name)
 
-    loss = self_training.DefaultSelfTrainingLoss()
-    loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric()
+    loss = self_training.DefaultSelfTrainingLoss(activation=torch.nn.Sigmoid())
+    loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric(
+        metric=DiceMetric(threshold=0.5),
+        activation=torch.nn.Sigmoid(),
+    )
 
     if isinstance(pseudo_labeler, DummyDirectEvalPseudoLabeler):
         # For the dummy pseudo labeler, we use the DummySelfTrainingLoader
