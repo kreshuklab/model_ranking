@@ -15,6 +15,11 @@ from torch_em.transform import (
     PadIfNecessary,
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
+from torch_em.loss.dice import (
+    # BCEDiceLoss,
+    # DiceLoss,
+    DiceLossWithLogits,
+)
 from torch_em.transform.raw import (
     get_default_mean_teacher_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -33,6 +38,9 @@ from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
 from model_ranking.dataclass import Pytorch3DUnetModelConfig, WandbConfig
 from model_ranking.utils import (
     is_ndarray,
+)
+from model_ranking.metrics import (
+    DiceMetric,
 )
 
 from pytorch3dunet.unet3d.model import (
@@ -190,6 +198,10 @@ def run_supervised_training(
     n_samples_train: Optional[int] = None,
     n_samples_val: Optional[int] = None,
     check: bool = False,
+    loss: Optional[torch.nn.Module] = DiceLossWithLogits(),
+    metric: Optional[torch.nn.Module] = DiceMetric(
+        threshold=0.5, final_activation="sigmoid"
+    ),
     rois_val: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
     rois_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
@@ -249,6 +261,8 @@ def run_supervised_training(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
+        loss=loss,
+        metric=metric,
         learning_rate=lr,
         mixed_precision=True,
         log_image_interval=100,

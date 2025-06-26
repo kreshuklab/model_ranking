@@ -1,5 +1,6 @@
 import torch
-from typing import Optional, Any, Tuple, Union
+import torch.nn as nn
+from typing import Optional, Any, Tuple, Union, Literal
 import numpy as np
 from numpy.typing import NDArray
 from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
@@ -11,13 +12,17 @@ from skimage.morphology import (
     erosion,  # pyright: ignore[reportUnknownVariableType]
     dilation,  # pyright: ignore[reportUnknownVariableType]
 )
-from skimage.metrics import (  # pyright: ignore[reportMissingTypeStubs]
+from skimage.metrics import (
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
+from torch_em.loss.dice import (
+    dice_score,
+)
+
 from pytorch3dunet.unet3d.metrics import (
     DiceCoefficient,
 )
-from model_ranking.utils import is_ndarray, avoid_int_overflow
+from model_ranking.utils import is_ndarray, avoid_int_overflow, is_torch_tensor
 
 
 class MultiClassF1Eval:
@@ -505,3 +510,83 @@ def calculate_EI_binary(
     EI_result[mask0] = 1 - soft_preds[1:][mask0]
     EI_result = np.sqrt(zero_inverted_None_pred[np.newaxis, :] * EI_result)
     return EI_result, EI_result.mean(axis=1), mask0, mask1
+
+
+class DiceMetric(nn.Module):
+    """Metric computed based on the dice error between a binary input and binary target.
+
+    Args:
+        channelwise: Whether to return the dice score independently per channel.
+        eps: The epsilon value added to the denominator for numerical stability.
+        reduce_channel: How to return the dice score over the channel axis.
+    """
+
+    def __init__(
+        self,
+        channelwise: bool = True,
+        eps: float = 1e-7,
+        reduce_channel: Optional[str] = "sum",
+        threshold: Optional[float] = None,
+        final_activation: Optional[Literal["sigmoid", "softmax"]] = None,
+    ):
+        if reduce_channel not in ("sum", "mean", "max", "min", None):
+            raise ValueError(f"Unsupported channel reduction {reduce_channel}")
+
+        super().__init__()
+        self.channelwise = channelwise
+        self.eps = eps
+        self.reduce_channel = reduce_channel
+        self.threshold = threshold
+        self.final_activation = final_activation
+
+        # all torch_em classes should store init kwargs to easily recreate the init call
+        self.init_kwargs = {
+            "channelwise": channelwise,
+            "eps": self.eps,
+            "reduce_channel": self.reduce_channel,
+        }
+
+    def forward(self, input_: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Compute the loss.
+
+        Args:
+            input_: The input, logits, probabilities or binary.
+            target: The target, logits, probablities or binary.
+
+        Returns:
+            The dice score.
+        """
+        if self.final_activation is not None:
+            if self.final_activation == "sigmoid":
+                input_ = nn.functional.sigmoid(input_)
+            elif self.final_activation == "softmax":
+                input_ = nn.functional.softmax(input_, dim=1)
+            else:
+                raise ValueError(
+                    f"Unsupported final activation {self.final_activation}"
+                )
+
+        if self.threshold is not None:
+            input_ = ensure_binary(input_, threshold=self.threshold)
+
+        return dice_score(
+            input_=input_,
+            target=target,
+            invert=False,
+            channelwise=self.channelwise,
+            eps=self.eps,
+            reduce_channel=self.reduce_channel,
+        )
+
+
+def ensure_binary(
+    input: torch.Tensor, threshold: Optional[float] = None
+) -> torch.Tensor:
+    unique_vals = torch.unique(input)  # pyright: ignore[reportUnknownVariableType]
+    assert is_torch_tensor(unique_vals), f"Data is not a torch tensor: {unique_vals}"
+    if not torch.all((unique_vals == 0) | (unique_vals == 1)):
+        assert threshold is not None, "Input must be binary or threshold must be set."
+        if not (0 <= threshold <= 1):
+            raise ValueError(f"Threshold must be in [0, 1], got {threshold}.")
+        input = (input > threshold).float()
+    return input
