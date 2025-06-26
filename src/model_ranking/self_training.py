@@ -10,7 +10,7 @@ from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
 from torch_em.transform.raw import (
-    standardize,  # pyright: ignore[reportUnknownVariableType]
+    normalize,  # pyright: ignore[reportUnknownVariableType]
     GaussianBlur,
     AdditiveGaussianNoise,
 )
@@ -21,7 +21,7 @@ from torch_em.transform import (
 
 
 def weak_augmentations(p: float = 0.75):  # pyright: ignore[reportUnknownParameterType]
-    norm = standardize  # pyright: ignore[reportUnknownVariableType]
+    norm = normalize  # pyright: ignore[reportUnknownVariableType]
     assert isinstance(norm, Callable)
     aug = transforms.Compose(
         [  # pyright: ignore[reportUnknownArgumentType]
@@ -49,8 +49,10 @@ def get_unsupervised_dataset(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
 ) -> ConcatDataset[RawDataset]:
-    raw_transform = get_raw_transform()  # pyright: ignore[reportUnknownVariableType]
-    transform = get_augmentations(ndim=3)  # Flips
+    raw_transform = get_raw_transform(  # pyright: ignore[reportUnknownVariableType]
+        normalizer=normalize
+    )
+    transform = get_augmentations(ndim=len(patch_shape))  # Flips
 
     augmentations = (  # pyright: ignore[reportUnknownVariableType]
         weak_augmentations(),
