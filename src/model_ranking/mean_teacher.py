@@ -55,6 +55,8 @@ def run_mean_teacher(
     epochs: Optional[int] = 10,
     n_samples_train: Optional[int] = None,
     n_samples_val: Optional[int] = None,
+    n_samples_train_supervised: Optional[int] = None,
+    n_samples_val_supervised: Optional[int] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
     roi_unsupervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
     roi_unsupervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
@@ -229,7 +231,7 @@ def run_mean_teacher(
             batch_size,
             output_root_path,
             num_workers=num_workers,
-            n_samples=n_samples_train,
+            n_samples=n_samples_train_supervised,
             rois=roi_supervised_train,
         )
         assert supervised_val_paths is not None
@@ -241,7 +243,7 @@ def run_mean_teacher(
             batch_size,
             output_root_path,
             num_workers=num_workers,
-            n_samples=n_samples_val,
+            n_samples=n_samples_val_supervised,
             rois=roi_supervised_val,
         )
     else:

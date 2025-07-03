@@ -61,6 +61,8 @@ def self_training_mean_teacher(
         epochs=mean_teacher_config.training_cfg.epochs,
         n_samples_train=mean_teacher_config.data_cfg.n_samples_train,
         n_samples_val=mean_teacher_config.data_cfg.n_samples_val,
+        n_samples_train_supervised=mean_teacher_config.data_cfg.n_samples_train_supervised,
+        n_samples_val_supervised=mean_teacher_config.data_cfg.n_samples_val_supervised,
         save_ckpt_every_kth_epoch=mean_teacher_config.training_cfg.save_ckpt_every_kth_epoch,
         wandb_config=mean_teacher_config.wandb_cfg,
         roi_unsupervised_train=roi_unsupervised_train,

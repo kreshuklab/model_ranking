@@ -3461,6 +3461,8 @@ class SelfTrainingDataConfig(BaseModel):
     num_workers: int
     n_samples_train: Optional[int]
     n_samples_val: Optional[int]
+    n_samples_train_supervised: Optional[int] = None
+    n_samples_val_supervised: Optional[int] = None
     roi_unsupervised_train: Optional[Sequence[Sequence[int]]] = None
     roi_unsupervised_val: Optional[Sequence[Sequence[int]]] = None
     roi_supervised_train: Optional[Sequence[Sequence[int]]] = None
