@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch_em
 from tqdm import tqdm
-from typing import List, Tuple, Union, Optional, Any
+from typing import List, Tuple, Union, Optional, Any, Dict
 
 from torch_em.transform import (
     BoundaryTransform,
@@ -28,6 +28,7 @@ from torch_em.data.sampler import (
     MinForegroundSampler,
     MinSemanticLabelForegroundSampler,
 )
+from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
 from torch_em.trainer.wandb_logger import WandbLogger
 
 
@@ -206,6 +207,9 @@ def run_supervised_training(
     rois_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
     source_checkpoint: Optional[Union[str, Path]] = None,
+    mixed_precision: bool = True,
+    scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS,
+    optimizer_kwargs: Dict[str, Any] = {},
 ):
     train_loader = get_supervised_loader(
         train_paths,
@@ -264,10 +268,12 @@ def run_supervised_training(
         loss=loss,
         metric=metric,
         learning_rate=lr,
-        mixed_precision=True,
+        mixed_precision=mixed_precision,
         log_image_interval=100,
         compile_model=False,
         save_root=output_root,
+        scheduler_kwargs=scheduler_kwargs,
+        optimizer_kwargs=optimizer_kwargs,
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         logger=logger,  # pyright: ignore[reportArgumentType]
         logger_kwargs=logger_kwargs,

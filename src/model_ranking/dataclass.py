@@ -33,6 +33,8 @@ from pytorch3dunet.unet3d.metrics import (
     InstanceAveragePrecision,
 )
 
+from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
+
 
 class ConsistencyMetricConfig(BaseModel):
     metric: Literal[
@@ -3479,6 +3481,9 @@ class SelfTrainingTrainConfig(BaseModel):
     n_iterations: Optional[int]
     epochs: Optional[int]
     save_ckpt_every_kth_epoch: Optional[int]
+    mixed_precision: bool = True
+    scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS
+    optimizer_kwargs: Dict[str, Any] = {}
 
 
 class MeanTeacherConfig(BaseModel):

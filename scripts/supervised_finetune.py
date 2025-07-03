@@ -54,6 +54,9 @@ def supervised_finetune(
         rois_val=roi_supervised_val,
         source_checkpoint=supervised_finetune_config.model_cfg.source_checkpoint,
         save_ckpt_every_kth_epoch=supervised_finetune_config.training_cfg.save_ckpt_every_kth_epoch,
+        mixed_precision=supervised_finetune_config.training_cfg.mixed_precision,
+        scheduler_kwargs=supervised_finetune_config.training_cfg.scheduler_kwargs,
+        optimizer_kwargs=supervised_finetune_config.training_cfg.optimizer_kwargs,
     )
     copy_config(supervised_finetune_config, config_path)
 
