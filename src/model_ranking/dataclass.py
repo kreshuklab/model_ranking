@@ -3513,7 +3513,6 @@ class SupervisedDataConfig(BaseModel):
 class SupervisedFinetuningConfig(BaseModel):
     name: str
     output_root_path: str
-    data_cfg: SupervisedDataConfig
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
