@@ -3517,4 +3517,4 @@ class SupervisedFinetuningConfig(BaseModel):
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
-    loader_cfg: Optional[Dict[str, Any]] = None
+    loader_cfg: Dict[str, Any]

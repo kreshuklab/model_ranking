@@ -192,62 +192,29 @@ def get_supervised_loader(
 def run_supervised_training(
     name: str,
     output_root: str,
-    train_paths: List[str],
-    val_paths: List[str],
-    label_key: str,
-    patch_shape: Tuple[int, ...],
     model_config: Pytorch3DUnetModelConfig,
     wandb_config: Optional[WandbConfig],
-    raw_key: str = "raw",
-    batch_size: int = 1,
+    loader_config: Dict[str, Any],
     lr: float = 1e-4,
     n_iterations: Optional[int] = None,
     epochs: Optional[int] = 20,
-    n_samples_train: Optional[int] = None,
-    n_samples_val: Optional[int] = None,
     check: bool = False,
     loss: Optional[torch.nn.Module] = DiceLossWithLogits(),
     metric: Optional[torch.nn.Module] = DiceMetric(
         threshold=0.5, final_activation="sigmoid"
     ),
-    rois_val: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
-    rois_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
     source_checkpoint: Optional[Union[str, Path]] = None,
     mixed_precision: bool = True,
     scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS,
     optimizer_kwargs: Dict[str, Any] = {},
-    loader_config: Optional[Dict[str, Any]] = None,
 ):
 
-    if loader_config:
-        loaders = get_train_loaders(  # pyright: ignore[reportUnknownVariableType]
-            loader_config
-        )
-        train_loader = loaders["train"]  # pyright: ignore[reportUnknownVariableType]
-        val_loader = loaders["val"]  # pyright: ignore[reportUnknownVariableType]
-
-    else:
-        train_loader = get_supervised_loader(
-            train_paths,
-            raw_key,
-            label_key,
-            patch_shape,
-            batch_size,
-            output_root,
-            n_samples=n_samples_train,
-            rois=rois_train,
-        )
-        val_loader = get_supervised_loader(
-            val_paths,
-            raw_key,
-            label_key,
-            patch_shape,
-            batch_size,
-            output_root,
-            n_samples=n_samples_val,
-            rois=rois_val,
-        )
+    loaders = get_train_loaders(  # pyright: ignore[reportUnknownVariableType]
+        loader_config
+    )
+    train_loader = loaders["train"]  # pyright: ignore[reportUnknownVariableType]
+    val_loader = loaders["val"]  # pyright: ignore[reportUnknownVariableType]
 
     if check:
         from torch_em.util.debug import (
