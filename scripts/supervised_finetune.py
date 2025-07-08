@@ -57,6 +57,7 @@ def supervised_finetune(
         mixed_precision=supervised_finetune_config.training_cfg.mixed_precision,
         scheduler_kwargs=supervised_finetune_config.training_cfg.scheduler_kwargs,
         optimizer_kwargs=supervised_finetune_config.training_cfg.optimizer_kwargs,
+        loader_config=supervised_finetune_config.loader_cfg,
     )
     copy_config(supervised_finetune_config, config_path)
 

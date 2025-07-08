@@ -31,6 +31,13 @@ from torch_em.data.sampler import (
 from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
 from torch_em.trainer.wandb_logger import WandbLogger
 
+from pytorch3dunet.datasets.utils import (
+    get_train_loaders,  # pyright: ignore[reportUnknownVariableType]
+    calculate_stats,  # pyright: ignore[reportUnknownVariableType]
+)
+from pytorch3dunet.augment.transforms import Transformer
+
+# import pytorch3dunet.augment.transforms
 
 from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
     open_file,  # pyright: ignore[reportUnknownVariableType]
@@ -210,27 +217,37 @@ def run_supervised_training(
     mixed_precision: bool = True,
     scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS,
     optimizer_kwargs: Dict[str, Any] = {},
+    loader_config: Optional[Dict[str, Any]] = None,
 ):
-    train_loader = get_supervised_loader(
-        train_paths,
-        raw_key,
-        label_key,
-        patch_shape,
-        batch_size,
-        output_root,
-        n_samples=n_samples_train,
-        rois=rois_train,
-    )
-    val_loader = get_supervised_loader(
-        val_paths,
-        raw_key,
-        label_key,
-        patch_shape,
-        batch_size,
-        output_root,
-        n_samples=n_samples_val,
-        rois=rois_val,
-    )
+
+    if loader_config:
+        loaders = get_train_loaders(  # pyright: ignore[reportUnknownVariableType]
+            loader_config
+        )
+        train_loader = loaders["train"]  # pyright: ignore[reportUnknownVariableType]
+        val_loader = loaders["val"]  # pyright: ignore[reportUnknownVariableType]
+
+    else:
+        train_loader = get_supervised_loader(
+            train_paths,
+            raw_key,
+            label_key,
+            patch_shape,
+            batch_size,
+            output_root,
+            n_samples=n_samples_train,
+            rois=rois_train,
+        )
+        val_loader = get_supervised_loader(
+            val_paths,
+            raw_key,
+            label_key,
+            patch_shape,
+            batch_size,
+            output_root,
+            n_samples=n_samples_val,
+            rois=rois_val,
+        )
 
     if check:
         from torch_em.util.debug import (
@@ -283,3 +300,74 @@ def run_supervised_training(
         save_every_kth_epoch=save_ckpt_every_kth_epoch,
         epochs=epochs,
     )
+
+
+def get_supervised_loader2(
+    data_paths: List[str],
+    raw_key: str,
+    label_key: str,
+    patch_shape: Tuple[int, ...],
+    batch_size: int,
+    root: str,
+    num_workers: int = 8,
+    n_samples: Optional[int] = None,
+    crop_to_labels: bool = False,  # NOTE: war vorher True
+    add_boundary_transform: bool = False,
+    label_dtype: torch.dtype = torch.float32,
+    sampler: sampler_type = MinForegroundSampler(0.01),
+    rois: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
+    # transform_config: Optional[Dict[str, Any]] = None,
+    raw_transform_config: Optional[Dict[str, Any]] = None,
+    label_transform_config: Optional[Dict[str, Any]] = None,
+) -> torch.utils.data.DataLoader[Any]:
+
+    if crop_to_labels:
+        print(
+            "Warning: crop_to_labels is set to True, this will crop the patches to the labels. "
+            + "This will overwrite rois selection if rois is not None."
+        )
+        rois_from_labels = _compute_rois(data_paths, label_key, root, patch_shape)
+        rois = [
+            tuple(slice(sta, sto) for sta, sto in zip(start, stop))
+            for start, stop in rois_from_labels
+        ]
+
+    if add_boundary_transform:
+        label_transformer = Transformer(
+            label_transform_config, calculate_stats(None, True)
+        )
+        label_transform = label_transformer.label_transform()
+    else:
+        label_transform = None
+
+    # transformer = Transformer(transform_config, calculate_stats(None, True))
+    transform = Compose(
+        PadIfNecessary(patch_shape),
+        get_augmentations(
+            len(patch_shape),
+            ["RandomHorizontalFlip", "RandomVerticalFlip", "RandomRotation"],
+        ),
+    )
+
+    raw_transformer = Transformer(raw_transform_config, calculate_stats(None, True))
+    raw_transform = raw_transformer.raw_transform()
+
+    loader = torch_em.default_segmentation_loader(  # pyright: ignore[reportUnknownVariableType]
+        data_paths,
+        raw_key,
+        data_paths,
+        label_key,
+        rois=rois,
+        sampler=sampler,
+        batch_size=batch_size,
+        patch_shape=patch_shape,
+        is_seg_dataset=True,
+        label_transform=label_transform,
+        transform=transform,
+        raw_transform=raw_transform,
+        num_workers=num_workers,
+        shuffle=True,
+        n_samples=n_samples,
+        label_dtype=label_dtype,  # pyright: ignore[reportArgumentType]
+    )
+    return loader  # pyright: ignore[reportUnknownVariableType]
