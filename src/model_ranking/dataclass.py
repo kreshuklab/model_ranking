@@ -3454,21 +3454,14 @@ class SelfTrainingDataConfig(BaseModel):
     unsupervised_train_paths: List[str]
     unsupervised_val_paths: List[str]
     patch_shape: Tuple[int, ...]
-    supervised_train_paths: Optional[List[str]]
-    supervised_val_paths: Optional[List[str]]
     raw_key: str
-    raw_key_supervised: Optional[str]
     label_key: Optional[str]
     batch_size: int
     num_workers: int
     n_samples_train: Optional[int]
     n_samples_val: Optional[int]
-    n_samples_train_supervised: Optional[int] = None
-    n_samples_val_supervised: Optional[int] = None
     roi_unsupervised_train: Optional[Sequence[Sequence[int]]] = None
     roi_unsupervised_val: Optional[Sequence[Sequence[int]]] = None
-    roi_supervised_train: Optional[Sequence[Sequence[int]]] = None
-    roi_supervised_val: Optional[Sequence[Sequence[int]]] = None
 
 
 class SelfTrainingModelConfig(BaseModel):
