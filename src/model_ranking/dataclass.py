@@ -3494,6 +3494,7 @@ class MeanTeacherConfig(BaseModel):
     model_cfg: SelfTrainingModelConfig
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
+    supervised_loader_config: Optional[Dict[str, Any]] = None
 
 
 class SupervisedDataConfig(BaseModel):

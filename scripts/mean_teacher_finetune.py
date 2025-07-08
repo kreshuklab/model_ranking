@@ -35,6 +35,7 @@ def self_training_mean_teacher(
         patch_shape=mean_teacher_config.data_cfg.patch_shape,
         pseudo_labeler_config=mean_teacher_config.pseudo_labeler_cfg,
         model_config=mean_teacher_config.model_cfg.model,
+        supervised_loader_config=mean_teacher_config.supervised_loader_config,
         source_checkpoint=mean_teacher_config.model_cfg.source_checkpoint,
         raw_key=mean_teacher_config.data_cfg.raw_key,
         label_key=mean_teacher_config.data_cfg.label_key,
