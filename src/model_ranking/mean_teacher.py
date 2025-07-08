@@ -1,5 +1,5 @@
 import torch
-from typing import Optional, Union, Tuple, List, assert_never
+from typing import Optional, Union, Tuple, List, assert_never, Dict, Any
 from pathlib import Path
 
 import torch_em.self_training as self_training
@@ -19,7 +19,6 @@ from model_ranking.self_training import (
     get_unsupervised_loader,
     get_DummySelfTraining_loader,
 )
-from model_ranking.supervised_training import get_supervised_loader
 from model_ranking.metrics import DiceMetric
 
 from pytorch3dunet.unet3d.model import (
@@ -30,6 +29,9 @@ from pytorch3dunet.unet3d.utils import (
 )
 from pytorch3dunet.augment.transforms import (
     Transformer,
+)
+from pytorch3dunet.datasets.utils import (
+    get_train_loaders,  # pyright: ignore[reportUnknownVariableType]
 )
 
 
@@ -43,10 +45,8 @@ def run_mean_teacher(
     model_config: Pytorch3DUnetModelConfig,
     wandb_config: Optional[WandbConfig],
     source_checkpoint: Optional[Union[str, Path]] = None,
-    supervised_train_paths: Optional[List[str]] = None,
-    supervised_val_paths: Optional[List[str]] = None,
+    supervised_loader_config: Optional[Dict[str, Any]] = None,
     raw_key: str = "raw",
-    raw_key_supervised: Optional[str] = "raw",
     label_key: Optional[str] = None,
     batch_size: int = 1,
     num_workers: int = 8,
@@ -55,25 +55,19 @@ def run_mean_teacher(
     epochs: Optional[int] = 10,
     n_samples_train: Optional[int] = None,
     n_samples_val: Optional[int] = None,
-    n_samples_train_supervised: Optional[int] = None,
-    n_samples_val_supervised: Optional[int] = None,
     save_ckpt_every_kth_epoch: Optional[int] = None,
     roi_unsupervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
     roi_unsupervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
-    roi_supervised_train: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
-    roi_supervised_val: Optional[Union[List[slice], List[Tuple[slice, ...]]]] = None,
 ):
     assert (n_iterations is None) != (
         epochs is None
     ), "Specify exactly one of n_iterations or epochs (not both, not neither)"
 
-    assert (supervised_train_paths is None) == (supervised_val_paths is None)
-
     model = get_model(model_config.model_dump())
     if source_checkpoint is None:
         # training from scratch only makes sense if we have supervised training data
         # that's why we have the assertion here.
-        assert supervised_train_paths is not None
+        assert supervised_loader_config is not None
         print("Mean teacher training from scratch")
         reinit_teacher = True
     else:
@@ -218,34 +212,18 @@ def run_mean_teacher(
             roi=roi_unsupervised_val,
         )
 
-    if supervised_train_paths is not None:
-        print("Get sup loaders")
-        assert (label_key is not None) and (
-            raw_key_supervised is not None
-        ), f"label_key: {label_key}, raw_key_supervised: {raw_key_supervised}"
-        supervised_train_loader = get_supervised_loader(
-            supervised_train_paths,
-            raw_key_supervised,
-            label_key,
-            patch_shape,
-            batch_size,
-            output_root_path,
-            num_workers=num_workers,
-            n_samples=n_samples_train_supervised,
-            rois=roi_supervised_train,
+    if supervised_loader_config is not None:
+        print("Get supervised loaders with config")
+        supervised_loaders = (  # pyright: ignore[reportUnknownVariableType]
+            get_train_loaders(supervised_loader_config)
         )
-        assert supervised_val_paths is not None
-        supervised_val_loader = get_supervised_loader(
-            supervised_val_paths,
-            raw_key_supervised,
-            label_key,
-            patch_shape,
-            batch_size,
-            output_root_path,
-            num_workers=num_workers,
-            n_samples=n_samples_val_supervised,
-            rois=roi_supervised_val,
+        supervised_train_loader = (  # pyright: ignore[reportUnknownVariableType]
+            supervised_loaders["train"]
         )
+        supervised_val_loader = (  # pyright: ignore[reportUnknownVariableType]
+            supervised_loaders["val"]
+        )
+
     else:
         supervised_train_loader = None
         supervised_val_loader = None

@@ -27,20 +27,6 @@ def self_training_mean_teacher(
     else:
         roi_unsupervised_val = None
 
-    if mean_teacher_config.data_cfg.roi_supervised_train is not None:
-        roi_supervised_train = [
-            get_roi_slice(mean_teacher_config.data_cfg.roi_supervised_train)
-        ]
-    else:
-        roi_supervised_train = None
-
-    if mean_teacher_config.data_cfg.roi_supervised_val is not None:
-        roi_supervised_val = [
-            get_roi_slice(mean_teacher_config.data_cfg.roi_supervised_val)
-        ]
-    else:
-        roi_supervised_val = None
-
     run_mean_teacher(
         name=mean_teacher_config.name,
         output_root_path=mean_teacher_config.output_root_path,
@@ -50,10 +36,7 @@ def self_training_mean_teacher(
         pseudo_labeler_config=mean_teacher_config.pseudo_labeler_cfg,
         model_config=mean_teacher_config.model_cfg.model,
         source_checkpoint=mean_teacher_config.model_cfg.source_checkpoint,
-        supervised_train_paths=mean_teacher_config.data_cfg.supervised_train_paths,
-        supervised_val_paths=mean_teacher_config.data_cfg.supervised_val_paths,
         raw_key=mean_teacher_config.data_cfg.raw_key,
-        raw_key_supervised=mean_teacher_config.data_cfg.raw_key_supervised,
         label_key=mean_teacher_config.data_cfg.label_key,
         batch_size=mean_teacher_config.data_cfg.batch_size,
         lr=mean_teacher_config.training_cfg.lr,
@@ -61,14 +44,10 @@ def self_training_mean_teacher(
         epochs=mean_teacher_config.training_cfg.epochs,
         n_samples_train=mean_teacher_config.data_cfg.n_samples_train,
         n_samples_val=mean_teacher_config.data_cfg.n_samples_val,
-        n_samples_train_supervised=mean_teacher_config.data_cfg.n_samples_train_supervised,
-        n_samples_val_supervised=mean_teacher_config.data_cfg.n_samples_val_supervised,
         save_ckpt_every_kth_epoch=mean_teacher_config.training_cfg.save_ckpt_every_kth_epoch,
         wandb_config=mean_teacher_config.wandb_cfg,
         roi_unsupervised_train=roi_unsupervised_train,
         roi_unsupervised_val=roi_unsupervised_val,
-        roi_supervised_train=roi_supervised_train,
-        roi_supervised_val=roi_supervised_val,
     )
     copy_config(mean_teacher_config, config_path)
 
