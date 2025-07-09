@@ -3,11 +3,11 @@ from typing import Optional, Union, Tuple, List, assert_never, Dict, Any
 from pathlib import Path
 
 import torch_em.self_training as self_training
-from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
     WandbConfig,
+    DEFAULT_SCHEDULER_KWARGS,
 )
 from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.pseudo_labeling import (
@@ -160,6 +160,7 @@ def run_mean_teacher(
     elif pseudo_labeler_config.name == "direct_eval_pseudo_labeler":
         pseudo_labeler = DummyDirectEvalPseudoLabeler(
             score_threshold=pseudo_labeler_config.score_threshold,
+            activation=activation,
         )
 
     else:
@@ -167,7 +168,7 @@ def run_mean_teacher(
 
     loss = self_training.DefaultSelfTrainingLoss(activation=torch.nn.Sigmoid())
     loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric(
-        metric=DiceMetric(threshold=0.5),
+        metric=DiceMetric(),
         activation=torch.nn.Sigmoid(),
     )
 

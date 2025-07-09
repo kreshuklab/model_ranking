@@ -28,7 +28,6 @@ from torch_em.data.sampler import (
     MinForegroundSampler,
     MinSemanticLabelForegroundSampler,
 )
-from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
 from torch_em.trainer.wandb_logger import WandbLogger
 
 from pytorch3dunet.datasets.utils import (
@@ -43,7 +42,11 @@ from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
     open_file,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.dataclass import Pytorch3DUnetModelConfig, WandbConfig
+from model_ranking.dataclass import (
+    Pytorch3DUnetModelConfig,
+    WandbConfig,
+    DEFAULT_SCHEDULER_KWARGS,
+)
 from model_ranking.utils import (
     is_ndarray,
 )
@@ -200,9 +203,7 @@ def run_supervised_training(
     epochs: Optional[int] = 20,
     check: bool = False,
     loss: Optional[torch.nn.Module] = DiceLossWithLogits(),
-    metric: Optional[torch.nn.Module] = DiceMetric(
-        threshold=0.5, final_activation="sigmoid"
-    ),
+    metric: Optional[torch.nn.Module] = DiceMetric(final_activation="sigmoid"),
     save_ckpt_every_kth_epoch: Optional[int] = None,
     source_checkpoint: Optional[Union[str, Path]] = None,
     mixed_precision: bool = True,

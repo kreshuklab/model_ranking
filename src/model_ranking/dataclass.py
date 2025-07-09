@@ -33,7 +33,11 @@ from pytorch3dunet.unet3d.metrics import (
     InstanceAveragePrecision,
 )
 
-from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
+DEFAULT_SCHEDULER_KWARGS: Dict[str, Any] = {
+    "mode": "max",
+    "factor": 0.5,
+    "patience": 10,
+}
 
 
 class ConsistencyMetricConfig(BaseModel):
