@@ -3,6 +3,7 @@ from typing import Optional, Union, Tuple, List, assert_never, Dict, Any
 from pathlib import Path
 
 import torch_em.self_training as self_training
+from torch_em.segmentation import DEFAULT_SCHEDULER_KWARGS
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     pseudo_labeler_type,
@@ -58,6 +59,9 @@ def run_mean_teacher(
     save_ckpt_every_kth_epoch: Optional[int] = None,
     roi_unsupervised_train: Optional[Union[slice, Tuple[slice, ...]]] = None,
     roi_unsupervised_val: Optional[Union[slice, Tuple[slice, ...]]] = None,
+    scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS,
+    optimizer_kwargs: Dict[str, Any] = {},
+    mixed_precision: bool = True,
 ):
     assert (n_iterations is None) != (
         epochs is None
@@ -79,9 +83,9 @@ def run_mean_teacher(
         _ = load_checkpoint(source_checkpoint, model, model_key=model_key)
         reinit_teacher = False
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, **optimizer_kwargs)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=5
+        optimizer, **scheduler_kwargs
     )
 
     if pseudo_labeler_config.activation is not None:
@@ -255,7 +259,7 @@ def run_mean_teacher(
         supervised_loss_and_metric=loss_and_metric,
         logger=logger,  # pyright: ignore[reportArgumentType]
         logger_kwargs=logger_kwargs,
-        mixed_precision=True,
+        mixed_precision=mixed_precision,
         log_image_interval=100,
         compile_model=False,
         device=device,
