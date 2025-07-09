@@ -15,7 +15,11 @@ from model_ranking.dataclass import (
     VNCTargetConfig,
 )
 from model_ranking.datasets import get_loaders
-from model_ranking.pseudo_labeling import ModelConsistencyPatchWisePseudoLabeler
+from model_ranking.pseudo_labeling import (
+    ModelConsistencyPatchWisePseudoLabeler,
+    InputConsistencyPatchwisePseudoLabeler,
+    DummyDirectEvalPseudoLabeler,
+)
 from model_ranking.utils import find_transfer_from_pred_path
 
 # from model_ranking.utils import save_h5
@@ -29,6 +33,9 @@ from pytorch3dunet.unet3d.utils import (
 )
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
+)
+from pytorch3dunet.augment.transforms import (
+    Transformer,
 )
 
 
@@ -65,24 +72,64 @@ def run_pseudolabeler_patch_selection(config: MeanTeacherConfig, run_name: str):
     Run the consistency pseudolabeler patch selection.
     """
 
-    pseudo_labeler_cfg = config.pseudo_labeler_cfg
+    pseudo_labeler_config = config.pseudo_labeler_cfg
 
-    assert (
-        pseudo_labeler_cfg.name == "model_consistency"
-    ), "require feature perturbation consistency based pseudolabeler"
-    consis_cfg = pseudo_labeler_cfg.consistency_metric
-    if consis_cfg.name == "AdaptedRandError":
-        consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
+    if pseudo_labeler_config.activation is not None:
+        if pseudo_labeler_config.activation == "softmax":
+            activation = torch.nn.Softmax(dim=1)
+        elif pseudo_labeler_config.activation == "sigmoid":
+            activation = torch.nn.Sigmoid()
+        else:
+            raise ValueError(
+                f"Unknown activation: {pseudo_labeler_config.activation}. "
+                + "Supported are 'softmax' and 'sigmoid'."
+            )
     else:
-        consistency_metric = consis_cfg.initialise_metric()
+        activation = None
 
-    pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
-        perturbed_model_config=pseudo_labeler_cfg.perturbed_model_config,
-        consistency_metric=consistency_metric,
-        mask_threshold=consis_cfg.mask_threshold,
-        consistency_threshold=pseudo_labeler_cfg.consistency_threshold,
-        seg_params=pseudo_labeler_cfg.seg_params,
-    )
+    if (pseudo_labeler_config.name == "input_consistency") or (
+        pseudo_labeler_config.name == "model_consistency"
+    ):
+        consis_cfg = pseudo_labeler_config.consistency_metric
+        if consis_cfg.name == "AdaptedRandError":
+            consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
+        else:
+            consistency_metric = consis_cfg.initialise_metric()
+
+        # self training functionality
+        if pseudo_labeler_config.name == "input_consistency":
+
+            pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
+                transformer=Transformer(
+                    pseudo_labeler_config.transformer_cfg,
+                    pseudo_labeler_config.stats_cfg,
+                ),
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=pseudo_labeler_config.consistency_threshold,
+                seg_params=pseudo_labeler_config.seg_params,
+                activation=activation,
+            )
+
+        else:
+            pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
+                perturbed_model_config=pseudo_labeler_config.perturbed_model_config,
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=pseudo_labeler_config.consistency_threshold,
+                seg_params=pseudo_labeler_config.seg_params,
+                activation=activation,
+            )
+    elif pseudo_labeler_config.name == "direct_eval_pseudo_labeler":
+        pseudo_labeler = DummyDirectEvalPseudoLabeler(
+            score_threshold=pseudo_labeler_config.score_threshold,
+        )
+
+    else:
+        raise ValueError(
+            f"Unsupported pseudo labeler: {pseudo_labeler_config.name}. "
+            + "Supported are 'input_consistency', 'model_consistency', and 'direct_eval_pseudo_labeler'."
+        )
 
     model_cfg = config.model_cfg
     model = get_model(model_cfg.model.model_dump())
