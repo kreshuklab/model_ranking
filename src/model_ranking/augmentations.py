@@ -1,6 +1,11 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Union, Tuple
+import numpy as np
+from numpy.typing import NDArray
+import torch
 
-
+from torch_em.transform.raw import (
+    normalize,  # pyright: ignore[reportUnknownVariableType]
+)
 from pytorch3dunet.augment.transforms import Transformer
 
 DEFAULT_TRANSFORMS: Dict[str, Any] = {
@@ -70,3 +75,36 @@ def get_default_augmentations(config: Dict[str, Any], stats: Dict[str, Any]):
     raw_transform = transformer.raw_transform()
     label_transform = transformer.label_transform()
     return raw_transform, label_transform
+
+
+def normalize_specify_range(
+    raw: Union[torch.Tensor, NDArray[Any]],
+    minval: Optional[float] = None,
+    maxval: Optional[float] = None,
+    axis: Optional[Union[int, Tuple[int, ...]]] = None,
+    eps: float = 1e-7,
+    norm01: bool = False,
+) -> Union[NDArray[Any], torch.Tensor]:
+    """Normalize the input data so that it is in range [0, 1].
+
+    Args:
+        raw: The input data.
+        minval: The minimum data value. If None, it will be computed from the data.
+        maxval: The maximum data value. If None, it will be computed from the data.
+        axis: The axis along which to compute the min and max value.
+        eps: The epsilon value for numerical stability.
+
+    Returns:
+        The normalized input data.
+    """
+    normalised_raw = normalize(
+        raw,
+        minval=minval,
+        maxval=maxval,
+        axis=axis,
+        eps=eps,
+    )
+    if norm01:
+        return (normalised_raw,)
+    else:
+        return 2 * normalised_raw - 1

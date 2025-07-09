@@ -4,13 +4,14 @@ from typing import Callable, Optional, Tuple, Union, List, Any
 from torch.utils.data import ConcatDataset
 
 from model_ranking.datasets import DummySelfTrainingDataset
+from model_ranking.augmentations import normalize_specify_range
 
 from torch_em.data import RawDataset
 from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
 from torch_em.transform.raw import (
-    normalize,  # pyright: ignore[reportUnknownVariableType]
+    # normalize,
     GaussianBlur,
     AdditiveGaussianNoise,
 )
@@ -21,10 +22,10 @@ from torch_em.transform import (
 
 
 def weak_augmentations(p: float = 0.75):  # pyright: ignore[reportUnknownParameterType]
-    norm = normalize  # pyright: ignore[reportUnknownVariableType]
+    norm = normalize_specify_range
     assert isinstance(norm, Callable)
     aug = transforms.Compose(
-        [  # pyright: ignore[reportUnknownArgumentType]
+        [
             norm,
             transforms.RandomApply([GaussianBlur(sigma=(0, 2.5))], p=p),
             transforms.RandomApply(
@@ -50,7 +51,7 @@ def get_unsupervised_dataset(
     n_samples: Optional[int] = None,
 ) -> ConcatDataset[RawDataset]:
     raw_transform = get_raw_transform(  # pyright: ignore[reportUnknownVariableType]
-        normalizer=normalize
+        normalizer=normalize_specify_range
     )
     transform = get_augmentations(ndim=len(patch_shape))  # Flips
 
@@ -83,7 +84,10 @@ def get_DummySelfTraining_dataset(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
 ) -> ConcatDataset[DummySelfTrainingDataset]:
-    raw_transform = get_raw_transform()  # pyright: ignore[reportUnknownVariableType]
+    raw_transform = get_raw_transform(  # pyright: ignore[reportUnknownVariableType]
+        normalizer=normalize_specify_range
+    )
+    # raw_transform = None
     transform = get_augmentations(ndim=3)  # Flips
 
     augmentations = (  # pyright: ignore[reportUnknownVariableType]
