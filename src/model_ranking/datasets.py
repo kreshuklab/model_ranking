@@ -28,12 +28,12 @@ from model_ranking.dataclass import (
     EvalDatasetConfig,
     mito_target_dataset_type,
 )
-from torch_em.util.image import load_data  # pyright: ignore[reportMissingTypeStubs]
-from torch_em.util.util import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.util.image import load_data
+from torch_em.util.util import (
     ensure_tensor_with_channels,
     ensure_patch_shape,  # pyright: ignore[reportUnknownVariableType]
 )
-from torch_em.data.raw_dataset import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.data.raw_dataset import (
     RawDataset,
 )
 
@@ -413,10 +413,14 @@ class DummySelfTrainingDataset(RawDataset):
             raw = self.raw_transform(raw)  # pyright: ignore
 
         if self.transform is not None:
-            raw = self.transform(raw)  # pyright: ignore
+            raw, label = self.transform(raw, label)  # pyright: ignore
             if isinstance(raw, list):
                 assert len(raw) == 1  # pyright: ignore
                 raw = raw[0]  # pyright: ignore
+
+            if isinstance(label, list):
+                assert len(label) == 1  # pyright: ignore
+                label = label[0]  # pyright: ignore
 
             if self.trafo_halo is not None:
                 raw = self.crop(raw)  # pyright: ignore
