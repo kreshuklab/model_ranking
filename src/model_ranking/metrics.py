@@ -568,6 +568,7 @@ class DiceMetric(nn.Module):
 
         if self.threshold is not None:
             input_ = ensure_binary(input_, threshold=self.threshold)
+            target = ensure_binary(target, threshold=self.threshold)
 
         return dice_score(
             input_=input_,
@@ -582,6 +583,11 @@ class DiceMetric(nn.Module):
 def ensure_binary(
     input: torch.Tensor, threshold: Optional[float] = None
 ) -> torch.Tensor:
+    # Check if input is in [0, 1]
+    if input.min() < 0 or input.max() > 1:
+        raise ValueError(
+            f"Input tensor values must be in [0, 1], but got min={input.min().item()}, max={input.max().item()}"
+        )
     unique_vals = torch.unique(input)  # pyright: ignore[reportUnknownVariableType]
     assert is_torch_tensor(unique_vals), f"Data is not a torch tensor: {unique_vals}"
     if not torch.all((unique_vals == 0) | (unique_vals == 1)):
