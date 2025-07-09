@@ -258,6 +258,8 @@ class SelfTrainingWandbLogger(TorchEmLogger):
     def log_ct(self, step: int, ct: float):
         wandb.log({"train/confidence_threshold": ct}, step=step)
 
-    def log_accepted_patches(self, step: int, count: int):
+    def log_accepted_patches(
+        self, step: int, count: int, name: str = "train/accepted_patches"
+    ):
         """@private"""
-        wandb.log({"train/accepted_patches": count}, step=step)
+        wandb.log({name: count}, step=step)
