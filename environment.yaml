@@ -35,4 +35,5 @@ dependencies:
 
   - pip:
       - -e .
-
+      - -e /g/kreshuk/talks/pytorch-3dunet
+      - torcheval
