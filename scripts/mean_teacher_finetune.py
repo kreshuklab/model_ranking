@@ -13,6 +13,7 @@ from pytorch3dunet.unet3d.config import (
 def self_training_mean_teacher(
     mean_teacher_config: MeanTeacherConfig, config_path: str
 ):
+    copy_config(mean_teacher_config, config_path)
     if mean_teacher_config.data_cfg.roi_unsupervised_train is not None:
         roi_unsupervised_train = get_roi_slice(
             mean_teacher_config.data_cfg.roi_unsupervised_train
@@ -49,8 +50,8 @@ def self_training_mean_teacher(
         wandb_config=mean_teacher_config.wandb_cfg,
         roi_unsupervised_train=roi_unsupervised_train,
         roi_unsupervised_val=roi_unsupervised_val,
+        mixed_precision=mean_teacher_config.training_cfg.mixed_precision,
     )
-    copy_config(mean_teacher_config, config_path)
 
 
 def main(

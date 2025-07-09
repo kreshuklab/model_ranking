@@ -18,7 +18,7 @@ from model_ranking.dataclass import (
 def supervised_finetune(
     supervised_finetune_config: SupervisedFinetuningConfig, config_path: str
 ):
-
+    copy_config(supervised_finetune_config, config_path)
     run_supervised_training(
         name=supervised_finetune_config.name,
         output_root=supervised_finetune_config.output_root_path,
@@ -34,7 +34,6 @@ def supervised_finetune(
         scheduler_kwargs=supervised_finetune_config.training_cfg.scheduler_kwargs,
         optimizer_kwargs=supervised_finetune_config.training_cfg.optimizer_kwargs,
     )
-    copy_config(supervised_finetune_config, config_path)
 
 
 def main(
