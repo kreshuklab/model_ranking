@@ -5,15 +5,15 @@ from typing import Optional, Literal
 import torch
 import numpy as np
 import wandb
-import torch_em  # pyright: ignore[reportMissingTypeStubs]
+import torch_em
 
 from model_ranking.utils import is_torch_tensor
-import torch_em.transform  # pyright: ignore[reportMissingTypeStubs]
+import torch_em.transform
 from torchvision.utils import make_grid  # pyright: ignore[reportMissingTypeStubs]
-from torch_em.trainer.logger_base import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.trainer.logger_base import (
     TorchEmLogger,
 )
-from torch_em.trainer.default_trainer import (  # pyright: ignore[reportMissingTypeStubs]
+from torch_em.trainer.default_trainer import (
     DefaultTrainer,
 )
 
@@ -257,3 +257,7 @@ class SelfTrainingWandbLogger(TorchEmLogger):
 
     def log_ct(self, step: int, ct: float):
         wandb.log({"train/confidence_threshold": ct}, step=step)
+
+    def log_accepted_patches(self, step: int, count: int):
+        """@private"""
+        wandb.log({"train/accepted_patches": count}, step=step)
