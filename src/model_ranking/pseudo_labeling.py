@@ -81,10 +81,6 @@ class AbstractConsistencyPatchwisePseudoLabeler:
         self, pseudo_labels: NDArray[Any], perturbed_pseudo_labels: NDArray[Any]
     ) -> Tuple[torch.Tensor, NDArray[Any]]:
 
-        if self.activation is not None:
-            pseudo_labels = self.activation(pseudo_labels)
-            perturbed_pseudo_labels = self.activation(perturbed_pseudo_labels)
-
         if isinstance(self.consistency_metric, AdaptedRandErrorEval):
             consis_score, consis_mask = self.consistency_metric(
                 perturbed_pseudo_labels, pseudo_labels
@@ -217,15 +213,19 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             .to(input_.dtype)
             .to(input_.device)
         )
-        pseudo_labels_perturbed = teacher(perturbed_input_)
+        perturbed_pseudo_labels = teacher(perturbed_input_)
         assert is_torch_tensor(pseudo_labels), "pseudo_labels is not a torch.Tensor."
         assert is_torch_tensor(
-            pseudo_labels_perturbed
+            perturbed_pseudo_labels
         ), "pseudo_labels_perturbed is not a torch.Tensor."
 
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
+            perturbed_pseudo_labels = self.activation(perturbed_pseudo_labels)
+
         if self.seg_params.name == "instance":
-            pseudo_labels, pseudo_labels_perturbed = self.get_instance_labels(
-                pseudo_labels, pseudo_labels_perturbed
+            pseudo_labels, perturbed_pseudo_labels = self.get_instance_labels(
+                pseudo_labels, perturbed_pseudo_labels
             )
 
         if self.consistency_threshold is None:
@@ -233,7 +233,7 @@ class InputConsistencyPatchwisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         else:
             ps_lab = pseudo_labels.detach().cpu().numpy().astype("float32")
             ps_lab_perturbed = (
-                pseudo_labels_perturbed.detach().cpu().numpy().astype("float32")
+                perturbed_pseudo_labels.detach().cpu().numpy().astype("float32")
             )
             assert is_ndarray(ps_lab)
             assert is_ndarray(ps_lab_perturbed)
@@ -292,11 +292,15 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
         _ = self.perturbed_teacher.load_state_dict(teacher.state_dict())
         perturbed_teacher = self.perturbed_teacher.to(next(teacher.parameters()).device)
         perturbed_teacher = perturbed_teacher.eval()
-        pseudo_labels_perturbed = perturbed_teacher(input_)
+        perturbed_pseudo_labels = perturbed_teacher(input_)
+
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
+            perturbed_pseudo_labels = self.activation(perturbed_pseudo_labels)
 
         if self.seg_params.name == "instance":
-            pseudo_labels, pseudo_labels_perturbed = self.get_instance_labels(
-                pseudo_labels, pseudo_labels_perturbed
+            pseudo_labels, perturbed_pseudo_labels = self.get_instance_labels(
+                pseudo_labels, perturbed_pseudo_labels
             )
 
         if self.consistency_threshold is None:
@@ -305,7 +309,7 @@ class ModelConsistencyPatchWisePseudoLabeler(AbstractConsistencyPatchwisePseudoL
             ps_lab = pseudo_labels.detach().cpu().numpy().astype("float32")
             # self.log_pseudo_labels.append(ps_lab)
             ps_lab_perturbed = (
-                pseudo_labels_perturbed.detach().cpu().numpy().astype("float32")
+                perturbed_pseudo_labels.detach().cpu().numpy().astype("float32")
             )
             # self.log_pseudo_labels_perturbed.append(ps_lab_perturbed)
             assert is_ndarray(ps_lab)
@@ -511,8 +515,6 @@ class DummyDirectEvalPseudoLabeler:
     def _compute_label_mask(
         self, pseudo_labels: torch.Tensor, labels: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if self.activation is not None:
-            pseudo_labels = self.activation(pseudo_labels)
         eval_scores = MultiClassF1Eval()(pseudo_labels, labels)
         mask = torch.zeros_like(pseudo_labels, dtype=torch.int8)
         # find ids where eval_scores is greater than score_threshold
@@ -534,6 +536,9 @@ class DummyDirectEvalPseudoLabeler:
         label_gt_ = input_[:, 1:2, ...]  # Assuming input is of shape (B, C, D, H, W)
         pseudo_labels = teacher(raw_input_)
         assert is_torch_tensor(pseudo_labels), "pseudo_labels is not a torch.Tensor."
+
+        if self.activation is not None:
+            pseudo_labels = self.activation(pseudo_labels)
 
         if self.score_threshold is None:
             label_mask = None
