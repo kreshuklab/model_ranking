@@ -51,6 +51,8 @@ def self_training_mean_teacher(
         roi_unsupervised_train=roi_unsupervised_train,
         roi_unsupervised_val=roi_unsupervised_val,
         mixed_precision=mean_teacher_config.training_cfg.mixed_precision,
+        global_normalisation=mean_teacher_config.data_cfg.global_normalization,
+        norm01=mean_teacher_config.data_cfg.norm01,
     )
 
 
