@@ -1,6 +1,7 @@
 import torch
 from typing import Optional, Union, Tuple, List, assert_never, Dict, Any
 from pathlib import Path
+from numpy.typing import NDArray
 
 import torch_em.self_training as self_training
 from model_ranking.dataclass import (
@@ -8,6 +9,9 @@ from model_ranking.dataclass import (
     pseudo_labeler_type,
     WandbConfig,
     DEFAULT_SCHEDULER_KWARGS,
+)
+from model_ranking.datasets import (
+    calculate_global_stats,
 )
 from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.pseudo_labeling import (
@@ -21,6 +25,7 @@ from model_ranking.self_training import (
     get_DummySelfTraining_loader,
 )
 from model_ranking.metrics import DiceMetric
+from model_ranking.utils import load_h5
 
 from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
@@ -62,6 +67,8 @@ def run_mean_teacher(
     scheduler_kwargs: Dict[str, Any] = DEFAULT_SCHEDULER_KWARGS,
     optimizer_kwargs: Dict[str, Any] = {},
     mixed_precision: bool = True,
+    global_normalisation: bool = False,
+    norm01: bool = False,
 ):
     assert (n_iterations is None) != (
         epochs is None
@@ -172,6 +179,23 @@ def run_mean_teacher(
         activation=torch.nn.Sigmoid(),
     )
 
+    if global_normalisation:
+        raw_train: List[NDArray[Any]] = []
+        raw_val: List[NDArray[Any]] = []
+        for train_path, val_path in zip(
+            unsupervised_train_paths, unsupervised_val_paths
+        ):
+            assert (Path(train_path).suffix == ".h5") and (
+                Path(val_path).suffix == ".h5"
+            ), "Global normalisation only works with h5 files."
+            raw_train.append(load_h5(train_path, raw_key))
+            raw_val.append(load_h5(val_path, raw_key))
+        raw_stats = calculate_global_stats(raw_train)
+        val_stats = calculate_global_stats(raw_val)
+    else:
+        raw_stats = None
+        val_stats = None
+
     if isinstance(pseudo_labeler, DummyDirectEvalPseudoLabeler):
         # For the dummy pseudo labeler, we use the DummySelfTrainingLoader
         assert (
@@ -185,6 +209,8 @@ def run_mean_teacher(
             batch_size,
             n_samples=n_samples_train,
             roi=roi_unsupervised_train,
+            global_stats=raw_stats,
+            norm01=norm01,
         )
         unsupervised_val_loader = get_DummySelfTraining_loader(
             unsupervised_val_paths,
@@ -194,6 +220,8 @@ def run_mean_teacher(
             batch_size,
             n_samples=n_samples_val,
             roi=roi_unsupervised_val,
+            global_stats=val_stats,
+            norm01=norm01,
         )
 
     else:
@@ -206,6 +234,8 @@ def run_mean_teacher(
             num_workers=num_workers,
             n_samples=n_samples_train,
             roi=roi_unsupervised_train,
+            global_stats=raw_stats,
+            norm01=norm01,
         )
         unsupervised_val_loader = get_unsupervised_loader(
             unsupervised_val_paths,
@@ -215,6 +245,8 @@ def run_mean_teacher(
             num_workers=num_workers,
             n_samples=n_samples_val,
             roi=roi_unsupervised_val,
+            global_stats=val_stats,
+            norm01=norm01,
         )
 
     if supervised_loader_config is not None:

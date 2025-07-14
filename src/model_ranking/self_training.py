@@ -1,46 +1,22 @@
+from functools import partial
 import torch
-from torchvision import transforms  # pyright: ignore[reportMissingTypeStubs]
-from typing import Callable, Optional, Tuple, Union, List, Any
+from typing import Optional, Tuple, Union, List, Any, Dict
 from torch.utils.data import ConcatDataset
 
 from model_ranking.datasets import DummySelfTrainingDataset
-from model_ranking.augmentations import normalize_specify_range
+from model_ranking.augmentations import (
+    normalize_specify_range,
+    weak_augmentations,
+)
 
 from torch_em.data import RawDataset
 from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
-from torch_em.transform.raw import (
-    # normalize,
-    GaussianBlur,
-    AdditiveGaussianNoise,
-)
 from torch_em.transform import (
     get_raw_transform,  # pyright: ignore[reportUnknownVariableType]
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
-
-
-def weak_augmentations(p: float = 0.75):  # pyright: ignore[reportUnknownParameterType]
-    norm = normalize_specify_range
-    assert isinstance(norm, Callable)
-    aug = transforms.Compose(
-        [
-            norm,
-            transforms.RandomApply([GaussianBlur(sigma=(0, 2.5))], p=p),
-            transforms.RandomApply(
-                [
-                    AdditiveGaussianNoise(
-                        scale=(0, 0.15),
-                        clip_kwargs=False,  # pyright: ignore[reportArgumentType]
-                    )
-                ],
-            ),
-        ]
-    )
-    return get_raw_transform(
-        normalizer=norm, augmentation1=aug
-    )  # pyright: ignore[reportUnknownVariableType]
 
 
 def get_unsupervised_dataset(
@@ -49,10 +25,22 @@ def get_unsupervised_dataset(
     patch_shape: Tuple[int, ...],
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
+    global_stats: Optional[Dict[str, Any]] = None,
+    norm01: bool = False,
 ) -> ConcatDataset[RawDataset]:
+    if global_stats is not None:
+        norm = partial(
+            normalize_specify_range,
+            minval=global_stats["min"],
+            maxval=global_stats["max"],
+            norm01=norm01,
+        )
+    else:
+        norm = partial(normalize_specify_range, norm01=norm01)
     raw_transform = get_raw_transform(  # pyright: ignore[reportUnknownVariableType]
-        normalizer=normalize_specify_range
+        normalizer=norm
     )
+
     transform = get_augmentations(ndim=len(patch_shape))  # Flips
 
     augmentations = (  # pyright: ignore[reportUnknownVariableType]
@@ -83,9 +71,20 @@ def get_DummySelfTraining_dataset(
     patch_shape: Tuple[int, ...],
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
+    global_stats: Optional[Dict[str, Any]] = None,
+    norm01: bool = False,
 ) -> ConcatDataset[DummySelfTrainingDataset]:
+    if global_stats is not None:
+        norm = partial(
+            normalize_specify_range,
+            minval=global_stats["min"],
+            maxval=global_stats["max"],
+            norm01=norm01,
+        )
+    else:
+        norm = partial(normalize_specify_range, norm01=norm01)
     raw_transform = get_raw_transform(  # pyright: ignore[reportUnknownVariableType]
-        normalizer=normalize_specify_range
+        normalizer=norm
     )
     # raw_transform = None
     transform = get_augmentations(ndim=3)  # Flips
@@ -123,8 +122,9 @@ def get_DummySelfTraining_loader(
     n_samples: Optional[int] = None,
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     shuffle: bool = True,
+    global_stats: Optional[Dict[str, Any]] = None,
+    norm01: bool = False,
 ) -> torch.utils.data.DataLoader[Any]:
-    roi = None
 
     ds = get_DummySelfTraining_dataset(
         paths,
@@ -133,6 +133,8 @@ def get_DummySelfTraining_loader(
         patch_shape,
         roi=roi,
         n_samples=n_samples,
+        global_stats=global_stats,
+        norm01=norm01,
     )
 
     loader = get_data_loader(  # pyright: ignore[reportUnknownVariableType]
@@ -153,8 +155,9 @@ def get_unsupervised_loader(
     n_samples: Optional[int] = None,
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     shuffle: bool = True,
+    global_stats: Optional[Dict[str, Any]] = None,
+    norm01: bool = False,
 ) -> torch.utils.data.DataLoader[Any]:
-    roi = None
 
     ds = get_unsupervised_dataset(
         paths,
@@ -162,6 +165,8 @@ def get_unsupervised_loader(
         patch_shape,
         roi=roi,
         n_samples=n_samples,
+        global_stats=global_stats,
+        norm01=norm01,
     )
 
     loader = get_data_loader(  # pyright: ignore[reportUnknownVariableType]

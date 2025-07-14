@@ -469,3 +469,52 @@ class DummySelfTrainingDataset(RawDataset):
             state["label"] = None
 
         self.__dict__.update(state)
+
+
+def calculate_global_stats(
+    img: Optional[Union[NDArray[Any], List[NDArray[Any]]]],
+    skip: bool = False,
+    percentile_min: Optional[float] = None,
+    percentile_max: Optional[float] = None,
+) -> Dict[str, Any]:
+    """
+    Calculates the minimum percentile, maximum percentile, mean, and standard deviation of the image.
+
+    Args:
+        img: The input image array.
+        skip: if True, skip the calculation and return None for all values.
+
+    Returns:
+        tuple[float, float, float, float]: The minimum percentile, maximum percentile, mean, and std dev
+    """
+    # if img is list, flatten and combine items of list
+    if isinstance(img, list):
+        img = np.concatenate([np.ravel(arr) for arr in img])
+    if not skip:
+        assert img is not None, "Image data cannot be None"
+        mean = np.mean(img)
+        std = np.std(img)
+        min_val = np.min(img)
+        max_val = np.max(img)
+        if percentile_min is not None:
+            pmin = np.percentile(img, percentile_min)
+        else:
+            pmin = None
+        if percentile_max is not None:
+            pmax = np.percentile(img, percentile_max)
+        else:
+            pmax = None
+
+    else:
+        pmin, pmax, mean, std, min_val, max_val = None, None, None, None, None, None
+
+    return {
+        "pmin": pmin,
+        "pmax": pmax,
+        "mean": mean,
+        "std": std,
+        "percentile_min": percentile_min,
+        "percentile_max": percentile_max,
+        "min": min_val,
+        "max": max_val,
+    }
