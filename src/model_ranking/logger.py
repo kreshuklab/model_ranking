@@ -136,6 +136,9 @@ class SelfTrainingWandbLogger(TorchEmLogger):
                 assert label_filter.ndim == 5
                 label_filter = label_filter[:, :, zindex]
 
+        if x1.shape[1] == 2:
+            x1 = x1[:, 0:1, ...]
+
         normalized_x1 = torch_em.transform.raw.normalize(  # pyright: ignore[reportUnknownVariableType]
             x1[0]
         )
