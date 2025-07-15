@@ -23,8 +23,8 @@ def convert_to_binary_labels(
 
 
 if __name__ == "__main__":
-    data_path = Path("/g/kreshuk/talks/data/Rmito/train.h5")
-    save_path = Path("/g/kreshuk/talks/data/Rmito/train_converted.h5")
+    data_path = Path("/g/kreshuk/talks/data/VNC/resized_pixels/val.h5")
+    save_path = Path("/g/kreshuk/talks/data/VNC/resized_pixels/val_converted.h5")
     labels_key = "labels"
     raw_key = "raw"
 
