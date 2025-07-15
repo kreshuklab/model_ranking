@@ -15,7 +15,9 @@ def copy_config(
     if not isinstance(config_path, Path):
         config_path = Path(config_path)
     checkpoint_path = Path(config.output_root_path) / "checkpoints"
-    assert checkpoint_path.exists(), f"Checkpoint path {checkpoint_path} does not exist"
+    if not checkpoint_path.exists():
+        checkpoint_path.mkdir(parents=True, exist_ok=True)
+    # assert checkpoint_path.exists(), f"Checkpoint path {checkpoint_path} does not exist"
     new_config_path = checkpoint_path / config.name / config_path.name
     new_config_path.parent.mkdir(parents=True, exist_ok=True)
     # Copy the config file to the new location
