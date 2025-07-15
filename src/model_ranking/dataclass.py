@@ -2957,7 +2957,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         # global_normalization=True,
         global_normalization=False,
         global_percentiles=None,
-        file_paths=("/Hmito/train.h5",),
+        file_paths=("/Hmito/train_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
         transformer={
             "raw": [
@@ -3072,7 +3072,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         # global_normalization=True,
         global_normalization=False,
         global_percentiles=None,
-        file_paths=("/Rmito/train.h5",),
+        file_paths=("/Rmito/train_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
         transformer={
             "raw": [
@@ -3199,7 +3199,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         global_percentiles=None,
         # file_paths=("/VNC/data_labeled_mito.h5",),
         # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
-        file_paths=("/VNC/resized_pixels/train.h5",),
+        file_paths=("/VNC/resized_pixels/train_converted.h5",),
         roi=None,
         transformer={
             "raw": [
