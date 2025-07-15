@@ -8,6 +8,7 @@ from model_ranking.utils import load_h5
 # from model_ranking.supervised_training import get_supervised_loader
 from model_ranking.self_training import get_DummySelfTraining_loader
 
+"""
 data_supervised_cfg: Dict[str, Any] = {
     "patch_shape": [1, 256, 256],
     "supervised_train_paths": ["/scratch/talks/data/EPFL/train.h5"],
@@ -60,6 +61,7 @@ loader = get_DummySelfTraining_loader(
     norm01=False,
 )
 
+"""
 # supervised_loader = get_supervised_loader(
 #     data_supervised_cfg["supervised_train_paths"],
 #     data_supervised_cfg["raw_key"],
@@ -79,12 +81,14 @@ loader = get_DummySelfTraining_loader(
 
 from model_ranking.datasets import get_loaders
 from model_ranking.dataclass import (
-    EPFLTargetConfig,
+    # EPFLTargetConfig,
+    HmitoTargetConfig,
     # OvulesTargetConfig,
 )
 
 # target_config = OvulesTargetConfig()
-target_config = EPFLTargetConfig()
+# target_config = EPFLTargetConfig()
+target_config = HmitoTargetConfig()
 
 with torch.no_grad():
     for loader in get_loaders(
