@@ -168,7 +168,10 @@ def run_pseudolabeler_patch_selection(config: MeanTeacherConfig, run_name: str):
             # raw, _ = next(iter(loader))
             assert loader.batch_size is not None, "Batch size should not be None"
             all_one_ids: List[int] = []
-            for i, (raw, _) in enumerate(tqdm(loader)):
+            for i, (raw, label) in enumerate(tqdm(loader)):
+                if isinstance(pseudo_labeler, DummyDirectEvalPseudoLabeler):
+                    raw = torch.cat([raw, label], dim=1)
+
                 raw = raw.to("cuda:0")
                 _, label_mask = pseudo_labeler(model, raw)
 
