@@ -124,6 +124,8 @@ def save_summary_metrics(
     select_vol_patches_per_pred: Dict[str, Optional[NDArray[Any]]] = {}
     sp_key = ""  # Initialize sp_key with a default value
     for pred_path in pred_paths:
+        if "metric_summary" in pred_path.name:
+            continue
         filename = extract_filename(pred_path)
         assert filename is not None, "filename not fround in pred_path"
         if isinstance(config.filter_patches, ForegroundFilterConfig):
@@ -420,3 +422,24 @@ def results_to_arrays(
         no_aug_eval_array[i] = per_norm_NA_eval[norm]
         consis_array[i, :] = per_norm_consis[norm][perturbation_key]
     return consis_array, no_aug_eval_array
+
+
+def get_ckpt_eval_scores(
+    path: Union[str, Path], checkpoint_ids: List[int], eval_key: str = "F1_eval"
+) -> Tuple[List[float], List[float]]:
+    mean_eval_scores: List[float] = []
+    median_eval_scores: List[float] = []
+    if isinstance(path, str):
+        path = Path(path)
+    for id in checkpoint_ids:
+        checkpoint_name = f"epoch-{int(id)}"
+        summary_path = path / checkpoint_name / "predictions" / "metric_summary.h5"
+        eval_score_pp = load_h5(summary_path, eval_key)
+        eval_mean = load_h5(summary_path, f"{eval_key}_mean")
+        eval_median = load_h5(summary_path, f"{eval_key}_median")
+        mean_eval_scores.append(eval_mean[1])
+        median_eval_scores.append(eval_median[1])
+        assert np.all(
+            np.equal(np.mean(eval_score_pp, axis=0), eval_mean)
+        ), f"Eval mean mismatch for {checkpoint_name} {eval_mean} vs {np.mean(eval_score_pp, axis=0)}"
+    return mean_eval_scores, median_eval_scores
