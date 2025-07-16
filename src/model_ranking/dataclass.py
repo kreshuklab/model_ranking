@@ -620,7 +620,7 @@ class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
     transformer: Mapping[
         str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
     ]
-    roi: Optional[Sequence[Sequence[int]]]
+    roi: Optional[Union[Sequence[Sequence[int]], Sequence[int]]]
 
 
 class Pytorch3DUnetLoaderConfig(BaseModel, frozen=True):
@@ -743,7 +743,7 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
     transformer: Mapping[
         str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
     ]
-    roi: Optional[Sequence[Sequence[int]]]
+    roi: Optional[Union[Sequence[Sequence[int]], Sequence[int]]]
 
     def create_config(
         self,
