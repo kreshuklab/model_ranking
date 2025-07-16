@@ -338,9 +338,11 @@ def get_summary_results(
 
                 for aug, alphas in selected_augmentations.items():
                     if aug == "none":
-                        metric_filepath = (
-                            Path(norm_dir_path) / f"{aug}" / "metric_summary.h5"
-                        )
+                        metric_filepath = list(
+                            (Path(norm_dir_path) / f"{aug}").rglob(
+                                "**/metric_summary.h5"
+                            )
+                        )[0]
                         perf_score = load_summary_metric(
                             metric_filepath, perf_key, perf_postfix
                         )
@@ -349,11 +351,11 @@ def get_summary_results(
                         consis_per_alpha = np.zeros(len(alphas))
                         perf_per_alpha = np.zeros(len(alphas))
                         for i, alpha in enumerate(alphas):
-                            metric_filepath = (
-                                Path(norm_dir_path)
-                                / f"{aug}_{alpha}"
-                                / "metric_summary.h5"
-                            )
+                            metric_filepath = list(
+                                (Path(norm_dir_path) / f"{aug}_{alpha}").rglob(
+                                    "**/metric_summary.h5"
+                                )
+                            )[0]
                             consis_score = load_summary_metric(
                                 metric_filepath, consis_keys[target], consis_postfix
                             )
