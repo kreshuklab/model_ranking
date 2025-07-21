@@ -1,8 +1,30 @@
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
 import numpy as np
+import random
 from numpy.typing import NDArray
-from typing import Any, List, Tuple, Mapping
+from scipy.special import logit  # pyright: ignore[reportMissingTypeStubs]
+from typing import Any, Dict, List, Sequence, Tuple, Mapping, Optional, Union
+
+MODEL_TO_DATASET = {
+    "BC": "BBBC039",
+    "DSB": "DSB2018",
+    "GN": "Go-Nuclear",
+    "HN": "HeLaNuc",
+    "Hst": "Hoechst",
+    "634": "S_BIAD634",
+    "895": "S_BIAD895",
+    "1196": "S_BIAD1196",
+    "1410": "S_BIAD1410",
+    "fw": "FlyWing",
+    "ov": "Ovules",
+    "p": "PNAS",
+    "E": "EPFL",
+    "Hm": "Hmito",
+    "Rm": "Rmito",
+    "V": "VNC",
+}
 
 
 def plot_perturbation_sweep(
@@ -217,4 +239,214 @@ def plot_multitarget_correlations(
     if len(save_path) > 0:
         plt.savefig(save_path)
 
+    plt.show()
+
+
+def get_random_color_cmap(
+    num_colors: int, cmap_name: str = "tab20", random_seed: int = 42
+):
+    # Generate colors using the specified colormap, and shuffle them
+    cmap = plt.get_cmap(cmap_name)
+    color_indices = np.linspace(0, 1, len(cmap.colors))  # pyright: ignore
+    colors = [  # pyright: ignore[reportUnknownVariableType]
+        cmap(ci) for ci in color_indices
+    ]
+    # use random color seed to get the same colors for each norm
+    # use a random generator
+    rng = random.Random(random_seed)
+    rng.shuffle(colors)  # pyright: ignore[reportUnknownArgumentType]
+    # select colors for each norm
+    colors = colors[:num_colors]  # pyright: ignore[reportUnknownVariableType]
+
+    # Use ListedColormap with the randomized colors
+    cmap_custom = mcolors.ListedColormap(
+        colors  # pyright: ignore[reportUnknownArgumentType]
+    )
+    cmap_norm = mcolors.BoundaryNorm(np.arange(num_colors + 1), cmap_custom.N)
+    return cmap_custom, cmap_norm
+
+
+def plot_alpha_sweep_specific_norm(
+    consis_PA_str: Dict[str, Dict[str, Dict[str, NDArray[Any]]]],
+    perf_scores: Union[
+        Dict[str, Dict[str, float]], Dict[str, Dict[str, Dict[str, NDArray[Any]]]]
+    ],
+    augs: List[str],
+    select_alphas: Union[Dict[str, List[str]], Dict[str, Dict[str, List[str]]]],
+    select_norms: Mapping[str, Sequence[Optional[str]]],
+    per_transfer_aug: bool = False,
+    per_transfer_norms: bool = True,
+    consistency_metric_name: str = "EI",
+    transfer_metric_name: str = "F1",
+    invert_consis_metric: bool = False,
+    invert_perf_metric: bool = False,
+    pos_correlation_line: bool = True,
+    neg_correlation_line: bool = False,
+    perf_logit_transformation: bool = False,
+    fontsize: int = 18,
+    n_rows: int = 2,
+    n_cols: int = 2,
+    figsize: Tuple[int, int] = (10, 10),
+    per_aug_perf: bool = False,
+    point_size: int = 100,
+    legend_size: int = 12,
+    transfers_selected: Optional[List[str]] = None,
+    xlim: Tuple[float, float] = (0.5, 1.0),
+    ylim: Tuple[float, float] = (0, 1.0),
+    cmap_name: str = "tab20",
+    random_color_seed: int = 2,
+    markers: List[str] = [
+        "o",
+        "s",
+        "x",
+        "d",
+        "^",
+        "v",
+        ">",
+        "<",
+        "p",
+        "P",
+        "*",
+        "h",
+        "H",
+        "+",
+        "X",
+        "D",
+        "|",
+    ],
+):
+    _, axs = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
+        n_rows, n_cols, figsize=figsize
+    )
+    if n_rows == 1 and n_cols == 1:
+        axs = [axs]  # pyright: ignore[reportUnknownVariableType]
+    else:
+        axs = (  # pyright: ignore[reportUnknownVariableType]
+            axs.flatten()  # pyright: ignore[reportAttributeAccessIssue]
+        )
+
+    # Get the list of transfers and create a color map
+    if transfers_selected is not None:
+        transfers = transfers_selected
+    else:
+        transfers = list(perf_scores.keys())
+
+    cmap_custom, cmap_norm = get_random_color_cmap(
+        len(transfers), cmap_name=cmap_name, random_seed=random_color_seed
+    )
+    if perf_logit_transformation == True:
+        ylim = logit(ylim)
+
+    for i, aug in enumerate(augs):
+        for i2, transfer in enumerate(transfers):
+            color = cmap_custom(i2)
+            if per_transfer_aug:
+                per_transfer_alphas = select_alphas[aug]
+                assert isinstance(
+                    per_transfer_alphas, dict
+                ), "select_alphas[aug] must be a dict when per_transfer_aug is True"
+                num_alphas = len(per_transfer_alphas[transfer])
+            else:
+                # Defensive: if select_alphas[aug] is a list, use it directly
+                assert isinstance(
+                    select_alphas[aug], list
+                ), "select_alphas[aug] must be a list when per_transfer_aug is False"
+                num_alphas = len(select_alphas[aug])
+            for j in range(num_alphas):
+                if per_transfer_norms:
+                    norm = select_norms[transfer][0]
+                else:
+                    target = MODEL_TO_DATASET[transfer.split("_to_")[-1]]
+                    norm = select_norms[target][0]
+                if norm is None:
+                    norm_name = "norm_Normalize"
+                else:
+                    norm_name = f"norm_{norm[0]}_{str(norm[1]).replace('.', '')}"
+                if per_aug_perf:
+                    per_aug_scores = perf_scores[transfer][norm_name]
+                    assert isinstance(
+                        per_aug_scores, dict
+                    ), f"perf_scores[transfer][norm_name] must be a dict, got {type(perf_scores[transfer][norm_name])}"
+                    perf = per_aug_scores[aug][j]
+                else:
+                    perf = perf_scores[transfer][norm_name]
+                    assert isinstance(
+                        perf, float
+                    ), f"perf_scores[transfer][norm_name] must be a float, got {type(perf)}"
+                if perf_logit_transformation:
+                    perf = logit(perf)
+                consis_score = consis_PA_str[transfer][norm_name][aug][j]
+                if invert_consis_metric:
+                    consis_score = 1 - consis_score
+                if invert_perf_metric:
+                    perf = 1 - perf
+                _ = axs[i].scatter(  # pyright: ignore
+                    consis_score,
+                    perf,
+                    marker=markers[j],
+                    color=color,
+                    s=point_size,
+                )
+        if per_transfer_aug == False:
+            for k, alpha in enumerate(select_alphas[aug]):
+                _ = axs[  # pyright: ignore[reportUnknownVariableType]
+                    i
+                ].scatter(  # pyright: ignore[reportAttributeAccessIssue]
+                    [], [], marker=markers[k], label=alpha, color="black"
+                )
+
+        # Create the colorbar
+        cbar = plt.colorbar(
+            plt.cm.ScalarMappable(norm=cmap_norm, cmap=cmap_custom),
+            ax=axs[i],  # pyright: ignore[reportUnknownArgumentType]
+            boundaries=np.arange(len(transfers) + 1),
+            ticks=np.arange(len(transfers)) + 0.5,
+        )
+        cbar.set_ticklabels(transfers, fontsize=fontsize - 5)
+        cbar.set_label("Transfer", fontsize=fontsize)
+
+        # Set labels, title, grid, and legend
+        _ = axs[i].set_xlabel(  # pyright: ignore
+            consistency_metric_name, fontsize=fontsize
+        )
+
+        if perf_logit_transformation == True:
+            # Customize y-axis ticks
+            yticks = np.linspace(0.01, 0.99, 10)  # F1 values to display on the y-axis
+            _ = axs[i].set_yticks(logit(yticks))  # pyright: ignore
+            _ = axs[i].set_yticklabels([f"{y:.2f}" for y in yticks])  # pyright: ignore
+
+        if per_aug_perf:
+            _ = axs[i].set_ylabel(  # pyright: ignore
+                f"{transfer_metric_name} (per Aug)", fontsize=fontsize
+            )
+        else:
+            _ = axs[i].set_ylabel(  # pyright: ignore
+                f"{transfer_metric_name} (No Aug)", fontsize=fontsize
+            )
+        _ = axs[i].set_title(f"Aug Sweep: {aug}", fontsize=fontsize)  # pyright: ignore
+        # check that both lines are not plotted
+
+        assert not (
+            pos_correlation_line and neg_correlation_line
+        ), "Both pos and neg correlation lines cannot be plotted"
+        if pos_correlation_line:
+            _ = axs[i].plot(  # pyright: ignore
+                xlim, ylim, "--", color="black", alpha=0.5
+            )
+        if neg_correlation_line:
+            _ = axs[i].plot(  # pyright: ignore
+                xlim, ylim[::-1], "--", color="black", alpha=0.5
+            )
+        _ = axs[i].set_xlim(xlim)  # pyright: ignore
+        _ = axs[i].set_ylim(ylim)  # pyright: ignore
+        _ = axs[i].grid()  # pyright: ignore
+
+        lgnd = axs[i].legend(prop={"size": legend_size})  # pyright: ignore
+        # for a in range(len(lgnd.legendHandles)):
+        #    lgnd.legendHandles[a]._sizes = [point_size]
+        _ = axs[i].tick_params(  # pyright: ignore
+            axis="both", which="major", labelsize=fontsize - 2
+        )
+    plt.tight_layout()
     plt.show()
