@@ -546,9 +546,15 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
 
+                        if source_model_path.endswith(".pt"):
+                            model_key = "model_state"
+                        else:
+                            model_key = "model_state_dict"
+
                         yaml_dict_order: List[Dict[str, Any]] = [
                             {"wandb": wandb_cfg.model_dump()},
                             {"model_path": source_model_path},
+                            {"model_key": model_key},
                             {"summary_results": summary_results_cfg.model_dump()},
                             {"model": model_cfg.model_dump()},
                             {"predictor": predictor_cfg.model_dump()},
