@@ -3199,7 +3199,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         global_percentiles=None,
         # file_paths=("/VNC/data_labeled_mito.h5",),
         # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
-        file_paths=("/VNC/resized_pixels/train_converted.h5",),
+        file_paths=("/VNC/resized_pixels/binary_label/train_converted.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -3213,7 +3213,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
+            stride_shape=(1, 64, 64),
             halo_shape=(0, 0, 0),
         ),
     )
@@ -3276,8 +3276,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="ForegroundFilter",
         foreground_threshold=0.02,
         gt_dir_path="/VNC/resized_pixels/",
-        # gt_key="labels",
-        gt_key="resized_labels",
+        gt_key="labels",
+        # gt_key="resized_labels",
         roi=None,
         save_selection=True,
         overwrite=False,
