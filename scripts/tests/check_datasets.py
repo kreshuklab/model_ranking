@@ -82,13 +82,15 @@ loader = get_DummySelfTraining_loader(
 from model_ranking.datasets import get_loaders
 from model_ranking.dataclass import (
     # EPFLTargetConfig,
-    HmitoTargetConfig,
+    # HmitoTargetConfig,
+    VNCTargetConfig,
     # OvulesTargetConfig,
 )
 
 # target_config = OvulesTargetConfig()
 # target_config = EPFLTargetConfig()
-target_config = HmitoTargetConfig()
+# target_config = HmitoTargetConfig()
+target_config = VNCTargetConfig()
 
 with torch.no_grad():
     for loader in get_loaders(
