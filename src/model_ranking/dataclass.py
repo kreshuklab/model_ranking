@@ -1135,8 +1135,10 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 
 
 class SourceModelConfigBase(BaseModel):
-    model: Pytorch3DUnetModelMetaConfig
+    # model: Pytorch3DUnetModelMetaConfig
     model_name: str
+    model_type: Literal["UNet2D", "ResidualUNet2D"] = "UNet2D"
+    checkpoint_name: str = "best_checkpoint"
 
 
 UNET2D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
@@ -1161,54 +1163,39 @@ UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     is_segmentation=True,
 )
 
+RESIDUALUNET2D_5LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
+    name="ResidualUNet2D",
+    in_channels=1,
+    out_channels=1,
+    layer_order="bcr",
+    f_maps=64,
+    final_sigmoid=True,
+    feature_return=False,
+    is_segmentation=True,
+)
 
-class Model3LayerSourceConfig(SourceModelConfigBase):
-    source_name: Literal[
-        "BBBC039", "DSB2018", "HeLaNuc", "Hoechst", "S_BIAD634", "S_BIAD895"
-    ]
-    model: Pytorch3DUnetModelMetaConfig = UNET2D_3LAYER_ARCHITECTURE
-    model_name: str
-    checkpoint_name: str = "best_checkpoint"
-
-    def create_config(
-        self,
-        feature_perturbation: Optional[
-            Union[
-                DropOutPerturbationConfig,
-                FeatureDropPerturbationConfig,
-                FeatureNoisePerturbationConfig,
-            ]
-        ],
-    ):
-        return Pytorch3DUnetModelConfig(
-            name=self.model.name,
-            in_channels=self.model.in_channels,
-            out_channels=self.model.out_channels,
-            layer_order=self.model.layer_order,
-            f_maps=self.model.f_maps,
-            final_sigmoid=self.model.final_sigmoid,
-            feature_return=self.model.feature_return,
-            is_segmentation=self.model.is_segmentation,
-            feature_perturbation=feature_perturbation,
-        )
+dataset_names = Literal[
+    "Go-Nuclear",
+    "S_BIAD1196",
+    "S_BIAD1410",
+    "FlyWing",
+    "Ovules",
+    "PNAS",
+    "EPFL",
+    "Hmito",
+    "Rmito",
+    "VNC",
+    "BBBC039",
+    "DSB2018",
+    "HeLaNuc",
+    "Hoechst",
+    "S_BIAD634",
+    "S_BIAD895",
+]
 
 
-class Model4LayerSourceConfig(SourceModelConfigBase):
-    source_name: Literal[
-        "Go-Nuclear",
-        "S_BIAD1196",
-        "S_BIAD1410",
-        "FlyWing",
-        "Ovules",
-        "PNAS",
-        "EPFL",
-        "Hmito",
-        "Rmito",
-        "VNC",
-    ]
-    model: Pytorch3DUnetModelMetaConfig = UNET2D_4LAYER_ARCHITECTURE
-    model_name: str
-    checkpoint_name: str = "best_checkpoint"
+class ModelSourceConfig(SourceModelConfigBase):
+    source_name: dataset_names
 
     def create_config(
         self,
@@ -1220,15 +1207,33 @@ class Model4LayerSourceConfig(SourceModelConfigBase):
             ]
         ],
     ):
+        if self.model_type == "UNet2D":
+            if self.source_name in [
+                "Go-Nuclear",
+                "S_BIAD1196",
+                "S_BIAD1410",
+                "FlyWing",
+                "Ovules",
+                "PNAS",
+                "EPFL",
+                "Hmito",
+                "Rmito",
+                "VNC",
+            ]:
+                model = UNET2D_4LAYER_ARCHITECTURE
+            else:
+                model = UNET2D_3LAYER_ARCHITECTURE
+        else:
+            model = RESIDUALUNET2D_5LAYER_ARCHITECTURE
         return Pytorch3DUnetModelConfig(
-            name=self.model.name,
-            in_channels=self.model.in_channels,
-            out_channels=self.model.out_channels,
-            layer_order=self.model.layer_order,
-            f_maps=self.model.f_maps,
-            final_sigmoid=self.model.final_sigmoid,
-            feature_return=self.model.feature_return,
-            is_segmentation=self.model.is_segmentation,
+            name=model.name,
+            in_channels=model.in_channels,
+            out_channels=model.out_channels,
+            layer_order=model.layer_order,
+            f_maps=model.f_maps,
+            final_sigmoid=model.final_sigmoid,
+            feature_return=model.feature_return,
+            is_segmentation=model.is_segmentation,
             feature_perturbation=feature_perturbation,
         )
 
@@ -2815,8 +2820,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/EPFL/test.h5",),
         roi=None,
@@ -2839,8 +2844,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/EPFL/train.h5",),
         roi=None,
@@ -2930,8 +2935,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/Hmito/test_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
@@ -2954,8 +2959,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/Hmito/train_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
@@ -3045,8 +3050,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/Rmito/test_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
@@ -3069,8 +3074,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         file_paths=("/Rmito/train_converted.h5",),
         roi=[[0, 150], [0, 1280], [0, 1280]],
@@ -3164,8 +3169,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         # label_internal_path="resized_labels",
         raw_internal_path="raw",
         label_internal_path="labels",
-        # global_normalization=True,
-        global_normalization=False,
+        global_normalization=True,
+        # global_normalization=False,
         global_percentiles=None,
         # file_paths=("/VNC/data_labeled_mito.h5",),
         # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
@@ -3323,12 +3328,7 @@ mito_target_dataset_type = Annotated[
 
 class MetaConfig(BaseModel):
     target_datasets: Sequence[target_dataset_type]
-    source_models: Sequence[
-        Annotated[
-            Union[Model3LayerSourceConfig, Model4LayerSourceConfig],
-            Discriminator("source_name"),
-        ]
-    ]
+    source_models: Sequence[ModelSourceConfig]
     segmentation_mode: Literal["instance", "semantic"]
     run_mode: Literal["full", "evaluation", "consistency", "pred_eval"]
     summary_results: SummaryResultsMetaConfig
