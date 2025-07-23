@@ -827,6 +827,15 @@ class TIFTrainLoadersConfig(TIFLoadersConfig, frozen=True):
     train: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
 
 
+feature_perturbation_type = Optional[
+    Union[
+        DropOutPerturbationConfig,
+        FeatureDropPerturbationConfig,
+        FeatureNoisePerturbationConfig,
+    ]
+]
+
+
 class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
     name: str
     in_channels: int
@@ -838,18 +847,33 @@ class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
     is_segmentation: Optional[bool]
 
 
+class UnetrModelMetaConfig(BaseModel, frozen=True):
+    name: str
+    in_channels: int
+    out_channels: int
+    img_size: Union[Sequence[int], int]
+    feature_size: int
+    hidden_size: int
+    mlp_dim: int
+    num_heads: int
+    proj_type: str
+    norm_name: Union[Tuple[str, ...], str]
+    conv_block: bool
+    res_block: bool
+    dropout_rate: float
+    spatial_dims: int
+    qkv_bias: bool
+    save_attn: bool
+    is_segmentation: bool
+    final_sigmoid: bool
+
+
+class UnetrModelConfig(UnetrModelMetaConfig, frozen=True):
+    feature_perturbation: Annotated[feature_perturbation_type, Discriminator("name")]
+
+
 class Pytorch3DUnetModelConfig(Pytorch3DUnetModelMetaConfig, frozen=True):
-    # architecture: Pytorch3DUnetModelMetaConfig
-    feature_perturbation: Annotated[
-        Optional[
-            Union[
-                DropOutPerturbationConfig,
-                FeatureDropPerturbationConfig,
-                FeatureNoisePerturbationConfig,
-            ]
-        ],
-        Discriminator("name"),
-    ]
+    feature_perturbation: Annotated[feature_perturbation_type, Discriminator("name")]
 
 
 class FeaturePerturbationConfig(BaseModel):
@@ -1137,7 +1161,7 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 class SourceModelConfigBase(BaseModel):
     # model: Pytorch3DUnetModelMetaConfig
     model_name: str
-    model_type: Literal["UNet2D", "ResidualUNet2D"] = "UNet2D"
+    model_type: Literal["UNet2D", "ResidualUNet2D", "Unetr"] = "UNet2D"
     checkpoint_name: str = "best_checkpoint"
 
 
@@ -1174,6 +1198,27 @@ RESIDUALUNET2D_5LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     is_segmentation=True,
 )
 
+UNETR_DEFAULT_ARCHITECTURE = UnetrModelMetaConfig(
+    name="Unetr",
+    in_channels=1,
+    out_channels=1,
+    img_size=256,  ### Place holder size will be overwritten on creation of UnetrModelConfig
+    feature_size=16,
+    hidden_size=768,
+    mlp_dim=3072,
+    num_heads=12,
+    proj_type="conv",
+    norm_name="batch",
+    conv_block=True,
+    res_block=True,
+    dropout_rate=0.0,
+    spatial_dims=2,
+    qkv_bias=False,
+    save_attn=False,
+    is_segmentation=True,
+    final_sigmoid=True,
+)
+
 dataset_names = Literal[
     "Go-Nuclear",
     "S_BIAD1196",
@@ -1207,6 +1252,11 @@ class ModelSourceConfig(SourceModelConfigBase):
             ]
         ],
     ):
+        assert self.model_type in [
+            "UNet2D",
+            "ResidualUNet2D",
+            "Unetr",
+        ], f"Invalid model type: {self.model_type}"
         if self.model_type == "UNet2D":
             if self.source_name in [
                 "Go-Nuclear",
@@ -1234,6 +1284,37 @@ class ModelSourceConfig(SourceModelConfigBase):
             final_sigmoid=model.final_sigmoid,
             feature_return=model.feature_return,
             is_segmentation=model.is_segmentation,
+            feature_perturbation=feature_perturbation,
+        )
+
+    def create_unetr_config(
+        self,
+        feature_perturbation: feature_perturbation_type,
+        img_size: Union[Sequence[int], int],
+    ):
+        assert (
+            self.model_type == "Unetr"
+        ), f"Invalid model type for UnetrConfig: {self.model_type}"
+        model = UNETR_DEFAULT_ARCHITECTURE
+        return UnetrModelConfig(
+            name=self.model_name,
+            in_channels=model.in_channels,
+            out_channels=model.out_channels,
+            img_size=img_size,
+            feature_size=model.feature_size,
+            hidden_size=model.hidden_size,
+            mlp_dim=model.mlp_dim,
+            num_heads=model.num_heads,
+            proj_type=model.proj_type,
+            norm_name=model.norm_name,
+            conv_block=model.conv_block,
+            res_block=model.res_block,
+            dropout_rate=model.dropout_rate,
+            spatial_dims=model.spatial_dims,
+            qkv_bias=model.qkv_bias,
+            save_attn=model.save_attn,
+            is_segmentation=model.is_segmentation,
+            final_sigmoid=model.final_sigmoid,
             feature_perturbation=feature_perturbation,
         )
 
@@ -3165,16 +3246,16 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         # raw_internal_path="raw",
         # label_internal_path="label",
-        # raw_internal_path="resized_raw",
-        # label_internal_path="resized_labels",
-        raw_internal_path="raw",
-        label_internal_path="labels",
+        raw_internal_path="resized_raw",
+        label_internal_path="resized_labels",
+        # raw_internal_path="raw",
+        # label_internal_path="labels",
         global_normalization=True,
         # global_normalization=False,
         global_percentiles=None,
         # file_paths=("/VNC/data_labeled_mito.h5",),
-        # file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
-        file_paths=("/VNC/resized_pixels/test.h5",),
+        file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        # file_paths=("/VNC/resized_pixels/test.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -3236,12 +3317,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
         # gt_path=("/VNC/data_labeled_mito.h5",),
-        # gt_path=("/VNC/resized_pixels/source_mitoEM_true.h5",),
-        gt_path=("/VNC/resized_pixels/test.h5",),
+        gt_path=("/VNC/resized_pixels/source_mitoEM_true.h5",),
+        # gt_path=("/VNC/resized_pixels/test.h5",),
         pred_key="predictions",
         # gt_key="label",
-        # gt_key="resized_labels",
-        gt_key="labels",
+        gt_key="resized_labels",
+        # gt_key="labels",
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
@@ -3281,8 +3362,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="ForegroundFilter",
         foreground_threshold=0.02,
         gt_dir_path="/VNC/resized_pixels/",
-        gt_key="labels",
-        # gt_key="resized_labels",
+        # gt_key="labels",
+        gt_key="resized_labels",
         roi=None,
         save_selection=True,
         overwrite=False,
