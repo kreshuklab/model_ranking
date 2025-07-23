@@ -19,6 +19,7 @@ from model_ranking.dataclass import (
     EvaluateConfig,
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
+    UnetrModelConfig,
     SBIAD1410LoaderMetaConfig,
     SummaryResultsConfig,
     WandbConfig,
@@ -197,7 +198,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
             checkpoint_name=source_model.checkpoint_name,
         )
         feat_pert_cfg = meta_cfg.feature_perturbations
-        model_cfgs: Dict[str, Pytorch3DUnetModelConfig] = {}
+        model_cfgs: Dict[str, Union[Pytorch3DUnetModelConfig, UnetrModelConfig]] = {}
         for feature_perturbation in feat_pert_cfg.perturbation_types:
             feature_abbrev = FEATURE_PERTURBATION_ABBREVIATIONS[feature_perturbation]
             if feature_perturbation != "None":
@@ -217,11 +218,16 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             spatial_dropout=feat_pert_cfg.spatial_dropout,
                         )
                         feature_str = f"_a{str(dropOut_rate).replace('.','')}"
-                        model_cfgs[feature_abbrev + feature_str] = (
-                            source_model.create_config(
+                        if source_model.model_type == "Unetr":
+                            model_cfg = source_model.create_unetr_config(
+                                feature_perturbation=feature_perturbation_config,
+                                img_size=256,
+                            )
+                        else:
+                            model_cfg = source_model.create_config(
                                 feature_perturbation=feature_perturbation_config
                             )
-                        )
+                        model_cfgs[feature_abbrev + feature_str] = model_cfg
 
                 elif feature_perturbation == "FeatureDropPerturbation":
                     assert (
@@ -236,11 +242,17 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             upper_th=featureDrop_th[1],
                         )
                         feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
-                        model_cfgs[feature_abbrev + feature_str] = (
-                            source_model.create_config(
+                        if source_model.model_type == "Unetr":
+                            model_cfg = source_model.create_unetr_config(
+                                feature_perturbation=feature_perturbation_config,
+                                img_size=256,
+                            )
+                        else:
+                            model_cfg = source_model.create_config(
                                 feature_perturbation=feature_perturbation_config
                             )
-                        )
+                        model_cfgs[feature_abbrev + feature_str] = model_cfg
+
                 elif feature_perturbation == "FeatureNoisePerturbation":
                     assert (
                         feat_pert_cfg.featureNoise_ranges is not None
@@ -254,18 +266,29 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
 
                         feature_str = f"_a{str(featureNoise_range).replace('.','')}"
-                        model_cfgs[feature_abbrev + feature_str] = (
-                            source_model.create_config(
+                        if source_model.model_type == "Unetr":
+                            model_cfg = source_model.create_unetr_config(
+                                feature_perturbation=feature_perturbation_config,
+                                img_size=256,
+                            )
+                        else:
+                            model_cfg = source_model.create_config(
                                 feature_perturbation=feature_perturbation_config
                             )
-                        )
+                        model_cfgs[feature_abbrev + feature_str] = model_cfg
+
                 else:
                     assert_never(feature_perturbation)
             else:
                 feature_name = feature_abbrev
-                model_cfgs[feature_name] = source_model.create_config(
-                    feature_perturbation=None
-                )
+                if source_model.model_type == "Unetr":
+                    model_cfg = source_model.create_unetr_config(
+                        feature_perturbation=None,
+                        img_size=256,
+                    )
+                else:
+                    model_cfg = source_model.create_config(feature_perturbation=None)
+                model_cfgs[feature_name] = model_cfg
 
         for target_cfg in meta_cfg.target_datasets:
             transfer_title = f"{source_model.source_name}_to_{target_cfg.name}"
