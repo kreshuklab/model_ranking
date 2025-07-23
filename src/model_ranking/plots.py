@@ -276,6 +276,7 @@ def plot_alpha_sweep_specific_norm(
     select_norms: Mapping[str, Sequence[Optional[str]]],
     per_transfer_aug: bool = False,
     per_transfer_norms: bool = True,
+    single_target: Optional[str] = None,
     consistency_metric_name: str = "EI",
     transfer_metric_name: str = "F1",
     invert_consis_metric: bool = False,
@@ -355,6 +356,8 @@ def plot_alpha_sweep_specific_norm(
             for j in range(num_alphas):
                 if per_transfer_norms:
                     norm = select_norms[transfer][0]
+                elif single_target is not None:
+                    norm = select_norms[single_target][0]
                 else:
                     target = MODEL_TO_DATASET[transfer.split("_to_")[-1]]
                     norm = select_norms[target][0]
@@ -424,7 +427,14 @@ def plot_alpha_sweep_specific_norm(
             _ = axs[i].set_ylabel(  # pyright: ignore
                 f"{transfer_metric_name} (No Aug)", fontsize=fontsize
             )
-        _ = axs[i].set_title(f"Aug Sweep: {aug}", fontsize=fontsize)  # pyright: ignore
+        if single_target is not None:
+            _ = axs[i].set_title(  # pyright: ignore
+                f"Target: {single_target}, Aug sweep: {aug}", fontsize=fontsize
+            )
+        else:
+            _ = axs[i].set_title(  # pyright: ignore
+                f"Aug Sweep: {aug}", fontsize=fontsize
+            )
         # check that both lines are not plotted
 
         assert not (
