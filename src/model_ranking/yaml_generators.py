@@ -197,6 +197,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
             base_dir_path=meta_cfg.model_dir_path,
             checkpoint_name=source_model.checkpoint_name,
         )
+
+        # Set Unetr Img size 256 + 2(halo 32) = 320
+        img_size: int = 256
+
         feat_pert_cfg = meta_cfg.feature_perturbations
         model_cfgs: Dict[str, Union[Pytorch3DUnetModelConfig, UnetrModelConfig]] = {}
         for feature_perturbation in feat_pert_cfg.perturbation_types:
@@ -218,10 +222,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             spatial_dropout=feat_pert_cfg.spatial_dropout,
                         )
                         feature_str = f"_a{str(dropOut_rate).replace('.','')}"
-                        if source_model.model_type == "Unetr":
+                        if source_model.model_type == "UnetrWrapper":
                             model_cfg = source_model.create_unetr_config(
                                 feature_perturbation=feature_perturbation_config,
-                                img_size=256,
+                                img_size=img_size,
                             )
                         else:
                             model_cfg = source_model.create_config(
@@ -242,10 +246,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             upper_th=featureDrop_th[1],
                         )
                         feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
-                        if source_model.model_type == "Unetr":
+                        if source_model.model_type == "UnetrWrapper":
                             model_cfg = source_model.create_unetr_config(
                                 feature_perturbation=feature_perturbation_config,
-                                img_size=256,
+                                img_size=img_size,
                             )
                         else:
                             model_cfg = source_model.create_config(
@@ -266,10 +270,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
 
                         feature_str = f"_a{str(featureNoise_range).replace('.','')}"
-                        if source_model.model_type == "Unetr":
+                        if source_model.model_type == "UnetrWrapper":
                             model_cfg = source_model.create_unetr_config(
                                 feature_perturbation=feature_perturbation_config,
-                                img_size=256,
+                                img_size=img_size,
                             )
                         else:
                             model_cfg = source_model.create_config(
@@ -281,10 +285,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     assert_never(feature_perturbation)
             else:
                 feature_name = feature_abbrev
-                if source_model.model_type == "Unetr":
+                if source_model.model_type == "UnetrWrapper":
                     model_cfg = source_model.create_unetr_config(
                         feature_perturbation=None,
-                        img_size=256,
+                        img_size=img_size,
                     )
                 else:
                     model_cfg = source_model.create_config(feature_perturbation=None)
