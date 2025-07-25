@@ -36,7 +36,7 @@ class UnetrWrapper(unetr.UNETR):
         is_segmentation: bool = True,
         final_sigmoid: bool = True,
         feature_perturbation: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        **kwargs,  # pyright: ignore
     ):
         super().__init__(
             in_channels=in_channels,
@@ -98,6 +98,8 @@ class UnetrWrapper(unetr.UNETR):
         out = self.out(out)
 
         # out = super().forward(x_in).unsqueeze(2)
-        if self.final_activation is not None:
+        # apply final_activation (i.e. Sigmoid or Softmax) only during prediction.
+        # During training the network outputs logits
+        if not self.training and self.final_activation is not None:
             out = self.final_activation(out)
         return out.unsqueeze(2)
