@@ -1161,7 +1161,7 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 class SourceModelConfigBase(BaseModel):
     # model: Pytorch3DUnetModelMetaConfig
     model_name: str
-    model_type: Literal["UNet2D", "ResidualUNet2D", "Unetr"] = "UNet2D"
+    model_type: Literal["UNet2D", "ResidualUNet2D", "UnetrWrapper"] = "UNet2D"
     checkpoint_name: str = "best_checkpoint"
 
 
@@ -1199,7 +1199,7 @@ RESIDUALUNET2D_5LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
 )
 
 UNETR_DEFAULT_ARCHITECTURE = UnetrModelMetaConfig(
-    name="Unetr",
+    name="UnetrWrapper",
     in_channels=1,
     out_channels=1,
     img_size=256,  ### Place holder size will be overwritten on creation of UnetrModelConfig
@@ -1255,7 +1255,6 @@ class ModelSourceConfig(SourceModelConfigBase):
         assert self.model_type in [
             "UNet2D",
             "ResidualUNet2D",
-            "Unetr",
         ], f"Invalid model type: {self.model_type}"
         if self.model_type == "UNet2D":
             if self.source_name in [
@@ -1293,11 +1292,11 @@ class ModelSourceConfig(SourceModelConfigBase):
         img_size: Union[Sequence[int], int],
     ):
         assert (
-            self.model_type == "Unetr"
+            self.model_type == "UnetrWrapper"
         ), f"Invalid model type for UnetrConfig: {self.model_type}"
         model = UNETR_DEFAULT_ARCHITECTURE
         return UnetrModelConfig(
-            name=self.model_name,
+            name=model.name,
             in_channels=model.in_channels,
             out_channels=model.out_channels,
             img_size=img_size,
@@ -2916,7 +2915,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3031,7 +3031,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3146,7 +3147,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3267,7 +3269,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
