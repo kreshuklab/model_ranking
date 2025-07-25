@@ -28,11 +28,11 @@ from model_ranking.yaml_generators import generate_run_yamls
 def main(
     config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
 ):
-    cfg, _ = load_config_direct(config)
-    assert (
-        cfg["run_mode"] == "full"
-    ), f"Current Run mode = {cfg['run_mode']}, should be 'full'"
-    run_config_paths = generate_run_yamls(cfg)
+    meta_cfg, _ = load_config_direct(config)
+    assert (meta_cfg["run_mode"] == "full") or (
+        meta_cfg["run_mode"] == "pred_eval"
+    ), f"Current Run mode = {meta_cfg['run_mode']}, should be 'full', or 'pred_eval'"
+    run_config_paths = generate_run_yamls(meta_cfg)
 
     for transfer_title, config_paths in run_config_paths.items():
         print(f"Running transfer {transfer_title}")
@@ -42,7 +42,9 @@ def main(
             eval_config = EvaluateConfig.model_validate(cfg["evaluation"])
             _ = run_performance_evaluation(eval_config)
 
-            if "none" in str(config_path.stem):
+            if ("none" in str(config_path.stem)) or (
+                meta_cfg["run_mode"] == "pred_eval"
+            ):
                 print(f"Skipping consistency evaluation for {config_path.stem}")
             else:
                 consis_config = ConsistencyConfig.model_validate(cfg["consistency"])
