@@ -248,8 +248,8 @@ def save_summary_metrics(
 def get_summary_results(
     source_data: List[str],
     target_data: List[str],
-    selected_augmentations: Dict[str, List[str]],
-    consis_keys: Dict[str, str],
+    selected_augmentations: Optional[Dict[str, List[str]]],
+    consis_keys: Optional[Dict[str, str]],
     result_folders: Dict[str, str],
     source_models: Dict[str, str] = {
         "BBBC039": "BC_model4",
@@ -336,37 +336,49 @@ def get_summary_results(
                 consis_per_aug_strength: Dict[str, NDArray[Any]] = {}
                 perf_per_aug_strength: Dict[str, NDArray[Any]] = {}
 
-                for aug, alphas in selected_augmentations.items():
-                    if aug == "none":
-                        metric_filepath = list(
-                            (Path(norm_dir_path) / f"{aug}").rglob(
-                                "**/metric_summary.h5"
-                            )
-                        )[0]
-                        perf_score = load_summary_metric(
-                            metric_filepath, perf_key, perf_postfix
-                        )
-                        no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
-                    else:
-                        consis_per_alpha = np.zeros(len(alphas))
-                        perf_per_alpha = np.zeros(len(alphas))
-                        for i, alpha in enumerate(alphas):
+                if selected_augmentations is None:
+                    metric_filepath = list(
+                        Path(norm_dir_path).rglob("**/metric_summary.h5")
+                    )[0]
+                    perf_score = load_summary_metric(
+                        metric_filepath, perf_key, perf_postfix
+                    )
+                    no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
+                else:
+                    for aug, alphas in selected_augmentations.items():
+                        if aug == "none":
                             metric_filepath = list(
-                                (Path(norm_dir_path) / f"{aug}_{alpha}").rglob(
+                                (Path(norm_dir_path) / f"{aug}").rglob(
                                     "**/metric_summary.h5"
                                 )
                             )[0]
-                            consis_score = load_summary_metric(
-                                metric_filepath, consis_keys[target], consis_postfix
-                            )
-                            consis_per_alpha[i] = consis_score
                             perf_score = load_summary_metric(
                                 metric_filepath, perf_key, perf_postfix
                             )
-                            perf_per_alpha[i] = perf_score
+                            no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
+                        else:
+                            assert (
+                                consis_keys is not None
+                            ), "consis_keys must be provided"
+                            consis_per_alpha = np.zeros(len(alphas))
+                            perf_per_alpha = np.zeros(len(alphas))
+                            for i, alpha in enumerate(alphas):
+                                metric_filepath = list(
+                                    (Path(norm_dir_path) / f"{aug}_{alpha}").rglob(
+                                        "**/metric_summary.h5"
+                                    )
+                                )[0]
+                                consis_score = load_summary_metric(
+                                    metric_filepath, consis_keys[target], consis_postfix
+                                )
+                                consis_per_alpha[i] = consis_score
+                                perf_score = load_summary_metric(
+                                    metric_filepath, perf_key, perf_postfix
+                                )
+                                perf_per_alpha[i] = perf_score
 
-                        consis_per_aug_strength[aug] = consis_per_alpha
-                        perf_per_aug_strength[aug] = perf_per_alpha
+                            consis_per_aug_strength[aug] = consis_per_alpha
+                            perf_per_aug_strength[aug] = perf_per_alpha
                 consis_PT_PN_PA_strength[norm_foldername] = consis_per_aug_strength
                 perf_PT_PN_PA_strength[norm_foldername] = perf_per_aug_strength
             consis_PT_PA_strength[transfer] = consis_PT_PN_PA_strength
@@ -424,6 +436,16 @@ def results_to_arrays(
         no_aug_eval_array[i] = per_norm_NA_eval[norm]
         consis_array[i, :] = per_norm_consis[norm][perturbation_key]
     return consis_array, no_aug_eval_array
+
+
+def perf_results_to_array(
+    perf_scores: Dict[str, Dict[str, float]],
+):
+    perf_array = np.zeros(len(perf_scores))
+    for i, (_, per_norm_perf) in enumerate(perf_scores.items()):
+        norm = list(per_norm_perf.keys())[0]
+        perf_array[i] = per_norm_perf[norm]
+    return perf_array
 
 
 def get_ckpt_eval_scores(
