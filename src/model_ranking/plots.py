@@ -5,6 +5,7 @@ import numpy as np
 import random
 from numpy.typing import NDArray
 from scipy.special import logit  # pyright: ignore[reportMissingTypeStubs]
+import seaborn as sns
 from typing import Any, Dict, List, Sequence, Tuple, Mapping, Optional, Union
 
 MODEL_TO_DATASET = {
@@ -458,5 +459,45 @@ def plot_alpha_sweep_specific_norm(
         _ = axs[i].tick_params(  # pyright: ignore
             axis="both", which="major", labelsize=fontsize - 2
         )
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_transfer_performance_heatmap(
+    data: NDArray[Any],
+    source_labels: List[str],
+    target_labels: List[str],
+    figsize: Tuple[int, int] = (10, 8),
+    cmap: str = "viridis",
+    fontsize: int = 20,
+    title_prefix: str = "",
+):
+    """
+    Plots a heatmap for transfer performance.
+
+    Parameters:
+        data (np.ndarray): 2D array of performance scores.
+        source_labels (list): Labels for the y-axis (source models).
+        target_labels (list): Labels for the x-axis (target datasets).
+        figsize (tuple): Figure size.
+        cmap (str): Colormap for the heatmap.
+    """
+    _ = plt.figure(figsize=figsize)
+    _ = sns.heatmap(
+        data,
+        xticklabels=target_labels,
+        yticklabels=source_labels,
+        annot=True,
+        fmt=".3f",
+        cmap=cmap,
+        cbar_kws={"label": "Performance Score"},
+        annot_kws={"size": fontsize - 4},
+    )
+    _ = plt.xlabel("Target Dataset", fontsize=fontsize - 2)
+    _ = plt.ylabel("Source Model", fontsize=fontsize - 2)
+    _ = plt.title(f"{title_prefix} Transfer Performance Heatmap", fontsize=fontsize)
+    _ = plt.tick_params(axis="both", which="major", labelsize=fontsize - 6)
+    _ = plt.xticks(rotation=45)  # pyright: ignore[reportUnknownVariableType]
+    _ = plt.yticks(rotation=0)  # pyright: ignore[reportUnknownVariableType]
     plt.tight_layout()
     plt.show()
