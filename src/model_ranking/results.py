@@ -467,3 +467,25 @@ def get_ckpt_eval_scores(
             np.equal(np.mean(eval_score_pp, axis=0), eval_mean)
         ), f"Eval mean mismatch for {checkpoint_name} {eval_mean} vs {np.mean(eval_score_pp, axis=0)}"
     return mean_eval_scores, median_eval_scores
+
+
+def per_source_model_results(
+    results: Union[
+        Dict[str, Dict[str, Dict[str, NDArray[Any]]]], Dict[str, Dict[str, float]]
+    ],
+    source_models: Dict[str, str],
+    source_model_mapping: Dict[str, str] = {
+        "E": "EPFL",
+        "Hm": "Hmito",
+        "Rm": "Rmito",
+        "V": "VNC",
+    },
+) -> Mapping[str, Union[Mapping[str, Dict[str, NDArray[Any]]], Mapping[str, float]]]:
+    model_results: Mapping[
+        str, Union[Mapping[str, Dict[str, NDArray[Any]]], Mapping[str, float]]
+    ] = {}
+    for transfer, result in results.items():
+        source = source_model_mapping[transfer.split("_")[0]]
+        source_model = source_models[source]
+        model_results[source_model] = result
+    return model_results
