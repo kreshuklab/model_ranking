@@ -3,6 +3,7 @@ import typer
 
 from model_ranking.results import (
     # run_foreground_patch_selection,
+    run_foreground_patch_selection,
     save_summary_metrics,
 )
 from pytorch3dunet.unet3d.config import (
@@ -12,7 +13,11 @@ from pytorch3dunet.unet3d.config import (
 from model_ranking.consistency import (
     run_consistency_evaluation,
 )
-from model_ranking.dataclass import ConsistencyConfig, SummaryResultsConfig
+from model_ranking.dataclass import (
+    ConsistencyConfig,
+    ForegroundFilterConfig,
+    SummaryResultsConfig,
+)
 from model_ranking.yaml_generators import generate_run_yamls
 
 
@@ -38,7 +43,9 @@ def main(
 
             # save summary metrics
             summary_config = SummaryResultsConfig.model_validate(cfg["summary_results"])
-            # _ = run_foreground_patch_selection(summary_config)
+            if isinstance(summary_config.filter_patches, ForegroundFilterConfig):
+                _ = run_foreground_patch_selection(summary_config)
+
             save_summary_metrics(summary_config)
 
 
