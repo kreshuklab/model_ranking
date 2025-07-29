@@ -199,7 +199,9 @@ def save_summary_metrics(
 
     # save scores in h5 file in parent directory
     # save_path = Path(config.output_path).parent / "metric_summary.h5"
-    save_path = Path(config.output_path) / "metric_summary.h5"
+    save_path = (
+        Path(config.output_path) / f"metric_summary{config.save_name_postfix}.h5"
+    )
 
     with h5py.File(save_path, "a") as f:
         # check if key already exists
@@ -293,6 +295,7 @@ def get_summary_results(
     per_target_norms: bool = True,
     consis_postfix: str = "mean",
     perf_postfix: str = "mean",
+    summary_results_postfix: str = "",
     base_seg_dir: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
 ):
     consis_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
@@ -338,7 +341,9 @@ def get_summary_results(
 
                 if selected_augmentations is None:
                     metric_filepath = list(
-                        Path(norm_dir_path).rglob("**/metric_summary.h5")
+                        Path(norm_dir_path).rglob(
+                            f"**/metric_summary{summary_results_postfix}.h5"
+                        )
                     )[0]
                     perf_score = load_summary_metric(
                         metric_filepath, perf_key, perf_postfix
@@ -349,7 +354,7 @@ def get_summary_results(
                         if aug == "none":
                             metric_filepath = list(
                                 (Path(norm_dir_path) / f"{aug}").rglob(
-                                    "**/metric_summary.h5"
+                                    f"**/metric_summary{summary_results_postfix}.h5"
                                 )
                             )[0]
                             perf_score = load_summary_metric(
@@ -365,7 +370,7 @@ def get_summary_results(
                             for i, alpha in enumerate(alphas):
                                 metric_filepath = list(
                                     (Path(norm_dir_path) / f"{aug}_{alpha}").rglob(
-                                        "**/metric_summary.h5"
+                                        f"**/metric_summary{summary_results_postfix}.h5"
                                     )
                                 )[0]
                                 consis_score = load_summary_metric(
