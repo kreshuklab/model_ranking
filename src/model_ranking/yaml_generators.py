@@ -535,7 +535,12 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     )
 
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
-                    if target_cfg.filter_results is not None:
+
+                    if meta_cfg.summary_results.filter_patches == True:
+                        assert (
+                            target_cfg.filter_results is not None
+                        ), "Filter results cannot be None for run mode {meta_cfg.run_mode}"
+
                         filter_patches_cfg = target_cfg.filter_results.create_config(
                             data_base_path=meta_cfg.data_base_path,
                         )
@@ -684,6 +689,25 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             {"summary_results": summary_results_cfg.model_dump()},
                             {"evaluation": eval_cfg.model_dump()},
                         ]
+
+                    elif meta_cfg.run_mode == "summary_results":
+                        summary_results_cfg = SummaryResultsConfig(
+                            filter_patches=filter_patches_cfg,
+                            # output_path=str(Path(pred_dir_path).parent),
+                            output_path=pred_dir_path,
+                            eval_key=meta_cfg.summary_results.eval_key,
+                            consis_key=meta_cfg.summary_results.consis_key,
+                            overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            save_name_postfix=meta_cfg.summary_results.save_name_postfix,
+                        )
+                        yaml_save_path = (
+                            Path(yaml_dir_path)
+                            / f"{save_name}_metric_summary{meta_cfg.summary_results.save_name_postfix}.yml"
+                        )
+                        yaml_dict_order = [
+                            {"summary_results": summary_results_cfg.model_dump()},
+                        ]
+
                     else:
                         assert_never(meta_cfg.run_mode)
 

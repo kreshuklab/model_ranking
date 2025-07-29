@@ -3375,6 +3375,10 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
 
 class SummaryResultsMetaConfig(BaseModel):
     overwrite_scores: bool
+    consis_key: Optional[str] = None
+    eval_key: Optional[str] = None
+    save_name_postfix: str = ""
+    filter_patches: bool = True
 
 
 target_dataset_type = Annotated[
@@ -3414,7 +3418,9 @@ class MetaConfig(BaseModel):
     target_datasets: Sequence[target_dataset_type]
     source_models: Sequence[ModelSourceConfig]
     segmentation_mode: Literal["instance", "semantic"]
-    run_mode: Literal["full", "evaluation", "consistency", "pred_eval"]
+    run_mode: Literal[
+        "full", "evaluation", "consistency", "pred_eval", "summary_results"
+    ]
     summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool
     data_base_path: str
@@ -3432,6 +3438,7 @@ class SummaryResultsConfig(BaseModel):
     eval_key: Optional[str]
     consis_key: Optional[str]
     overwrite_scores: bool
+    save_name_postfix: str = ""
 
 
 class ConfigFull(BaseModel):
