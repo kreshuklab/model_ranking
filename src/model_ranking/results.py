@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 import imageio.v2 as imageio
 from tqdm import tqdm
 
+from model_ranking.consistency import calculate_per_patch_consistency
 from model_ranking.dataclass import (
     ForegroundFilterConfig,
     SummaryResultsConfig,
@@ -57,6 +58,8 @@ def run_foreground_patch_selection(
     pred_paths = sorted(Path(config.output_path).glob("*.h5"))
     selected_patches: Dict[str, NDArray[Any]] = {}
     for pred_path in pred_paths:
+        if "metric_summary" in pred_path.name:
+            continue
         transfer = find_transfer_from_pred_path(str(pred_path))
         target = transfer.split("_to_")[-1]
         filename = extract_filename(pred_path)
@@ -81,7 +84,7 @@ def run_foreground_patch_selection(
                 pred_path,
                 f"foreground_patches_th{str(filter_cfg.foreground_threshold).replace('.', '')}",
                 select_patches,
-                overwrite=True,
+                overwrite=filter_cfg.overwrite,
             )
         selected_patches[filename] = select_patches
     return selected_patches
@@ -147,19 +150,13 @@ def save_summary_metrics(
                 consis_score = load_select_prediction_scores(
                     pred_path, config.consis_key, select_patches
                 )
-                if "HD" not in config.consis_key:
-                    if consis_score.ndim == 2:
-                        consis_score_PP = np.array(np.nanmean(consis_score))
-
-                    else:
-                        consis_score_PP = np.array(
-                            np.nanmean(
-                                consis_score, axis=tuple(range(1, consis_score.ndim))
-                            )
-                        )
-
+                if consis_score.ndim >= 2:
+                    consis_score_PP = calculate_per_patch_consistency(
+                        consis_score, config.consis_key
+                    )
                 else:
                     consis_score_PP = consis_score
+
                 assert is_ndarray(
                     consis_score_PP
                 ), "consis_score_PP must be a numpy array"
