@@ -141,9 +141,12 @@ class DifferenceImageEval:
 
 
 class EffectiveInvarianceEval:
-    def __init__(self, threshold: float = 0.5):
+    def __init__(self, threshold: float = 0.5, invert_threshold: bool = False):
         super().__init__()
-        self.threshold = threshold
+        if invert_threshold:
+            self.threshold = 1 - threshold
+        else:
+            self.threshold = threshold
 
     def __call__(
         self,
@@ -318,9 +321,12 @@ class CrossEntropyEval:
 
 
 class HammingDistanceEval:
-    def __init__(self, threshold: float = 0.5):
+    def __init__(self, threshold: float = 0.5, invert_threshold: bool = False):
         super().__init__()
-        self.threshold = threshold
+        if invert_threshold:
+            self.threshold = 1 - threshold
+        else:
+            self.threshold = threshold
 
     def __call__(
         self, pred: NDArray[Any], gt: NDArray[Any], mask: NDArray[Any]
@@ -330,25 +336,25 @@ class HammingDistanceEval:
         # mask_converted = mask.cpu().numpy().astype("bool")
         if pred.ndim == 2:
             if np.sum(mask) == 0:
-                metric_result = np.array([np.nan])
+                metric_result = np.nan
             else:
-                metric_result = np.array(
-                    hamming(
-                        pred[mask] > self.threshold,
-                        gt[mask] > self.threshold,
-                    )
-                )
+                pred_th = pred[mask] > self.threshold
+                gt_th = gt[mask] > self.threshold
+                metric_result = hamming(pred_th, gt_th)
+
         else:
             metric_result = np.zeros(len(pred))
             for i in range(len(pred)):
                 # if mask empty set to None
                 if np.sum(mask[i]) == 0:
-                    metric_result[i] = np.array([np.nan])
+                    metric_result[i] = np.nan
                 else:
-                    metric_result[i] = hamming(
-                        (pred[i][mask[i]] > self.threshold),
-                        (gt[i][mask[i]] > self.threshold),
-                    )
+                    pred_th = pred[i][mask[i]] > self.threshold
+                    gt_th = gt[i][mask[i]] > self.threshold
+                    metric_result[i] = hamming(pred_th, gt_th)
+        # Convert to numpy array to ensure consistent return type
+        if not isinstance(metric_result, np.ndarray):
+            metric_result = np.array(metric_result)
         assert is_ndarray(metric_result), f"Data is not a numpy array: {metric_result}"
         # return torch.from_numpy(metric_result).to(pred.device).float()
         return metric_result
@@ -433,11 +439,15 @@ def get_mask_incomplete_gt(
 
 
 def get_mask(
-    pred_none: NDArray[Any], pred_aug: NDArray[Any], threshold: float = 0.5
+    pred_none: NDArray[Any],
+    pred_aug: NDArray[Any],
+    threshold: float = 0.5,
 ) -> NDArray[Any]:
     masks = np.zeros((2, *pred_none.shape))
+
     masks[0] = pred_none > threshold
     masks[1] = pred_aug > threshold
+
     # Combine masks across augmentations (Union)
     combined_mask = np.logical_or.reduce(masks, axis=0)
     assert is_ndarray(combined_mask), f"Data is not a numpy array: {combined_mask}"
