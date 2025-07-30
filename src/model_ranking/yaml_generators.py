@@ -359,6 +359,20 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     # make directory if needed
                     Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
 
+                    # get prediction file_name postfix for eval and consis loaders, legacy postifix on older models
+                    # is equal to the perturbation aplied to prediction, on current models it is equal to "predictions"
+                    if source_model.model_name in [
+                        "E_model4",
+                        "Hm_model3",
+                        "Rm_model3",
+                        "fw_model8",
+                        "ov_model8",
+                        "p_model5",
+                    ]:
+                        pred_file_name_postfix = save_name
+                    else:
+                        pred_file_name_postfix = "predictions"
+
                     # Get Predictor config
                     if meta_cfg.segmentation_mode == "semantic":
                         assert (
@@ -372,7 +386,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         ):
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_semantic.create_config(
-                                    aug_name=aug_name,
+                                    aug_name=pred_file_name_postfix,
                                     pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
@@ -382,7 +396,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                 EvalDataloaderMetaConfig,
                             )
                             consis_loader_cfg = target_cfg.consis_dataloader_semantic.create_consis_config(
-                                aug_name=aug_name,
+                                aug_name=pred_file_name_postfix,
                                 perturbed_path=(pred_dir_path,),
                                 unperturbed_path=(none_pred_path,),
                                 data_base_path=meta_cfg.data_base_path,
@@ -445,7 +459,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         ):
                             eval_loader_cfg = (
                                 target_cfg.eval_dataloader_instance.create_config(
-                                    aug_name=aug_name,
+                                    aug_name=pred_file_name_postfix,
                                     pred_path=(pred_dir_path,),
                                     data_base_path=meta_cfg.data_base_path,
                                 )
@@ -455,7 +469,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                 EvalDataloaderMetaConfig,
                             )
                             consis_loader_cfg = target_cfg.consis_dataloader_instance.create_consis_config(
-                                aug_name=aug_name,
+                                aug_name=pred_file_name_postfix,
                                 perturbed_path=(pred_dir_path,),
                                 unperturbed_path=(none_pred_path,),
                                 data_base_path=meta_cfg.data_base_path,
@@ -574,6 +588,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=consis_cfg.consistency_metric.save_key,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
@@ -612,6 +627,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=None,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
                         yaml_save_path = Path(yaml_dir_path) / "pred.yml"
@@ -650,6 +666,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             eval_key=None,
                             consis_key=consis_cfg.consistency_metric.save_key,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
                         yaml_save_path = (
@@ -678,6 +695,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             eval_key=eval_cfg.eval_metric.eval_save_key,
                             consis_key=None,
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                            save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.summary_results.save_select_patches,
                         )
 

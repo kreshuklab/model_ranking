@@ -268,13 +268,23 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
     def create_datasets(
         cls, dataset_config: EvalDatasetConfig
     ) -> List["StandardEvalDataset"]:
-        pred_paths = traverse_pred_files(dataset_config.pred_path, "predictions")
+        pred_paths = traverse_pred_files(
+            dataset_config.pred_path, getattr(dataset_config, "aug_name", "predictions")
+        )
         gt_paths = traverse_pred_files(dataset_config.gt_path, "")
+        # check for and remove metric_summary file paths
+        gt_paths = [p for p in gt_paths if "metric_summary" not in p]
+        assert len(pred_paths) == len(
+            gt_paths
+        ), f"Number of prediction files {len(pred_paths)} does not match number of ground truth files {len(gt_paths)}"
+
         datasets: List["StandardEvalDataset"] = []
         for i, pred_path in enumerate(pred_paths):
             assert (
-                os.path.splitext(os.path.basename(gt_paths[i]))[0]
-                in os.path.splitext(os.path.basename(pred_path))[0]
+                os.path.splitext(os.path.basename(pred_path))[0].replace(
+                    f'_{getattr(dataset_config, "aug_name", "predictions")}', ""
+                )
+                in os.path.splitext(os.path.basename(gt_paths[i]))[0]
             ), f"GT and pred file names do not match: {gt_paths[i]} != {pred_path}"
             dataset = cls(
                 pred_path=pred_path,
