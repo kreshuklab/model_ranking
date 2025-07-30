@@ -60,7 +60,10 @@ def save_h5(
             if overwrite:
                 del f[out_key]
             else:
-                raise ValueError(f"Key {out_key} already exists in {save_path}")
+                print(
+                    f"Warning: Key {out_key} already exists in {save_path}. Not overwriting."
+                )
+                return
         # if data is a float save as float32 in h5 format
         if data.shape == ():
             _ = f.create_dataset(out_key, data=data)
