@@ -102,8 +102,16 @@ def calc_consistency_score(
             batch_scores, batch_consis_mask = metric(perturbed_pred, unperturbed_pred)
 
         else:
+            if metric_cfg.bckg_consistency:
+                unperturbed_pred = 1 - unperturbed_pred
+                perturbed_pred = 1 - perturbed_pred
+                threshold = 1 - metric_cfg.mask_threshold
+            else:
+                threshold = metric_cfg.mask_threshold
             batch_consis_mask = get_mask(
-                unperturbed_pred, perturbed_pred, metric_cfg.mask_threshold
+                unperturbed_pred,
+                perturbed_pred,
+                threshold,
             )
             batch_scores = metric(perturbed_pred, unperturbed_pred, batch_consis_mask)
 
@@ -154,11 +162,15 @@ def run_consistency_evaluation(
             ), "Number of predictions and scores differ"
             for i, pred_path in enumerate(pred_paths):
                 # save scores in pred_file
+                consis_PP = calculate_per_patch_consistency(
+                    consis_scores[0][i].squeeze(), metric_cfg.save_key
+                )
                 print(f"saving scores to {pred_path}")
                 save_h5(
                     pred_path,
                     metric_cfg.save_key,
-                    consis_scores[0][i].squeeze(),
+                    consis_PP,
+                    # consis_scores[0][i].squeeze(),
                     overwrite=metric_cfg.overwrite_score,
                 )
                 if config_data.consistency_metric.save_mask:
@@ -172,10 +184,14 @@ def run_consistency_evaluation(
         else:
             for path, scores, mask in zip(paths, consis_scores, consis_masks):
                 print(f"saving scores to {path}")
+                consis_PP = calculate_per_patch_consistency(
+                    scores.squeeze(), metric_cfg.save_key
+                )
                 save_h5(
                     path,
                     metric_cfg.save_key,
-                    scores.squeeze(),
+                    # scores.squeeze(),
+                    consis_PP,
                     overwrite=metric_cfg.overwrite_score,
                 )
                 if metric_cfg.save_mask:
@@ -187,3 +203,19 @@ def run_consistency_evaluation(
                     )
 
     return consis_scores, consis_masks
+
+
+def calculate_per_patch_consistency(consis_score: NDArray[Any], consis_key: str):
+    if "HD" not in consis_key:
+        if consis_score.ndim == 2:
+            consis_score_PP = np.array(np.nanmean(consis_score))
+
+        else:
+            consis_score_PP = np.array(
+                np.nanmean(consis_score, axis=tuple(range(1, consis_score.ndim)))
+            )
+
+    else:
+        consis_score_PP = consis_score
+
+    return consis_score_PP
