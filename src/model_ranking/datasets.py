@@ -271,6 +271,9 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         pred_paths = traverse_pred_files(
             dataset_config.pred_path, getattr(dataset_config, "aug_name", "predictions")
         )
+        # if no prediction files are found, try to traverse the directory for predictions
+        if len(pred_paths) == 0:
+            pred_paths = traverse_pred_files(dataset_config.pred_path, "predictions")
         gt_paths = traverse_pred_files(dataset_config.gt_path, "")
         # check for and remove metric_summary file paths
         gt_paths = [p for p in gt_paths if "metric_summary" not in p]
@@ -280,11 +283,14 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
 
         datasets: List["StandardEvalDataset"] = []
         for i, pred_path in enumerate(pred_paths):
+
+            pred_name = os.path.splitext(os.path.basename(pred_path))[0]
+            if dataset_config.aug_name in pred_name:
+                pred_name = pred_name.replace(f"_{dataset_config.aug_name}", "")
+            else:
+                pred_name = pred_name.replace("_predictions", "")
             assert (
-                os.path.splitext(os.path.basename(pred_path))[0].replace(
-                    f'_{getattr(dataset_config, "aug_name", "predictions")}', ""
-                )
-                in os.path.splitext(os.path.basename(gt_paths[i]))[0]
+                pred_name in os.path.splitext(os.path.basename(gt_paths[i]))[0]
             ), f"GT and pred file names do not match: {gt_paths[i]} != {pred_path}"
             dataset = cls(
                 pred_path=pred_path,
