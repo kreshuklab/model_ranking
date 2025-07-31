@@ -24,6 +24,11 @@ from model_ranking.utils import (
     get_output_dir,
 )
 
+per_source_consis_result_type = Dict[str, Dict[str, Dict[str, NDArray[Any]]]]
+per_source_performance_result_type = Dict[str, Dict[str, float]]
+per_target_consis_result_type = Dict[str, per_source_consis_result_type]
+per_target_performance_result_type = Dict[str, per_source_performance_result_type]
+
 DATASET_ABBREVIATIONS = {
     "BBBC039": "BC",
     "DSB2018": "DSB",
