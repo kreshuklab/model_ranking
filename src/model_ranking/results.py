@@ -496,3 +496,28 @@ def per_source_model_results(
         source_model = source_models[source]
         model_results[source_model] = result
     return model_results
+
+
+def cmb_consistency_score_weighted_average(
+    foreground_consistency: per_target_consis_result_type,
+    background_consistency: per_target_consis_result_type,
+    w_fg: float = 0.5,
+    w_bg: float = 0.5,
+    perturbation_key: str = "DO",
+):
+    per_target_cmb_consistency: per_target_consis_result_type = {}
+    for target in foreground_consistency.keys():
+        per_model_cmb_consistency = {}
+        for model in foreground_consistency[target].keys():
+            bckg_consis = background_consistency[target][model]["norm_Normalize"][
+                perturbation_key
+            ]
+            forg_consis = foreground_consistency[target][model]["norm_Normalize"][
+                perturbation_key
+            ]
+            cmb_consis = (w_fg * forg_consis + w_bg * bckg_consis) / (w_fg + w_bg)
+            per_model_cmb_consistency[model] = {
+                "norm_Normalize": {perturbation_key: cmb_consis}
+            }
+        per_target_cmb_consistency[target] = per_model_cmb_consistency
+    return per_target_cmb_consistency
