@@ -39,6 +39,11 @@ DEFAULT_SCHEDULER_KWARGS: Dict[str, Any] = {
     "patience": 10,
 }
 
+transformer_type = Mapping[
+    str,
+    List[Mapping[str, Optional[Union[str, bool, int, Sequence[int], Sequence[float]]]]],
+]
+
 
 class ConsistencyMetricConfig(BaseModel):
     metric: Literal[
@@ -117,9 +122,7 @@ class TIFPhaseConfig(BaseModel):
     # dataset_name: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
     image_dir: Sequence[str]
     mask_dir: Sequence[str]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
 
 
 class TIFtxtPhaseConfig(BaseModel, frozen=True):
@@ -127,9 +130,7 @@ class TIFtxtPhaseConfig(BaseModel, frozen=True):
     image_dir: Sequence[str]
     mask_dir: Sequence[str]
     filenames_path: str
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
 
 
 class TIFEvalDatasetConfig(BaseModel):
@@ -150,9 +151,7 @@ class SBIAD1410PhaseConfig(BaseModel):
     img_paths: Sequence[str]
     mask_paths: Sequence[str]
     roi: Optional[Sequence[Sequence[int]]]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
     slice_builder: Optional[
         Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
     ]
@@ -161,9 +160,7 @@ class SBIAD1410PhaseConfig(BaseModel):
 class SBIAD1410PhaseMetaConfig(BaseModel):
     mask_paths: Optional[Sequence[str]]
     roi: Optional[Sequence[Sequence[int]]]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
     slice_builder: Optional[
         Annotated[
             Union[
@@ -622,9 +619,7 @@ class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
         Union[Pytorch3DUnetSliceBuilderConfig, Pytorch3DUnetFilterSliceBuilderConfig],
         Discriminator("name"),
     ]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
     roi: Optional[Union[Sequence[Sequence[int]], Sequence[int]]]
 
 
@@ -673,9 +668,7 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
     img_paths: Sequence[str]
     mask_paths: Sequence[str]
     roi: Optional[Sequence[Sequence[int]]]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
     slice_builder: Optional[
         Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
     ]
@@ -745,9 +738,7 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
         Union[Pytorch3DUnetSliceBuilderConfig, Pytorch3DUnetFilterSliceBuilderConfig],
         Discriminator("name"),
     ]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
     roi: Optional[Union[Sequence[Sequence[int]], Sequence[int]]]
 
     def create_config(
@@ -912,9 +903,7 @@ class LoaderMetaConfig(BaseModel):
     percentiles: Optional[Sequence[float]]
     image_dir: Sequence[str]
     mask_dir: Sequence[str]
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
 
 
 class TIFLoaderMetaConfig(LoaderMetaConfig):
@@ -1030,9 +1019,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     filenames_path: str
     batch_size: int
     num_workers: int
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
 
     def create_config(self, image_dir: Sequence[str], data_base_path: str):
         mask_dir: List[str] = []
@@ -1100,9 +1087,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
     mask_key: Optional[str]
     batch_size: int
     num_workers: int
-    transformer: Mapping[
-        str, List[Mapping[str, Optional[Union[str, bool, int, Sequence[int]]]]]
-    ]
+    transformer: transformer_type
 
     def create_config(self, image_dir: Sequence[str], data_base_path: str):
         mask_dir: List[str] = []
@@ -2920,8 +2905,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3036,8 +3021,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3152,8 +3137,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3274,8 +3259,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3430,7 +3415,7 @@ class MetaConfig(BaseModel):
     overwrite_yaml: bool
     data_base_path: str
     model_dir_path: str
-    feature_perturbations: FeaturePerturbationConfig
+    feature_perturbations: Optional[FeaturePerturbationConfig]
     output_settings: OutputSettingsConfig
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Optional[eval_metric_type]
