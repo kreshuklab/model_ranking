@@ -203,96 +203,113 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
         feat_pert_cfg = meta_cfg.feature_perturbations
         model_cfgs: Dict[str, Union[Pytorch3DUnetModelConfig, UnetrModelConfig]] = {}
-        for feature_perturbation in feat_pert_cfg.perturbation_types:
-            feature_abbrev = FEATURE_PERTURBATION_ABBREVIATIONS[feature_perturbation]
-            if feature_perturbation != "None":
-                if feature_perturbation == "DropOutPerturbation":
-                    assert (
-                        feat_pert_cfg.dropOut_rates is not None
-                    ), "dropOut rates not provided"
-                    assert (
-                        feat_pert_cfg.spatial_dropout is not None
-                    ), "spatial dropout not provided"
-                    for dropOut_rate in feat_pert_cfg.dropOut_rates:
-                        feature_perturbation_config = DropOutPerturbationConfig(
-                            name=feature_perturbation,
-                            random_seed=feat_pert_cfg.random_seed,
-                            layers=feat_pert_cfg.layers,
-                            drop_rate=dropOut_rate,
-                            spatial_dropout=feat_pert_cfg.spatial_dropout,
-                        )
-                        feature_str = f"_a{str(dropOut_rate).replace('.','')}"
-                        if source_model.model_type == "UnetrWrapper":
-                            model_cfg = source_model.create_unetr_config(
-                                feature_perturbation=feature_perturbation_config,
-                                img_size=img_size,
+        if feat_pert_cfg is not None:
+            for feature_perturbation in feat_pert_cfg.perturbation_types:
+                feature_abbrev = FEATURE_PERTURBATION_ABBREVIATIONS[
+                    feature_perturbation
+                ]
+                if feature_perturbation != "None":
+                    if feature_perturbation == "DropOutPerturbation":
+                        assert (
+                            feat_pert_cfg.dropOut_rates is not None
+                        ), "dropOut rates not provided"
+                        assert (
+                            feat_pert_cfg.spatial_dropout is not None
+                        ), "spatial dropout not provided"
+                        for dropOut_rate in feat_pert_cfg.dropOut_rates:
+                            feature_perturbation_config = DropOutPerturbationConfig(
+                                name=feature_perturbation,
+                                random_seed=feat_pert_cfg.random_seed,
+                                layers=feat_pert_cfg.layers,
+                                drop_rate=dropOut_rate,
+                                spatial_dropout=feat_pert_cfg.spatial_dropout,
                             )
-                        else:
-                            model_cfg = source_model.create_config(
-                                feature_perturbation=feature_perturbation_config
-                            )
-                        model_cfgs[feature_abbrev + feature_str] = model_cfg
+                            feature_str = f"_a{str(dropOut_rate).replace('.','')}"
+                            if source_model.model_type == "UnetrWrapper":
+                                model_cfg = source_model.create_unetr_config(
+                                    feature_perturbation=feature_perturbation_config,
+                                    img_size=img_size,
+                                )
+                            else:
+                                model_cfg = source_model.create_config(
+                                    feature_perturbation=feature_perturbation_config
+                                )
+                            model_cfgs[feature_abbrev + feature_str] = model_cfg
 
-                elif feature_perturbation == "FeatureDropPerturbation":
-                    assert (
-                        feat_pert_cfg.featureDrop_thresholds is not None
-                    ), "featureDrop thresholds not provided"
-                    for featureDrop_th in feat_pert_cfg.featureDrop_thresholds:
-                        feature_perturbation_config = FeatureDropPerturbationConfig(
-                            name=feature_perturbation,
-                            random_seed=feat_pert_cfg.random_seed,
-                            layers=feat_pert_cfg.layers,
-                            lower_th=featureDrop_th[0],
-                            upper_th=featureDrop_th[1],
-                        )
-                        feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
-                        if source_model.model_type == "UnetrWrapper":
-                            model_cfg = source_model.create_unetr_config(
-                                feature_perturbation=feature_perturbation_config,
-                                img_size=img_size,
+                    elif feature_perturbation == "FeatureDropPerturbation":
+                        assert (
+                            feat_pert_cfg.featureDrop_thresholds is not None
+                        ), "featureDrop thresholds not provided"
+                        for featureDrop_th in feat_pert_cfg.featureDrop_thresholds:
+                            feature_perturbation_config = FeatureDropPerturbationConfig(
+                                name=feature_perturbation,
+                                random_seed=feat_pert_cfg.random_seed,
+                                layers=feat_pert_cfg.layers,
+                                lower_th=featureDrop_th[0],
+                                upper_th=featureDrop_th[1],
                             )
-                        else:
-                            model_cfg = source_model.create_config(
-                                feature_perturbation=feature_perturbation_config
-                            )
-                        model_cfgs[feature_abbrev + feature_str] = model_cfg
+                            feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
+                            if source_model.model_type == "UnetrWrapper":
+                                model_cfg = source_model.create_unetr_config(
+                                    feature_perturbation=feature_perturbation_config,
+                                    img_size=img_size,
+                                )
+                            else:
+                                model_cfg = source_model.create_config(
+                                    feature_perturbation=feature_perturbation_config
+                                )
+                            model_cfgs[feature_abbrev + feature_str] = model_cfg
 
-                elif feature_perturbation == "FeatureNoisePerturbation":
-                    assert (
-                        feat_pert_cfg.featureNoise_ranges is not None
-                    ), "featureNoise ranges not provided"
-                    for featureNoise_range in feat_pert_cfg.featureNoise_ranges:
-                        feature_perturbation_config = FeatureNoisePerturbationConfig(
-                            name=feature_perturbation,
-                            random_seed=feat_pert_cfg.random_seed,
-                            layers=feat_pert_cfg.layers,
-                            uniform_range=featureNoise_range,
-                        )
-
-                        feature_str = f"_a{str(featureNoise_range).replace('.','')}"
-                        if source_model.model_type == "UnetrWrapper":
-                            model_cfg = source_model.create_unetr_config(
-                                feature_perturbation=feature_perturbation_config,
-                                img_size=img_size,
+                    elif feature_perturbation == "FeatureNoisePerturbation":
+                        assert (
+                            feat_pert_cfg.featureNoise_ranges is not None
+                        ), "featureNoise ranges not provided"
+                        for featureNoise_range in feat_pert_cfg.featureNoise_ranges:
+                            feature_perturbation_config = (
+                                FeatureNoisePerturbationConfig(
+                                    name=feature_perturbation,
+                                    random_seed=feat_pert_cfg.random_seed,
+                                    layers=feat_pert_cfg.layers,
+                                    uniform_range=featureNoise_range,
+                                )
                             )
-                        else:
-                            model_cfg = source_model.create_config(
-                                feature_perturbation=feature_perturbation_config
-                            )
-                        model_cfgs[feature_abbrev + feature_str] = model_cfg
 
+                            feature_str = f"_a{str(featureNoise_range).replace('.','')}"
+                            if source_model.model_type == "UnetrWrapper":
+                                model_cfg = source_model.create_unetr_config(
+                                    feature_perturbation=feature_perturbation_config,
+                                    img_size=img_size,
+                                )
+                            else:
+                                model_cfg = source_model.create_config(
+                                    feature_perturbation=feature_perturbation_config
+                                )
+                            model_cfgs[feature_abbrev + feature_str] = model_cfg
+
+                    else:
+                        assert_never(feature_perturbation)
                 else:
-                    assert_never(feature_perturbation)
+                    feature_name = feature_abbrev
+                    if source_model.model_type == "UnetrWrapper":
+                        model_cfg = source_model.create_unetr_config(
+                            feature_perturbation=None,
+                            img_size=img_size,
+                        )
+                    else:
+                        model_cfg = source_model.create_config(
+                            feature_perturbation=None
+                        )
+                    model_cfgs[feature_name] = model_cfg
+        else:
+            feature_name = "none"
+            if source_model.model_type == "UnetrWrapper":
+                model_cfg = source_model.create_unetr_config(
+                    feature_perturbation=None,
+                    img_size=img_size,
+                )
             else:
-                feature_name = feature_abbrev
-                if source_model.model_type == "UnetrWrapper":
-                    model_cfg = source_model.create_unetr_config(
-                        feature_perturbation=None,
-                        img_size=img_size,
-                    )
-                else:
-                    model_cfg = source_model.create_config(feature_perturbation=None)
-                model_cfgs[feature_name] = model_cfg
+                model_cfg = source_model.create_config(feature_perturbation=None)
+            model_cfgs[feature_name] = model_cfg
 
         for target_cfg in meta_cfg.target_datasets:
             transfer_title = f"{source_model.source_name}_to_{target_cfg.name}"
@@ -533,11 +550,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     )
 
                     if (a := augs_cfg[aug_name]) != None:
-                        transforms = target_cfg.loader.transformer["raw"].insert(
-                            -2, a.model_dump()
-                        )
+                        transforms = target_cfg.loader.transformer["raw"].copy()
+                        transforms.insert(-1, a.model_dump())
                         pred_loader = target_cfg.loader.model_copy(
-                            update={"transformer": transforms}
+                            update={"transformer": {"raw": transforms}}
                         )
 
                     else:
