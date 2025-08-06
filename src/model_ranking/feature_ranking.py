@@ -167,14 +167,17 @@ class FeatureBasedTransferRanking:
         )
 
     def initialise_feature_indices(self, target_configs: Sequence[mito_dataset_type]):
-        feature_indices: Dict[str, Optional[NDArray[Any]]] = {}
+        feature_indices: Dict[str, Optional[Dict[str, NDArray[Any]]]] = {}
         class_counts: Dict[str, Optional[Dict[int, int]]] = {}
         for target_cfg in target_configs:
             if target_cfg.feature_indices_path:
-                # Load precomputed feature indices if available
-                feature_indices[target_cfg.name] = np.load(
-                    target_cfg.feature_indices_path
-                )
+                for layer in self.feature_cfg.layers:
+                    # Load precomputed feature indices if available
+                    feature_indices[target_cfg.name] = {
+                        layer: np.load(target_cfg.feature_indices_path)[
+                            f"{layer}_indices"
+                        ]
+                    }
                 class_counts[target_cfg.name] = None
             else:
                 feature_indices[target_cfg.name] = None
@@ -268,6 +271,7 @@ class FeatureBasedTransferRanking:
         target: str,
         per_target_features: Dict[str, per_layer_feature_type],
         per_target_labels: Dict[str, per_layer_feature_type],
+        per_target_indices: Dict[str, per_layer_feature_type],
     ):
         # Save the sampled features and labels
         assert (
@@ -290,6 +294,10 @@ class FeatureBasedTransferRanking:
                 f"{layer}_labels": per_target_labels[target][layer]
                 for layer in per_target_labels[target]
             },
+            **{
+                f"{layer}_indices": per_target_indices[target][layer]
+                for layer in per_target_indices[target]
+            },
         )
         print(f"Saved features to {output_path}")
 
@@ -300,12 +308,15 @@ class FeatureBasedTransferRanking:
             )
             per_target_features: Dict[str, per_layer_feature_type] = {}
             per_target_labels: Dict[str, per_layer_feature_type] = {}
+            per_target_indices: Dict[str, per_layer_feature_type] = {}
+            # Iterate over all target datasets
             for target, target_dataset in tqdm(self.target_datasets.items()):
-                features, labels, _ = self.extract_features_sampled(
+                features, labels, indices = self.extract_features_sampled(
                     model, target, target_dataset
                 )
                 per_target_features[target] = features
                 per_target_labels[target] = labels
+                per_target_indices[target] = indices
 
                 if self.feature_cfg.output_dir_path:
                     self.save_features(
@@ -313,6 +324,7 @@ class FeatureBasedTransferRanking:
                         target,
                         per_target_features,
                         per_target_labels,
+                        per_target_indices,
                     )
 
     def run_transfer_ranking_batched(self):
@@ -326,12 +338,14 @@ class FeatureBasedTransferRanking:
             )
             per_target_features: Dict[str, per_layer_feature_type] = {}
             per_target_labels: Dict[str, per_layer_feature_type] = {}
+            per_target_indices: Dict[str, per_layer_feature_type] = {}
             for target, target_dataloader in tqdm(self.target_dataloaders.items()):
-                features, labels, _ = self.extract_features_sampled_batched(
+                features, labels, indices = self.extract_features_sampled_batched(
                     model, target, target_dataloader
                 )
                 per_target_features[target] = features
                 per_target_labels[target] = labels
+                per_target_indices[target] = indices
 
                 if self.feature_cfg.output_dir_path:
                     self.save_features(
@@ -339,6 +353,7 @@ class FeatureBasedTransferRanking:
                         target,
                         per_target_features,
                         per_target_labels,
+                        per_target_indices,
                     )
 
     def extract_features_sampled(
@@ -381,6 +396,7 @@ class FeatureBasedTransferRanking:
                         assert (
                             sampled_indices is not None
                         ), "Feature indices for target dataset must be defined."
+                        sampled_indices = sampled_indices[layer]
                         sampled_outputs = np.reshape(feature, [-1, feature.shape[1]])[
                             sampled_indices
                         ]
@@ -431,8 +447,8 @@ class FeatureBasedTransferRanking:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
         with torch.no_grad():
-            for batch_images, batch_labels in tqdm(
-                target_dataloader, desc="Processing batches"
+            for i, (batch_images, batch_labels) in enumerate(
+                tqdm(target_dataloader, desc="Processing batches")
             ):
                 batch_images = batch_images.to(device)
                 # 2D model requires 4D input (B, C, H, W)
@@ -444,20 +460,24 @@ class FeatureBasedTransferRanking:
                 batch_features = feature_extractor(batch_images)
 
                 # Process each image in the batch
-                for i in range(batch_images.size(0)):
-                    label = batch_labels[i].numpy()
+                for j in range(batch_images.size(0)):
+                    label = batch_labels[j].numpy()
 
                     # Process all layers for this image
                     for layer_name, layer_features in batch_features.items():
                         # Extract features for this specific image
-                        image_features = layer_features[i].detach().cpu().numpy()
+                        image_features = layer_features[j].detach().cpu().numpy()
 
                         # Sample features for this image and layer
                         if precomputed_indices is not None:
                             # Use precomputed indices
                             sampled_features, sampled_labels, sampled_indices = (
                                 self._sample_with_precomputed_indices(
-                                    image_features, label, precomputed_indices
+                                    image_features,
+                                    label,
+                                    precomputed_indices[layer_name][
+                                        i * batch_images.size(0) + j
+                                    ],
                                 )
                             )
                         else:
