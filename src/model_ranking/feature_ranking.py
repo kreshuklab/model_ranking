@@ -167,23 +167,45 @@ class FeatureBasedTransferRanking:
         )
 
     def initialise_feature_indices(self, target_configs: Sequence[mito_dataset_type]):
-        feature_indices: Dict[str, Optional[Dict[str, NDArray[Any]]]] = {}
+        feature_indices: Dict[str, Optional[Dict[str, Optional[NDArray[Any]]]]] = {}
         class_counts: Dict[str, Optional[Dict[int, int]]] = {}
         for target_cfg in target_configs:
             if target_cfg.feature_indices_path:
+                indices_file = np.load(target_cfg.feature_indices_path)
+                arrays = indices_file.files
+                target_indices: Dict[str, Optional[NDArray[Any]]] = {}
                 for layer in self.feature_cfg.layers:
-                    # Load precomputed feature indices if available
-                    feature_indices[target_cfg.name] = {
-                        layer: np.load(target_cfg.feature_indices_path)[
-                            f"{layer}_indices"
-                        ]
-                    }
-                class_counts[target_cfg.name] = None
+                    if f"{layer}_indices" in arrays:
+                        # Load precomputed feature indices if available
+                        target_indices[layer] = np.load(
+                            target_cfg.feature_indices_path
+                        )[f"{layer}_indices"]
+                    else:
+                        target_indices[layer] = None
+                feature_indices[target_cfg.name] = target_indices
             else:
                 feature_indices[target_cfg.name] = None
-                class_counts[target_cfg.name] = compute_class_frequencies(
-                    self.target_datasets[target_cfg.name]
-                )
+
+            for layer in self.feature_cfg.layers:
+                if feature_indices[target_cfg.name] is None:
+                    class_counts[target_cfg.name] = compute_class_frequencies(
+                        self.target_datasets[target_cfg.name]
+                    )
+
+                else:
+                    target_indices_temp = feature_indices[target_cfg.name]
+                    assert (
+                        target_indices_temp is not None
+                    ), "Feature indices for target dataset must be defined."
+                    target_indices: Dict[str, Optional[NDArray[Any]]] = (
+                        target_indices_temp
+                    )
+                    if target_indices[layer] is None:
+                        class_counts[target_cfg.name] = compute_class_frequencies(
+                            self.target_datasets[target_cfg.name]
+                        )
+                    else:
+                        class_counts[target_cfg.name] = None
         return feature_indices, class_counts
 
     def initialise_model(self, model_meta_cfg: ModelSourceConfig, model_dir_path: str):
@@ -366,6 +388,7 @@ class FeatureBasedTransferRanking:
         per_image_labels: Dict[str, List[NDArray[Any]]] = {}
         per_image_indices: Dict[str, List[NDArray[Any]]] = {}
         feature_extractor = FeatureExtractor(model, layers=self.feature_cfg.layers)
+        precomputed_indices = self.feature_indices[target]
         with torch.no_grad():
             for image, label in tqdm(iter(target_dataset)):
                 image = image.to("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -377,7 +400,7 @@ class FeatureBasedTransferRanking:
                 sampled_PL_indices: per_layer_feature_type = {}
                 for layer, feature in features.items():
                     feature = feature.detach().cpu().numpy()
-                    if self.feature_indices[target] is None:
+                    if precomputed_indices is None:
                         class_frequencies = self.class_counts[target]
                         assert (
                             class_frequencies is not None
@@ -396,11 +419,29 @@ class FeatureBasedTransferRanking:
                         assert (
                             sampled_indices is not None
                         ), "Feature indices for target dataset must be defined."
-                        sampled_indices = sampled_indices[layer]
-                        sampled_outputs = np.reshape(feature, [-1, feature.shape[1]])[
-                            sampled_indices
-                        ]
-                        sampled_labels = np.reshape(label, [-1])[sampled_indices]
+                        if sampled_indices[layer] is None:
+                            class_frequencies = self.class_counts[target]
+                            assert (
+                                class_frequencies is not None
+                            ), "Class counts must be computed before sampling."
+                            sampled_outputs, sampled_labels, sampled_indices = (
+                                sample_from_image(
+                                    feature,
+                                    label,
+                                    self.feature_cfg.sampling_seed,
+                                    class_frequencies,
+                                    self.feature_cfg.num_samples,
+                                )
+                            )
+                        else:
+                            sampled_indices = sampled_indices[layer]
+                            assert (
+                                sampled_indices is not None
+                            ), "Precomputed indices for the layer must be defined."
+                            sampled_outputs = np.reshape(
+                                feature, [-1, feature.shape[1]]
+                            )[sampled_indices]
+                            sampled_labels = np.reshape(label, [-1])[sampled_indices]
                     sampled_PL_features[layer] = sampled_outputs
                     sampled_PL_targets[layer] = sampled_labels
                     sampled_PL_indices[layer] = sampled_indices
@@ -470,16 +511,26 @@ class FeatureBasedTransferRanking:
 
                         # Sample features for this image and layer
                         if precomputed_indices is not None:
-                            # Use precomputed indices
-                            sampled_features, sampled_labels, sampled_indices = (
-                                self._sample_with_precomputed_indices(
-                                    image_features,
-                                    label,
-                                    precomputed_indices[layer_name][
-                                        i * batch_images.size(0) + j
-                                    ],
+                            if precomputed_indices[layer_name] is not None:
+                                # Use precomputed indices
+                                layer_indices = precomputed_indices[layer_name]
+                                assert (
+                                    layer_indices is not None
+                                ), "Precomputed indices for the layer must be defined."
+                                sampled_features, sampled_labels, sampled_indices = (
+                                    self._sample_with_precomputed_indices(
+                                        image_features,
+                                        label,
+                                        layer_indices[i * batch_images.size(0) + j],
+                                    )
                                 )
-                            )
+                            else:
+                                # Compute sampling on-the-fly
+                                sampled_features, sampled_labels, sampled_indices = (
+                                    self._sample_features_vectorized(
+                                        image_features, label, class_frequencies
+                                    )
+                                )
                         else:
                             # Compute sampling on-the-fly
                             sampled_features, sampled_labels, sampled_indices = (
