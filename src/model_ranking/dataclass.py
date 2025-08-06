@@ -769,6 +769,7 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
                     roi=self.roi,
                 ),
             )
+            return loader
         elif phase == "train":
             # for i in range(len(file_paths)):
             #    file_paths[i] = file_paths[i].replace("test", "train")
@@ -787,9 +788,9 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
                     roi=self.roi,
                 ),
             )
+            return loader
         else:
             assert_never(phase)
-        return loader
 
 
 class TIFNucleiSemanticPredictorConfig(BaseModel):
@@ -2905,8 +2906,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -2936,6 +2937,33 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 32, 32),
         ),
     )
+    feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=6,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/EPFL/test.h5",),
+        roi=[[0, 2], [0, 480], [0, 640]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3021,8 +3049,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3052,6 +3080,34 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
+    feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=1,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        # global_normalization=False,
+        global_percentiles=None,
+        file_paths=("/Hmito/test_converted.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3137,8 +3193,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3168,6 +3224,34 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
+    feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=1,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        # global_normalization=False,
+        global_percentiles=None,
+        file_paths=("/Rmito/test_converted.h5",),
+        roi=[[0, 150], [0, 1280], [0, 1280]],
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3259,8 +3343,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3296,6 +3380,33 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
+    feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
+        dataset="StandardHDF5Dataset",
+        batch_size=1,
+        num_workers=8,
+        raw_internal_path="raw",
+        label_internal_path="labels",
+        global_normalization=True,
+        global_percentiles=None,
+        file_paths=("/VNC/resized_pixels/binary_label/test_converted.h5",),
+        roi=None,
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+            "label": [
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+            name="SliceBuilder",
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
+        ),
+    )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3606,3 +3717,29 @@ class SupervisedFinetuningConfig(BaseModel):
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
     loader_cfg: Dict[str, Any]
+
+
+mito_dataset_type = Annotated[
+    Union[
+        EPFLTargetConfig,
+        HmitoTargetConfig,
+        RmitoTargetConfig,
+        VNCTargetConfig,
+    ],
+    Discriminator("name"),
+]
+
+
+class FeatureSampleConfig(BaseModel):
+    layers: List[str]
+    sampling_seed: int
+    num_samples: int
+    output_dir_path: Optional[str]
+
+
+class FeatureBasedTransferRankingConfig(BaseModel):
+    target_datasets: Sequence[mito_dataset_type]
+    source_models: Sequence[ModelSourceConfig]
+    source_model_base_path: str
+    data_base_path: str
+    feature_cfg: FeatureSampleConfig
