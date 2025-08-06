@@ -2939,14 +2939,15 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=6,
+        batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
         global_normalization=True,
         global_percentiles=None,
         file_paths=("/EPFL/test.h5",),
-        roi=[[0, 2], [0, 480], [0, 640]],
+        # roi=[[0, 2], [0, 480], [0, 640]],
+        roi=None,
         transformer={
             "raw": [
                 {"name": "Normalize"},
