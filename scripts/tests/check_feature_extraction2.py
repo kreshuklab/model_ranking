@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-from tqdm import tqdm
+
+# from tqdm import tqdm
 from typing import Dict, Any
 
 from model_ranking.feature_ranking import FeatureBasedTransferRanking
@@ -24,7 +25,8 @@ config: Dict[str, Any] = {
         "layers": ["decoders.2"],
         "sampling_seed": 42,
         "num_samples": 1000,
-        "output_dir_path": None,
+        "output_dir_path": "/g/kreshuk/talks/model_ranking/notebooks/checks",
+        # "output_dir_path": None,  # Set to None for testing
     },
 }
 
@@ -50,13 +52,33 @@ model = model.eval()
 target_dataset = feature_ranking.target_datasets["EPFL"]
 target_dataloader = feature_ranking.target_dataloaders["EPFL"]
 
-features, labels, indices = feature_ranking.extract_features_sampled_efficient(
+indices_loaded = feature_ranking.feature_indices["EPFL"]
+assert indices_loaded is not None, "Feature indices for target dataset must be defined."
+features, labels, indices = feature_ranking.extract_features_sampled_batched(
     model,
     target="EPFL",
     target_dataloader=target_dataloader,  # Use the dataloader directly
 )
 
+# feature_ranking.run_transfer_ranking_batched()
+
 for layer, feature in features.items():
     print(f"Layer: {layer}, Feature shape: {feature.shape}")
     print(f"Labels shape: {labels[layer].shape}")
     print(f"Indices shape: {indices[layer].shape}")
+
+precomputed_path = "/g/kreshuk/talks/model_ranking/notebooks/checks/EPFL_to_EPFL/E_model5_to_EPFL_features.npz"
+
+data = np.load(precomputed_path)
+print(f"Precomputed features shape: {data['decoders.2_features'].shape}")
+print(f"Precomputed labels shape: {data['decoders.2_labels'].shape}")
+print(f"Precomputed indices shape: {data['decoders.2_indices'].shape}")
+
+# Compare with precomputed features
+# for layer in features:
+for layer in indices:
+    print(f"Comparing layer: {layer}")
+    np.testing.assert_array_equal(features[layer], data[f"{layer}_features"])
+    np.testing.assert_array_equal(labels[layer], data[f"{layer}_labels"])
+    np.testing.assert_array_equal(indices[layer], data[f"{layer}_indices"])
+    print(f"✓ {layer} features match precomputed values.")
