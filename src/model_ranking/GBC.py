@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
-from sklearn.decomposition import PCA
+
+# from sklearn.decomposition import PCA
 from typing import Dict, Any, Literal, List, Union
 
 
@@ -57,14 +58,14 @@ def compute_per_class_mean_and_variance(
 def bhattacharyya_coefficient(
     features: NDArray[Any],
     target_labels: NDArray[Any],
-    gaussian_type: Literal["diagonal", "spherical"] = "spherical",
+    gaussian_type: Literal["diagonal", "spherical"] = "diagonal",
 ):
     """Compute Gaussian Bhattacharyya Coefficient (GBC).
       Args:
       features: source features from the target data.
       target_labels: ground truth labels in the target label space.
       gaussian_type: type of gaussian used to represent class features. The
-        possibilities are spherical (default) or diagonal.
+        possibilities are spherical or diagonal (default).
     Returns:
       gbc: transferability metric score.
     """
@@ -72,17 +73,24 @@ def bhattacharyya_coefficient(
     assert gaussian_type in ("diagonal", "spherical")
 
     # first calculate pca. We take 64 components according to paper's ablations
-    features_pca = PCA(n_components=64, random_state=42).fit_transform(features)
+    # but limit to the actual number of features if less than 64
+    # n_components = min(64, features.shape[1])
+    # features_pca = PCA(n_components=n_components, random_state=42).fit_transform(
+    #     features
+    # )
 
     unique_labels = np.unique(target_labels)
     unique_labels = list(unique_labels)
+    # per_class_stats = compute_per_class_mean_and_variance(
+    #     features_pca, target_labels, unique_labels
+    # )
     per_class_stats = compute_per_class_mean_and_variance(
-        features_pca, target_labels, unique_labels
+        features, target_labels, unique_labels
     )
 
-    per_class_bhattacharyya_distance = []
+    per_class_bhattacharyya_distance: List[float] = []
     for c1 in unique_labels:
-        temp_metric = []
+        temp_metric: List[float] = []
         for c2 in unique_labels:
             if c1 != c2:
                 bhattacharyya_distance = get_bhattacharyya_distance(
