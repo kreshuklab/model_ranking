@@ -486,6 +486,8 @@ class FeatureBasedTransferRanking:
 
         feature_extractor = FeatureExtractor(model, layers=self.feature_cfg.layers)
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        batch_size = target_dataloader.batch_size
+        assert batch_size is not None, "Batch size must be defined."
 
         with torch.no_grad():
             for i, (batch_images, batch_labels) in enumerate(
@@ -521,7 +523,7 @@ class FeatureBasedTransferRanking:
                                     self._sample_with_precomputed_indices(
                                         image_features,
                                         label,
-                                        layer_indices[i * batch_images.size(0) + j],
+                                        layer_indices[i * batch_size + j],
                                     )
                                 )
                             else:
