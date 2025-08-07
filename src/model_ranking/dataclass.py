@@ -2961,10 +2961,15 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = None
+    feature_indices_path: Optional[str] = (
+        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
+    )
+    # feature_indices_path: Optional[str] = (
+    #     "/g/kreshuk/talks/model_ranking/notebooks/checks/EPFL_to_EPFL/E_model5_to_EPFL_features.npz"
+    # )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3083,7 +3088,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=1,
+        batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3105,10 +3110,12 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = None
+    feature_indices_path: Optional[str] = (
+        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
+    )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3227,7 +3234,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=1,
+        batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3249,10 +3256,12 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = None
+    feature_indices_path: Optional[str] = (
+        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
+    )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3383,13 +3392,13 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=1,
+        batch_size=32,
         num_workers=8,
-        raw_internal_path="raw",
-        label_internal_path="labels",
+        raw_internal_path="resized_raw",
+        label_internal_path="resized_labels",
         global_normalization=True,
         global_percentiles=None,
-        file_paths=("/VNC/resized_pixels/binary_label/test_converted.h5",),
+        file_paths=("/VNC/resized_pixels/source_mitoEM_true.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -3404,10 +3413,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = None
+    feature_indices_path: Optional[str] = (
+        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
+    )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3738,7 +3749,7 @@ class FeatureSampleConfig(BaseModel):
     output_dir_path: Optional[str]
 
 
-class FeatureBasedTransferRankingConfig(BaseModel):
+class TransferFeatureExtractionConfig(BaseModel):
     target_datasets: Sequence[mito_dataset_type]
     source_models: Sequence[ModelSourceConfig]
     source_model_base_path: str
