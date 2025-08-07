@@ -1,8 +1,8 @@
 import typer
 from typing import Annotated
 
-from model_ranking.dataclass import FeatureBasedTransferRankingConfig
-from model_ranking.feature_ranking import FeatureBasedTransferRanking
+from model_ranking.dataclass import TransferFeatureExtractionConfig
+from model_ranking.feature_ranking import TransferFeatureExtraction
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
@@ -17,10 +17,10 @@ def main(
     """
 
     meta_cfg, _ = load_config_direct(config)
-    feature_ranking_cfg = FeatureBasedTransferRankingConfig.model_validate(meta_cfg)
+    feature_ranking_cfg = TransferFeatureExtractionConfig.model_validate(meta_cfg)
 
     # Load the configuration
-    feature_ranking = FeatureBasedTransferRanking(feature_ranking_cfg)
+    feature_ranking = TransferFeatureExtraction(feature_ranking_cfg)
 
     # Extract features
     feature_ranking.run_transfer_ranking_batched()

@@ -6,21 +6,21 @@ from typing import Dict, Any
 print("Starting script...")
 
 try:
-    from model_ranking.feature_ranking import FeatureBasedTransferRanking
+    from model_ranking.feature_ranking import TransferFeatureExtraction
 
-    print("Successfully imported FeatureBasedTransferRanking")
+    print("Successfully imported TransferFeatureExtraction")
 except Exception as e:
-    print(f"Error importing FeatureBasedTransferRanking: {e}")
+    print(f"Error importing TransferFeatureExtraction: {e}")
     import traceback
 
     traceback.print_exc()
 
 try:
-    from model_ranking.dataclass import FeatureBasedTransferRankingConfig
+    from model_ranking.dataclass import TransferFeatureExtractionConfig
 
-    print("Successfully imported FeatureBasedTransferRankingConfig")
+    print("Successfully imported TransferFeatureExtractionConfig")
 except Exception as e:
-    print(f"Error importing FeatureBasedTransferRankingConfig: {e}")
+    print(f"Error importing TransferFeatureExtractionConfig: {e}")
     import traceback
 
     traceback.print_exc()

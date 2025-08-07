@@ -18,7 +18,7 @@ from pytorch3dunet.unet3d.utils import (
 )
 
 from model_ranking.dataclass import (
-    FeatureBasedTransferRankingConfig,
+    TransferFeatureExtractionConfig,
     ModelSourceConfig,
     Pytorch3DUnetTrainLoaderConfig,
     mito_dataset_type,
@@ -152,8 +152,8 @@ def sample_from_image(
     return outputs, labels, sampling_indices
 
 
-class FeatureBasedTransferRanking:
-    def __init__(self, config: FeatureBasedTransferRankingConfig):
+class TransferFeatureExtraction:
+    def __init__(self, config: TransferFeatureExtractionConfig):
         super().__init__()
         self.source_model_cfgs = config.source_models
         self.source_model_base_path = config.source_model_base_path

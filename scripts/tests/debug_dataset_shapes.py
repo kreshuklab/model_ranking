@@ -3,8 +3,8 @@ import torch
 from tqdm import tqdm
 from typing import Dict, Any
 
-from model_ranking.feature_ranking import FeatureBasedTransferRanking
-from model_ranking.dataclass import FeatureBasedTransferRankingConfig
+from model_ranking.feature_ranking import TransferFeatureExtraction
+from model_ranking.dataclass import TransferFeatureExtractionConfig
 
 print("Creating feature ranking config...")
 
@@ -25,8 +25,8 @@ config: Dict[str, Any] = {
     },
 }
 
-feature_ranking_cfg = FeatureBasedTransferRankingConfig.model_validate(config)
-feature_ranking = FeatureBasedTransferRanking(config=feature_ranking_cfg)
+feature_ranking_cfg = TransferFeatureExtractionConfig.model_validate(config)
+feature_ranking = TransferFeatureExtraction(config=feature_ranking_cfg)
 
 target_dataset = feature_ranking.target_datasets["EPFL"]
 

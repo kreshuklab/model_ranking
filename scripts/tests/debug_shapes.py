@@ -3,8 +3,8 @@ import torch
 from tqdm import tqdm
 from typing import Dict, Any
 
-from model_ranking.feature_ranking import FeatureBasedTransferRanking
-from model_ranking.dataclass import FeatureBasedTransferRankingConfig
+from model_ranking.feature_ranking import TransferFeatureExtraction
+from model_ranking.dataclass import TransferFeatureExtractionConfig
 
 from pytorch3dunet.unet3d.model import UNet2D
 from pytorch3dunet.unet3d.utils import (
@@ -30,8 +30,8 @@ config: Dict[str, Any] = {
     },
 }
 
-feature_ranking_cfg = FeatureBasedTransferRankingConfig.model_validate(config)
-feature_ranking = FeatureBasedTransferRanking(config=feature_ranking_cfg)
+feature_ranking_cfg = TransferFeatureExtractionConfig.model_validate(config)
+feature_ranking = TransferFeatureExtraction(config=feature_ranking_cfg)
 
 print("Setting up model...")
 
