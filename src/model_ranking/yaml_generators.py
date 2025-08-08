@@ -178,6 +178,14 @@ DATASET_TO_MODEL_ABBREVIATIONS = {
     "VNC": "V",
 }
 
+MODEL_ABBREVIATIONS_TO_DATASET = {
+    #### Mitochondria
+    "E": "EPFL",
+    "Hm": "Hmito",
+    "Rm": "Rmito",
+    "V": "VNC",
+}
+
 FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
     "DropOutPerturbation": "DO",
     "FeatureDropPerturbation": "FD",
