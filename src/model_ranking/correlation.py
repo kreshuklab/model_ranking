@@ -6,13 +6,8 @@ from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
     permutation_test,  # pyright: ignore[reportUnknownVariableType]
     pearsonr,  # pyright: ignore[reportUnknownVariableType]
 )
-from typing import Any, Tuple, Dict, List
+from typing import Any, Tuple
 
-from model_ranking.results import (
-    results_to_arrays,
-    per_source_consis_result_type,
-    per_source_performance_result_type,
-)
 from model_ranking.utils import is_ndarray
 
 
@@ -144,10 +139,8 @@ def permutation_test_kendall_tau(
 
 
 def calculate_correlation_statistics(
-    per_target_consistency: per_source_consis_result_type,
-    per_target_performance: per_source_performance_result_type,
-    selected_augmentations: Dict[str, List[str]],
-    perturbation_key: str = "DO",
+    transfer_scores: NDArray[Any],
+    perf_scores: NDArray[Any],
     rank_ascending: bool = False,
     perf_tolerance: float = 0,
     consis_tolerance: float = 0,
@@ -155,27 +148,21 @@ def calculate_correlation_statistics(
     """
     Calculate correlation statistics for the given consistency and performance results.
     """
-    consis_scores, NA_perf_scores = results_to_arrays(
-        per_target_consistency,
-        per_target_performance,
-        perturbation_key,
-        len(selected_augmentations[perturbation_key]),
-    )
 
     ranked_perf = scores_to_rank(
-        NA_perf_scores, ascending=rank_ascending, tolerance=perf_tolerance
+        perf_scores, ascending=rank_ascending, tolerance=perf_tolerance
     )
 
-    pearson_scores = np.zeros((consis_scores.shape[1], 2))
-    kendall_tau_scores = np.zeros((consis_scores.shape[1], 2))
-    spearman_scores = np.zeros((consis_scores.shape[1], 2))
+    pearson_scores = np.zeros((transfer_scores.shape[1], 2))
+    kendall_tau_scores = np.zeros((transfer_scores.shape[1], 2))
+    spearman_scores = np.zeros((transfer_scores.shape[1], 2))
 
-    for i in range(consis_scores.shape[1]):
+    for i in range(transfer_scores.shape[1]):
         ranked_consis = scores_to_rank(
-            consis_scores[:, i], ascending=rank_ascending, tolerance=consis_tolerance
+            transfer_scores[:, i], ascending=rank_ascending, tolerance=consis_tolerance
         )
         pearson_scores[i, 0], pearson_scores[i, 1] = pearsonr(
-            NA_perf_scores, consis_scores[:, i]
+            perf_scores, transfer_scores[:, i]
         )
         kendall_tau_scores[i, 0], kendall_tau_scores[i, 1] = (
             permutation_test_kendall_tau(ranked_perf, ranked_consis)
