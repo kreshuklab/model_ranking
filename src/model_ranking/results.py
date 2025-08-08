@@ -23,6 +23,9 @@ from model_ranking.utils import (
     create_h5_dataset,
     get_output_dir,
 )
+from model_ranking.yaml_generators import (
+    MODEL_ABBREVIATIONS_TO_DATASET,
+)
 
 per_source_consis_result_type = Dict[str, Dict[str, Dict[str, NDArray[Any]]]]
 per_source_performance_result_type = Dict[str, Dict[str, float]]
@@ -455,6 +458,19 @@ def perf_results_to_array(
     return perf_array
 
 
+def transfer_results_to_arrays(
+    transfer_score: Dict[str, float],
+    performance_score: Dict[str, float],
+):
+    transfer_array = np.zeros((len(transfer_score), 1))
+    performance_array = np.zeros(len(performance_score))
+    for i, (model_name, t_score) in enumerate(transfer_score.items()):
+        p_score = performance_score[model_name]
+        performance_array[i] = p_score
+        transfer_array[i, :] = t_score
+    return transfer_array, performance_array
+
+
 def get_ckpt_eval_scores(
     path: Union[str, Path], checkpoint_ids: List[int], eval_key: str = "F1_eval"
 ) -> Tuple[List[float], List[float]]:
@@ -521,3 +537,26 @@ def cmb_consistency_score_weighted_average(
             }
         per_target_cmb_consistency[target] = per_model_cmb_consistency
     return per_target_cmb_consistency
+
+
+def get_NA_performance_score(
+    model_name: str,
+    target: str,
+    base_path: Union[str, Path],
+    performance_key: str = "hard_f1",
+    approach: str = "consistency",
+    run_id: str = "P_full",
+):
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+    source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
+    paths = list(
+        base_path.rglob(
+            f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}/*/none/predictions/*predictions.h5"
+        )
+    )
+    assert (
+        len(paths) == 1
+    ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
+    performance_score = load_h5(paths[0], performance_key)
+    return performance_score
