@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, List
+from typing import Any, Dict, Optional, Sequence, List, Union
 import torch
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
 
@@ -28,7 +28,10 @@ from model_ranking.utils import (
     is_torch_tensor,
     loader_classes,
 )
-from model_ranking.yaml_generators import get_model_path
+from model_ranking.yaml_generators import (
+    get_model_path,
+    MODEL_ABBREVIATIONS_TO_DATASET,
+)
 
 per_layer_feature_type = Dict[str, NDArray[Any]]
 
@@ -613,3 +616,20 @@ class TransferFeatureExtraction:
 
         rng = np.random.default_rng(self.feature_cfg.sampling_seed)
         return rng.choice(len(labels), size=num_samples, replace=False, p=probabilities)
+
+
+def get_precomputed_feature_path(
+    model_name: str, target: str, base_path: Union[str, Path]
+):
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+    source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
+    paths = list(
+        base_path.rglob(
+            f"{source}_to_{target}/**/{model_name}_to_{target}_features.npz"
+        )
+    )
+    assert (
+        len(paths) == 1
+    ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
+    return paths[0]
