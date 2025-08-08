@@ -501,3 +501,38 @@ def plot_transfer_performance_heatmap(
     _ = plt.yticks(rotation=0)  # pyright: ignore[reportUnknownVariableType]
     plt.tight_layout()
     plt.show()
+
+
+def plot_performance_vs_gbc(
+    performance_dict: Dict[str, float], gbc_dict: Dict[str, float]
+):
+    """
+    Plots a scatter plot of performance (F1 score) vs GBC score for each model.
+
+    Parameters:
+    - performance_dict: dict, mapping model_name to F1_score
+    - gbc_dict: dict, mapping model_name to gbc_score
+    """
+    model_names = list(performance_dict.keys())
+    colors = plt.get_cmap("tab20", len(model_names))
+
+    x: List[float] = []
+    y: List[float] = []
+    labels: List[str] = []
+    for model in model_names:
+        if model in gbc_dict:
+            x.append(gbc_dict[model])
+            y.append(performance_dict[model])
+            labels.append(model)
+
+    _ = plt.figure(figsize=(8, 6))
+    for i, model in enumerate(labels):
+        _ = plt.scatter(x[i], y[i], color=colors(i), label=model, s=80)
+
+    _ = plt.xlabel("GBC Score")
+    _ = plt.ylabel("F1 Score")
+    _ = plt.title("Performance (F1) vs GBC Score per Model")
+    _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.grid()
+    plt.show()
