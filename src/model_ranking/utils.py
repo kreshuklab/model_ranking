@@ -93,6 +93,13 @@ def copy_h5_dataset(
         _ = target.create_dataset(dataset_name, data=source_dataset)
 
 
+def load_npz(path: Union[str, Path], key: str):
+    data = np.load(path)
+    if key not in data:
+        raise KeyError(f"Key '{key}' not found in {path}")
+    return data[key]
+
+
 def get_roi_slice(roi: Sequence[Sequence[int]]) -> tuple[slice, ...]:
     # Create a tuple of slice objects based on the input list
     slices = tuple(slice(start, stop) for start, stop in roi)
