@@ -3406,6 +3406,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
             "label": [
+                {"name": "Relabel"},
+                {"name": "BlobsToMask"},
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
@@ -3419,6 +3421,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     feature_indices_path: Optional[str] = (
         "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
     )
+    # feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
