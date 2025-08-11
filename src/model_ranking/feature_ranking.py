@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, List, Union
 import torch
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
+import h5py  # pyright: ignore[reportMissingTypeStubs]
 
 from CCFV.utils.sliding_window_sampling import (  # pyright: ignore[reportMissingTypeStubs]
     FeatureExtractor,
@@ -297,6 +298,7 @@ class TransferFeatureExtraction:
         per_target_features: Dict[str, per_layer_feature_type],
         per_target_labels: Dict[str, per_layer_feature_type],
         per_target_indices: Dict[str, per_layer_feature_type],
+        per_target_predictions: Dict[str, per_layer_feature_type],
     ):
         # Save the sampled features and labels
         assert (
@@ -323,10 +325,70 @@ class TransferFeatureExtraction:
                 f"{layer}_indices": per_target_indices[target][layer]
                 for layer in per_target_indices[target]
             },
+            **{
+                f"{layer}_predictions": per_target_predictions[target][layer]
+                for layer in per_target_predictions[target]
+            },
         )
         print(f"Saved features to {output_path}")
 
-    def run_transfer_ranking(self):
+    def save_results_h5(
+        self,
+        source_model_config: ModelSourceConfig,
+        target: str,
+        per_target_features: Dict[str, per_layer_feature_type],
+        per_target_labels: Dict[str, per_layer_feature_type],
+        per_target_indices: Dict[str, per_layer_feature_type],
+        per_target_predictions: Dict[str, per_layer_feature_type],
+    ):
+        """Save the sampled features and labels in HDF5 format.
+
+        Args:
+            source_model_config: Configuration of the source model
+            target: Target dataset name
+            per_target_features: Features per target and layer
+            per_target_labels: Labels per target and layer
+            per_target_indices: Indices per target and layer
+            per_target_predictions: Predictions per target and layer
+        """
+        # Save the sampled features and labels
+        assert (
+            self.feature_cfg.output_dir_path
+        ), "Output directory path must be specified in the feature configuration."
+        output_path = (
+            Path(self.feature_cfg.output_dir_path)
+            / f"{source_model_config.source_name}_to_{target}"
+            / f"{source_model_config.model_name}_to_{target}_features.h5"
+        )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(output_path, "w") as h5_file:
+            # Save features
+            for layer in per_target_features[target]:
+                _ = h5_file.create_dataset(
+                    f"{layer}_features",
+                    data=per_target_features[target][layer],
+                )
+                _ = h5_file.create_dataset(
+                    f"{layer}_labels",
+                    data=per_target_labels[target][layer],
+                )
+                _ = h5_file.create_dataset(
+                    f"{layer}_indices",
+                    data=per_target_indices[target][layer],
+                )
+
+            # Save predictions
+            for layer in per_target_predictions[target]:
+                _ = h5_file.create_dataset(
+                    f"{layer}_predictions",
+                    data=per_target_predictions[target][layer],
+                )
+
+        print(f"Saved features to {output_path}")
+
+    def run_transfer_feature_extraction(self):
         for source_model_config in self.source_model_cfgs:
             model = self.initialise_model(
                 source_model_config, model_dir_path=self.source_model_base_path
@@ -334,27 +396,30 @@ class TransferFeatureExtraction:
             per_target_features: Dict[str, per_layer_feature_type] = {}
             per_target_labels: Dict[str, per_layer_feature_type] = {}
             per_target_indices: Dict[str, per_layer_feature_type] = {}
+            per_target_predictions: Dict[str, per_layer_feature_type] = {}
             # Iterate over all target datasets
             for target, target_dataset in tqdm(self.target_datasets.items()):
-                features, labels, indices = self.extract_features_sampled(
+                features, labels, indices, predictions = self.extract_features_sampled(
                     model, target, target_dataset
                 )
                 per_target_features[target] = features
                 per_target_labels[target] = labels
                 per_target_indices[target] = indices
+                per_target_predictions[target] = predictions
 
                 if self.feature_cfg.output_dir_path:
-                    self.save_features(
+                    self.save_results_h5(
                         source_model_config,
                         target,
                         per_target_features,
                         per_target_labels,
                         per_target_indices,
+                        per_target_predictions,
                     )
 
-    def run_transfer_ranking_batched(self):
+    def run_transfer_feature_extraction_batched(self):
         """
-        Efficient version of run_transfer_ranking with batch processing.
+        Efficient version of run_transfer_feature_extraction with batch processing.
 
         """
         for source_model_config in self.source_model_cfgs:
@@ -364,21 +429,26 @@ class TransferFeatureExtraction:
             per_target_features: Dict[str, per_layer_feature_type] = {}
             per_target_labels: Dict[str, per_layer_feature_type] = {}
             per_target_indices: Dict[str, per_layer_feature_type] = {}
+            per_target_predictions: Dict[str, per_layer_feature_type] = {}
             for target, target_dataloader in tqdm(self.target_dataloaders.items()):
-                features, labels, indices = self.extract_features_sampled_batched(
-                    model, target, target_dataloader
+                features, labels, indices, predictions = (
+                    self.extract_features_sampled_batched(
+                        model, target, target_dataloader
+                    )
                 )
                 per_target_features[target] = features
                 per_target_labels[target] = labels
                 per_target_indices[target] = indices
+                per_target_predictions[target] = predictions
 
                 if self.feature_cfg.output_dir_path:
-                    self.save_features(
+                    self.save_results_h5(
                         source_model_config,
                         target,
                         per_target_features,
                         per_target_labels,
                         per_target_indices,
+                        per_target_predictions,
                     )
 
     def extract_features_sampled(
@@ -390,12 +460,13 @@ class TransferFeatureExtraction:
         per_image_features: Dict[str, List[NDArray[Any]]] = {}
         per_image_labels: Dict[str, List[NDArray[Any]]] = {}
         per_image_indices: Dict[str, List[NDArray[Any]]] = {}
+        per_image_predictions: Dict[str, List[NDArray[Any]]] = {}
         feature_extractor = FeatureExtractor(model, layers=self.feature_cfg.layers)
         precomputed_indices = self.feature_indices[target]
         with torch.no_grad():
             for image, label in tqdm(iter(target_dataset)):
                 image = image.to("cuda:0" if torch.cuda.is_available() else "cpu")
-                features = feature_extractor(image)
+                features, _, pred = feature_extractor(image)
                 label = label.numpy()
 
                 sampled_PL_features: per_layer_feature_type = {}
@@ -458,18 +529,39 @@ class TransferFeatureExtraction:
                     per_image_labels[layer].append(sampled_PL_targets[layer])
                     per_image_indices[layer].append(sampled_PL_indices[layer])
 
+                    if layer in ["decoders.2", "decoders.3", "decoder2"]:
+                        if layer not in per_image_predictions:
+                            per_image_predictions[layer] = []
+                        per_image_predictions[layer].append(
+                            np.reshape(pred, [-1, pred.shape[1]])[
+                                sampled_PL_indices[layer]
+                            ]
+                        )
+
             feature_extractor.remove_handler()
 
         # Concatenate features and labels across all images
         concatenated_features: Dict[str, NDArray[Any]] = {}
         concatenated_labels: Dict[str, NDArray[Any]] = {}
         concatenated_indices: Dict[str, NDArray[Any]] = {}
+        concatenated_predictions: Dict[str, NDArray[Any]] = {}
         for layer in per_image_features:
             concatenated_features[layer] = np.stack(per_image_features[layer])
             concatenated_labels[layer] = np.vstack(per_image_labels[layer])
             concatenated_indices[layer] = np.vstack(per_image_indices[layer])
+            if layer in per_image_predictions:
+                concatenated_predictions[layer] = np.vstack(
+                    per_image_predictions[layer]
+                )
 
-        return concatenated_features, concatenated_labels, concatenated_indices
+        return (
+            concatenated_features,
+            concatenated_labels,
+            concatenated_indices,
+            concatenated_predictions,
+        )
+
+    # def sample_prediction(prediction: NDArray[Any], indices: NDArray[Any]) -> NDArray[Any]:
 
     def extract_features_sampled_batched(
         self,
@@ -486,6 +578,7 @@ class TransferFeatureExtraction:
         all_features: Dict[str, List[NDArray[Any]]] = {}
         all_labels: Dict[str, List[NDArray[Any]]] = {}
         all_indices: Dict[str, List[NDArray[Any]]] = {}
+        all_predictions: Dict[str, List[NDArray[Any]]] = {}
 
         feature_extractor = FeatureExtractor(model, layers=self.feature_cfg.layers)
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -503,7 +596,7 @@ class TransferFeatureExtraction:
                 )  # Ensure correct shape remove z spatial dimension
 
                 # Single forward pass for the entire batch
-                batch_features = feature_extractor(batch_images)
+                batch_features, _, batch_preds = feature_extractor(batch_images)
 
                 # Process each image in the batch
                 for j in range(batch_images.size(0)):
@@ -553,20 +646,38 @@ class TransferFeatureExtraction:
                         all_features[layer_name].append(sampled_features)
                         all_labels[layer_name].append(sampled_labels)
                         all_indices[layer_name].append(sampled_indices)
-
+                        if layer_name in ["decoders.2", "decoders.3", "decoder2"]:
+                            if layer_name not in all_predictions:
+                                all_predictions[layer_name] = []
+                            # Sample predictions for this image and layer
+                            sampled_predictions = np.reshape(
+                                batch_preds[j].detach().cpu().numpy(),
+                                -1,
+                            )[sampled_indices]
+                            all_predictions[layer_name].append(sampled_predictions)
         feature_extractor.remove_handler()
 
         # Efficiently concatenate all results
         concatenated_features: Dict[str, NDArray[Any]] = {}
         concatenated_labels: Dict[str, NDArray[Any]] = {}
         concatenated_indices: Dict[str, NDArray[Any]] = {}
+        concatenated_predictions: Dict[str, NDArray[Any]] = {}
 
         for layer_name in all_features:
             concatenated_features[layer_name] = np.stack(all_features[layer_name])
             concatenated_labels[layer_name] = np.vstack(all_labels[layer_name])
             concatenated_indices[layer_name] = np.vstack(all_indices[layer_name])
+            if layer_name in all_predictions:
+                concatenated_predictions[layer_name] = np.vstack(
+                    all_predictions[layer_name]
+                )
 
-        return concatenated_features, concatenated_labels, concatenated_indices
+        return (
+            concatenated_features,
+            concatenated_labels,
+            concatenated_indices,
+            concatenated_predictions,
+        )
 
     def _sample_with_precomputed_indices(
         self, features: NDArray[Any], labels: NDArray[Any], indices: NDArray[Any]
