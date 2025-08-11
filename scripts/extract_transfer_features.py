@@ -23,7 +23,7 @@ def main(
     feature_ranking = TransferFeatureExtraction(feature_ranking_cfg)
 
     # Extract features
-    feature_ranking.run_transfer_ranking_batched()
+    feature_ranking.run_transfer_feature_extraction_batched()
 
 
 if __name__ == "__main__":
