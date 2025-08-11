@@ -547,6 +547,24 @@ def get_NA_performance_score(
     approach: str = "consistency",
     run_id: str = "P_full",
 ):
+    path = get_NA_prediction_path(
+        model_name=model_name,
+        target=target,
+        base_path=base_path,
+        approach=approach,
+        run_id=run_id,
+    )
+    performance_score = load_h5(path, performance_key)
+    return performance_score
+
+
+def get_NA_prediction_path(
+    model_name: str,
+    target: str,
+    base_path: Union[str, Path],
+    approach: str = "consistency",
+    run_id: str = "P_full",
+):
     if isinstance(base_path, str):
         base_path = Path(base_path)
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
@@ -558,5 +576,4 @@ def get_NA_performance_score(
     assert (
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
-    performance_score = load_h5(paths[0], performance_key)
-    return performance_score
+    return paths[0]
