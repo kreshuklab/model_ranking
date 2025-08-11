@@ -503,35 +503,37 @@ def plot_transfer_performance_heatmap(
     plt.show()
 
 
-def plot_performance_vs_gbc(
-    performance_dict: Dict[str, float], gbc_dict: Dict[str, float]
+def plot_performance_vs_transfer_metric(
+    performance_scores: Dict[str, float],
+    transfer_metrics: Dict[str, float],
+    metric_name: str = "GBC",
 ):
     """
-    Plots a scatter plot of performance (F1 score) vs GBC score for each model.
+    Plots a scatter plot of performance (F1 score) vs transfer metric for each model.
 
     Parameters:
-    - performance_dict: dict, mapping model_name to F1_score
-    - gbc_dict: dict, mapping model_name to gbc_score
+    - performance_scores: dict, mapping model_name to F1_score
+    - transfer_metrics: dict, mapping model_name to transfer_metric
     """
-    model_names = list(performance_dict.keys())
+    model_names = list(performance_scores.keys())
     colors = plt.get_cmap("tab20", len(model_names))
 
     x: List[float] = []
     y: List[float] = []
     labels: List[str] = []
     for model in model_names:
-        if model in gbc_dict:
-            x.append(gbc_dict[model])
-            y.append(performance_dict[model])
+        if model in transfer_metrics:
+            x.append(transfer_metrics[model])
+            y.append(performance_scores[model])
             labels.append(model)
 
     _ = plt.figure(figsize=(8, 6))
     for i, model in enumerate(labels):
         _ = plt.scatter(x[i], y[i], color=colors(i), label=model, s=80)
 
-    _ = plt.xlabel("GBC Score")
+    _ = plt.xlabel(f"{metric_name} Score")
     _ = plt.ylabel("F1 Score")
-    _ = plt.title("Performance (F1) vs GBC Score per Model")
+    _ = plt.title(f"Performance (F1) vs {metric_name} Score per Model")
     _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.grid()
