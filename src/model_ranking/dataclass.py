@@ -44,6 +44,10 @@ transformer_type = Mapping[
     List[Mapping[str, Optional[Union[str, bool, int, Sequence[int], Sequence[float]]]]],
 ]
 
+transferability_metrics = Literal[
+    "GBC", "LEEP", "Gaussian_LEEP", "Hscore", "Regularized_Hscore", "LogME"
+]
+
 
 class ConsistencyMetricConfig(BaseModel):
     metric: Literal[
@@ -3758,3 +3762,31 @@ class TransferFeatureExtractionConfig(BaseModel):
     source_model_base_path: str
     data_base_path: str
     feature_cfg: FeatureSampleConfig
+
+
+class PrecomputedPerformanceConfig(BaseModel):
+    base_path: str
+    approach: Literal["consistency", "feature_perturbation_consistency"]
+    run_id: str
+    key: str
+
+
+class PrecomputedFeatureConfig(BaseModel):
+    base_path: str
+    file_type: str
+    layer_keys: Dict[str, str]
+
+
+class TransferabilitySaveConfig(BaseModel):
+    save_base_path: Optional[str]
+    save_name: Optional[str]
+    save_plot: bool
+
+
+class TransferabilityMetricConfig(BaseModel):
+    targets: Sequence[str]
+    source_models: Sequence[str]
+    feature_config: PrecomputedFeatureConfig
+    performance_config: PrecomputedPerformanceConfig
+    transferability_metric: transferability_metrics
+    output_config: TransferabilitySaveConfig
