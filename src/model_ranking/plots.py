@@ -507,6 +507,7 @@ def plot_performance_vs_transfer_metric(
     performance_scores: Dict[str, float],
     transfer_metrics: Dict[str, float],
     metric_name: str = "GBC",
+    save_path: Optional[str] = None,
 ):
     """
     Plots a scatter plot of performance (F1 score) vs transfer metric for each model.
@@ -538,3 +539,7 @@ def plot_performance_vs_transfer_metric(
     plt.tight_layout()
     plt.grid()
     plt.show()
+
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+        print(f"Plot saved to {save_path}")
