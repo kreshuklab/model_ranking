@@ -1,10 +1,13 @@
-from typing import Dict, List, Mapping, Optional, Union, Any, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Union, Any, Sequence, Tuple, Set
 from pathlib import Path
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 from numpy.typing import NDArray
 import imageio.v2 as imageio
 from tqdm import tqdm
+import json
+import os
+from datetime import datetime
 
 from model_ranking.consistency import calculate_per_patch_consistency
 from model_ranking.dataclass import (
@@ -577,3 +580,163 @@ def get_NA_prediction_path(
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
     return paths[0]
+
+
+def save_transfer_metric_results(
+    transfer_metric_per_target: Dict[str, Dict[str, float]],
+    performance_per_target: Dict[str, Dict[str, float]],
+    save_dir: str = "./gbc_results",
+    experiment_name: str = "mitochondria_gbc",
+    add_metadata: bool = True,
+) -> None:
+    """
+    Save Transfer metric results in a structured format that allows for easy extension.
+
+    Parameters:
+    -----------
+    transfer_metric_per_target : Dict[str, Dict[str, float]]
+        Dictionary where keys are target datasets and values are dictionaries
+        mapping source model names to their transfer metric scores
+    performance_per_target : Dict[str, Dict[str, float]]
+        Dictionary where keys are target datasets and values are dictionaries
+        mapping source model names to their performance scores
+    save_dir : str
+        Directory to save the results
+    experiment_name : str
+        Name of the experiment (used in filename)
+    add_metadata : bool
+        Whether to include metadata about the experiment
+    """
+    # Create save directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Convert numpy types to Python native types for JSON serialization
+    def convert_numpy_types(obj: Any) -> Any:
+        """Recursively convert numpy types to Python native types"""
+        if isinstance(obj, dict):
+            return {
+                str(key): convert_numpy_types(value)  # pyright: ignore
+                for key, value in obj.items()  # pyright: ignore
+            }
+        elif isinstance(obj, (list, tuple)):
+            return [convert_numpy_types(item) for item in obj]  # pyright: ignore
+        elif hasattr(obj, "item"):  # numpy scalar types
+            return obj.item()
+        else:
+            return obj
+
+    # Convert the data
+    transfer_score_converted = convert_numpy_types(transfer_metric_per_target)
+    performance_converted = convert_numpy_types(performance_per_target)
+
+    # Prepare the data structure
+    results: Dict[str, Any] = {
+        "experiment_name": experiment_name,
+        "timestamp": datetime.now().isoformat(),
+        "transfer_scores": transfer_score_converted,
+        "performance_scores": performance_converted,
+    }
+
+    if add_metadata:
+        # Add metadata about the source models and targets
+        all_source_models: Set[str] = set()
+        for target_results in transfer_metric_per_target.values():
+            all_source_models.update(target_results.keys())
+
+        results["metadata"] = {
+            "num_targets": len(transfer_metric_per_target),
+            "targets": list(transfer_metric_per_target.keys()),
+            "num_source_models": len(all_source_models),
+            "source_models": sorted(list(all_source_models)),
+            "total_transfers": sum(
+                len(models) for models in transfer_metric_per_target.values()
+            ),
+        }
+
+    # Save to JSON file
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{experiment_name}.json"
+    filepath = os.path.join(save_dir, filename)
+
+    with open(filepath, "w") as f:
+        json.dump(results, f, indent=2, sort_keys=True)
+
+    print(f"Transfer metric results saved to: {filepath}")
+
+
+def load_transfer_metric_results(filepath: str) -> Dict[str, Any]:
+    """
+    Load Transfer metric results from a JSON file.
+
+    Parameters:
+    -----------
+    filepath : str
+        Path to the JSON file containing Transfer metric results
+
+    Returns:
+    --------
+    Dict containing the loaded results
+    """
+    with open(filepath, "r") as f:
+        results = json.load(f)
+
+    print(f"Loaded Transfer metric results from: {filepath}")
+    if "metadata" in results:
+        metadata = results["metadata"]
+        print(f"Experiment: {results['experiment_name']}")
+        print(f"Targets: {metadata['num_targets']} ({', '.join(metadata['targets'])})")
+        print(f"Source models: {metadata['num_source_models']}")
+        print(f"Total transfers: {metadata['total_transfers']}")
+
+    return results
+
+
+def merge_transfer_metric_results(
+    existing_results: Dict[str, Any],
+    new_transfer_per_target: Dict[str, Dict[str, float]],
+) -> Dict[str, Any]:
+    """
+    Merge new transfer results with existing ones, updating source models as needed.
+
+    Parameters:
+    -----------
+    existing_results : Dict[str, Any]
+        Previously saved results loaded from JSON
+    new_transfer_per_target : Dict[str, Dict[str, float]]
+        New transfer results to merge
+
+    Returns:
+    --------
+    Merged results dictionary
+    """
+    merged_results = existing_results.copy()
+    existing_transfer = merged_results["transfer_scores"]
+
+    for target, source_models in new_transfer_per_target.items():
+        if target in existing_transfer:
+            # Update existing target with new source models
+            existing_transfer[target].update(source_models)
+        else:
+            # Add new target
+            existing_transfer[target] = source_models
+
+    # Update metadata
+    if "metadata" in merged_results:
+        all_source_models: set[str] = set()
+        for target_results in existing_transfer.values():
+            all_source_models.update(target_results.keys())
+
+        merged_results["metadata"].update(
+            {
+                "num_targets": len(existing_transfer),
+                "targets": list(existing_transfer.keys()),
+                "num_source_models": len(all_source_models),
+                "source_models": sorted(list(all_source_models)),
+                "total_transfers": sum(
+                    len(models) for models in existing_transfer.values()
+                ),
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
+
+    return merged_results
