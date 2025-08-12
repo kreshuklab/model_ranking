@@ -730,14 +730,14 @@ class TransferFeatureExtraction:
 
 
 def get_precomputed_feature_path(
-    model_name: str, target: str, base_path: Union[str, Path]
+    model_name: str, target: str, base_path: Union[str, Path], filetype: str = "h5"
 ):
     if isinstance(base_path, str):
         base_path = Path(base_path)
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
     paths = list(
         base_path.rglob(
-            f"{source}_to_{target}/**/{model_name}_to_{target}_features.npz"
+            f"{source}_to_{target}/**/{model_name}_to_{target}_features.{filetype}"
         )
     )
     assert (
