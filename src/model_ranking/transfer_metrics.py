@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Union
 from tqdm import tqdm
 import os
 from numpy.typing import NDArray
@@ -12,6 +12,7 @@ from model_ranking.leep import (
     gaussian_log_expected_empirical_prediction,
 )
 from model_ranking.logme import log_maximum_evidence
+from model_ranking.NCTI import NCTI_Score, process_NCTI_scores
 from model_ranking.feature_ranking import get_precomputed_feature_path
 from model_ranking.plots import plot_performance_vs_transfer_metric
 from model_ranking.results import (
@@ -23,6 +24,9 @@ from model_ranking.dataclass import (
     TransferabilityMetricConfig,
     transferability_metrics,
 )
+from model_ranking.correlation import (
+    to_target_transfer_correlations,
+)
 
 
 def calculate_transfer_metric(  # pyright: ignore
@@ -30,10 +34,16 @@ def calculate_transfer_metric(  # pyright: ignore
     features: Optional[NDArray[Any]],
     labels: NDArray[Any],
     predictions: Optional[NDArray[Any]],
+    n_PCA_components: Optional[int] = None,
 ):
     if metric_name == "GBC":
         assert features is not None, "Features must be provided for GBC metric."
-        return bhattacharyya_coefficient(features, labels)
+        assert (
+            n_PCA_components is not None
+        ), "n_PCA_components must be provided for GBC metric."
+        return bhattacharyya_coefficient(
+            features, labels, n_feature_components=n_PCA_components
+        )
     elif metric_name == "LEEP":
         assert predictions is not None, "Predictions must be provided for LEEP metric."
         return log_expected_empirical_prediction(predictions, labels)
@@ -53,6 +63,12 @@ def calculate_transfer_metric(  # pyright: ignore
     elif metric_name == "LogME":
         assert features is not None, "Features must be provided for LogME metric."
         return log_maximum_evidence(features, labels)  # pyright: ignore
+    elif metric_name == "NCTI":
+        assert features is not None, "Features must be provided for NCTI metric."
+        assert (
+            n_PCA_components is not None
+        ), "n_PCA_components must be provided for NCTI metric."
+        return NCTI_Score(features, labels, PCA_components=n_PCA_components)
     else:
         raise ValueError(f"Unknown transfer metric: {metric_name}")
 
@@ -64,10 +80,13 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
     transfer_metric_per_target: Dict[str, Dict[str, float]] = {}
     performance_per_target: Dict[str, Dict[str, float]] = {}
     feature_ids = list(feature_cfg.layer_keys.keys())
+    component_scores_per_target: Dict[str, Dict[str, Dict[str, float]]] = {}
     for target in config.targets:
         print(f"Processing target: {target}")
         performance_per_model: Dict[str, Any] = {}
-        transfer_metric_per_model: Dict[str, float] = {}
+        transfer_metric_per_model: Union[
+            Dict[str, float], Dict[str, Tuple[float, float, float]]
+        ] = {}
         for model_name in tqdm(config.source_models):
             if ("V" in model_name) and (target == "VNC"):
                 continue
@@ -135,10 +154,25 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                     features=features_flat,
                     predictions=predictions_flat,
                     labels=labels_flat,
+                    n_PCA_components=feature_cfg.n_PCA_components,
                 )
                 transfer_metric_per_model[model_name] = (  # pyright: ignore
                     transfer_metric
                 )
+
+        if config.transferability_metric == "NCTI":
+            # Ensure transfer_metric_per_model is not a Dict[str, float] before unpacking
+            transfer_metric_per_model, seli_scores, ncc_scores, vc_scores = (
+                process_NCTI_scores(
+                    transfer_metric_per_model  # pyright: ignore[reportArgumentType]
+                )
+            )
+
+            component_scores_per_target[target] = {
+                "SELI": seli_scores,
+                "NCC": ncc_scores,
+                "VC": vc_scores,
+            }
 
         transfer_metric_per_target[target] = transfer_metric_per_model
         performance_per_target[target] = performance_per_model
@@ -160,13 +194,31 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                 save_path=save_path,
             )
 
+    correlation_scores: Dict[str, NDArray[Any]] = {}
+
+    correlation_scores["KT"], correlation_scores["SP"], correlation_scores["PE"] = (
+        to_target_transfer_correlations(
+            config.targets,
+            transfer_metric_per_target,
+            performance_per_target,
+        )
+    )
+
     if output_cfg.save_base_path is not None:
         assert output_cfg.save_name is not None, "Save name must be provided."
         os.makedirs(output_cfg.save_base_path, exist_ok=True)
+
+        if len(component_scores_per_target) > 0:
+            cmp_scores_per_target = component_scores_per_target
+        else:
+            cmp_scores_per_target = None
+
         save_transfer_metric_results(
             transfer_metric_per_target,
             performance_per_target,
+            correlation_scores=correlation_scores,
             save_dir=output_cfg.save_base_path,
             experiment_name=output_cfg.save_name,
+            component_transfer_scores_per_target=cmp_scores_per_target,
         )
     return transfer_metric_per_target, performance_per_target
