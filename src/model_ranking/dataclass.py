@@ -45,7 +45,7 @@ transformer_type = Mapping[
 ]
 
 transferability_metrics = Literal[
-    "GBC", "LEEP", "Gaussian_LEEP", "Hscore", "Regularized_Hscore", "LogME"
+    "GBC", "LEEP", "Gaussian_LEEP", "Hscore", "Regularized_Hscore", "LogME", "NCTI"
 ]
 
 
@@ -3775,6 +3775,7 @@ class PrecomputedFeatureConfig(BaseModel):
     base_path: str
     file_type: str
     layer_keys: Dict[str, str]
+    n_PCA_components: Optional[int] = None
 
 
 class TransferabilitySaveConfig(BaseModel):
