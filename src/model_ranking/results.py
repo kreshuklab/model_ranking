@@ -585,6 +585,10 @@ def get_NA_prediction_path(
 def save_transfer_metric_results(
     transfer_metric_per_target: Dict[str, Dict[str, float]],
     performance_per_target: Dict[str, Dict[str, float]],
+    correlation_scores: Dict[str, NDArray[Any]],
+    component_transfer_scores_per_target: Optional[
+        Dict[str, Dict[str, Dict[str, float]]]
+    ] = None,
     save_dir: str = "./gbc_results",
     experiment_name: str = "mitochondria_gbc",
     add_metadata: bool = True,
@@ -620,7 +624,14 @@ def save_transfer_metric_results(
             }
         elif isinstance(obj, (list, tuple)):
             return [convert_numpy_types(item) for item in obj]  # pyright: ignore
-        elif hasattr(obj, "item"):  # numpy scalar types
+        elif isinstance(obj, np.ndarray):
+            # Handle numpy arrays by converting to list
+            return convert_numpy_types(obj.tolist())
+        elif isinstance(obj, (np.integer, np.floating, np.complexfloating)):
+            # Handle numpy scalar types explicitly
+            return obj.item()
+        elif hasattr(obj, "item") and callable(getattr(obj, "item")):
+            # Fallback for other numpy scalar types
             return obj.item()
         else:
             return obj
@@ -635,7 +646,14 @@ def save_transfer_metric_results(
         "timestamp": datetime.now().isoformat(),
         "transfer_scores": transfer_score_converted,
         "performance_scores": performance_converted,
+        "correlation_scores": convert_numpy_types(correlation_scores),
     }
+
+    if component_transfer_scores_per_target is not None:
+        # Add component transfer scores if provided
+        results["component_transfer_scores"] = convert_numpy_types(
+            component_transfer_scores_per_target
+        )
 
     if add_metadata:
         # Add metadata about the source models and targets
