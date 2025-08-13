@@ -6,9 +6,10 @@ from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
     permutation_test,  # pyright: ignore[reportUnknownVariableType]
     pearsonr,  # pyright: ignore[reportUnknownVariableType]
 )
-from typing import Any, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 from model_ranking.utils import is_ndarray
+from model_ranking.results import transfer_results_to_arrays
 
 
 def scores_to_rank(scores: NDArray[Any], ascending: bool = True, tolerance: float = 0):
@@ -172,3 +173,26 @@ def calculate_correlation_statistics(
         )
 
     return pearson_scores, spearman_scores, kendall_tau_scores
+
+
+def to_target_transfer_correlations(
+    targets: Sequence[str],
+    transfer_metric_per_target: Dict[str, Dict[str, float]],
+    performance_per_target: Dict[str, Dict[str, float]],
+):
+    per_target_KT = np.zeros((len(targets), 1, 2))
+    per_target_SP = np.zeros((len(targets), 1, 2))
+    per_target_PE = np.zeros((len(targets), 1, 2))
+    for i, target in enumerate(targets):
+        transfer_scores, NA_perf_scores = transfer_results_to_arrays(
+            transfer_metric_per_target[target],
+            performance_per_target[target],
+        )
+
+        (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
+            calculate_correlation_statistics(
+                transfer_scores,
+                NA_perf_scores,
+            )
+        )
+    return per_target_KT, per_target_SP, per_target_PE
