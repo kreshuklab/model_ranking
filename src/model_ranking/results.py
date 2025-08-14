@@ -13,6 +13,7 @@ from model_ranking.consistency import calculate_per_patch_consistency
 from model_ranking.dataclass import (
     ForegroundFilterConfig,
     SummaryResultsConfig,
+    # transferability_metrics,
 )
 from model_ranking.utils import (
     find_transfer_from_pred_path,
@@ -582,6 +583,29 @@ def get_NA_prediction_path(
     return paths[0]
 
 
+# Convert numpy types to Python native types for JSON serialization
+def convert_numpy_types(obj: Any) -> Any:
+    """Recursively convert numpy types to Python native types"""
+    if isinstance(obj, dict):
+        return {
+            str(key): convert_numpy_types(value)  # pyright: ignore
+            for key, value in obj.items()  # pyright: ignore
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(item) for item in obj]  # pyright: ignore
+    elif isinstance(obj, np.ndarray):
+        # Handle numpy arrays by converting to list
+        return convert_numpy_types(obj.tolist())
+    elif isinstance(obj, (np.integer, np.floating, np.complexfloating)):
+        # Handle numpy scalar types explicitly
+        return obj.item()
+    elif hasattr(obj, "item") and callable(getattr(obj, "item")):
+        # Fallback for other numpy scalar types
+        return obj.item()
+    else:
+        return obj
+
+
 def save_transfer_metric_results(
     transfer_metric_per_target: Dict[str, Dict[str, float]],
     performance_per_target: Dict[str, Dict[str, float]],
@@ -613,28 +637,6 @@ def save_transfer_metric_results(
     """
     # Create save directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
-
-    # Convert numpy types to Python native types for JSON serialization
-    def convert_numpy_types(obj: Any) -> Any:
-        """Recursively convert numpy types to Python native types"""
-        if isinstance(obj, dict):
-            return {
-                str(key): convert_numpy_types(value)  # pyright: ignore
-                for key, value in obj.items()  # pyright: ignore
-            }
-        elif isinstance(obj, (list, tuple)):
-            return [convert_numpy_types(item) for item in obj]  # pyright: ignore
-        elif isinstance(obj, np.ndarray):
-            # Handle numpy arrays by converting to list
-            return convert_numpy_types(obj.tolist())
-        elif isinstance(obj, (np.integer, np.floating, np.complexfloating)):
-            # Handle numpy scalar types explicitly
-            return obj.item()
-        elif hasattr(obj, "item") and callable(getattr(obj, "item")):
-            # Fallback for other numpy scalar types
-            return obj.item()
-        else:
-            return obj
 
     # Convert the data
     transfer_score_converted = convert_numpy_types(transfer_metric_per_target)
@@ -682,7 +684,7 @@ def save_transfer_metric_results(
     print(f"Transfer metric results saved to: {filepath}")
 
 
-def load_transfer_metric_results(filepath: str) -> Dict[str, Any]:
+def load_transfer_metric_results(filepath: Union[str, Path]) -> Dict[str, Any]:
     """
     Load Transfer metric results from a JSON file.
 
@@ -758,3 +760,14 @@ def merge_transfer_metric_results(
         )
 
     return merged_results
+
+
+def find_transferability_results_path(
+    base_path: Union[str, Path],
+    transfer_metric: str,
+    data_task: str = "mitochondria",
+):
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+    path = base_path / f"{data_task}_{transfer_metric}.json"
+    return path
