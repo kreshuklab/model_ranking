@@ -6,7 +6,7 @@ from typing import Dict, Any
 print("Starting script...")
 
 try:
-    from model_ranking.feature_ranking import TransferFeatureExtraction
+    from model_ranking import TransferFeatureExtraction
 
     print("Successfully imported TransferFeatureExtraction")
 except Exception as e:
@@ -16,7 +16,7 @@ except Exception as e:
     traceback.print_exc()
 
 try:
-    from model_ranking.dataclass import TransferFeatureExtractionConfig
+    from model_ranking import TransferFeatureExtractionConfig
 
     print("Successfully imported TransferFeatureExtractionConfig")
 except Exception as e:

@@ -4,12 +4,13 @@ import typer
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-from scripts.finetuning.mean_teacher_finetune import self_training_mean_teacher
+
 from scripts.finetuning.batch_predict_checkpoints import batch_predict_checkpoints
-from model_ranking.dataclass import (
+from model_ranking import (
     MetaConfig,
     MeanTeacherConfig,
 )
+from model_ranking import self_training_mean_teacher
 
 
 def main(

@@ -1,59 +1,11 @@
 import typer
 from typing import Annotated
 
-from model_ranking.config import copy_config
-from model_ranking.dataclass import MeanTeacherConfig
-from model_ranking.mean_teacher import run_mean_teacher
-from model_ranking.utils import get_roi_slice
+from model_ranking import MeanTeacherConfig
+from model_ranking import self_training_mean_teacher
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-
-
-def self_training_mean_teacher(
-    mean_teacher_config: MeanTeacherConfig, config_path: str
-):
-    copy_config(mean_teacher_config, config_path)
-    if mean_teacher_config.data_cfg.roi_unsupervised_train is not None:
-        roi_unsupervised_train = get_roi_slice(
-            mean_teacher_config.data_cfg.roi_unsupervised_train
-        )
-    else:
-        roi_unsupervised_train = None
-
-    if mean_teacher_config.data_cfg.roi_unsupervised_val is not None:
-        roi_unsupervised_val = get_roi_slice(
-            mean_teacher_config.data_cfg.roi_unsupervised_val
-        )
-    else:
-        roi_unsupervised_val = None
-
-    run_mean_teacher(
-        name=mean_teacher_config.name,
-        output_root_path=mean_teacher_config.output_root_path,
-        unsupervised_train_paths=mean_teacher_config.data_cfg.unsupervised_train_paths,
-        unsupervised_val_paths=mean_teacher_config.data_cfg.unsupervised_val_paths,
-        patch_shape=mean_teacher_config.data_cfg.patch_shape,
-        pseudo_labeler_config=mean_teacher_config.pseudo_labeler_cfg,
-        model_config=mean_teacher_config.model_cfg.model,
-        supervised_loader_config=mean_teacher_config.supervised_loader_cfg,
-        source_checkpoint=mean_teacher_config.model_cfg.source_checkpoint,
-        raw_key=mean_teacher_config.data_cfg.raw_key,
-        label_key=mean_teacher_config.data_cfg.label_key,
-        batch_size=mean_teacher_config.data_cfg.batch_size,
-        lr=mean_teacher_config.training_cfg.lr,
-        n_iterations=mean_teacher_config.training_cfg.n_iterations,
-        epochs=mean_teacher_config.training_cfg.epochs,
-        n_samples_train=mean_teacher_config.data_cfg.n_samples_train,
-        n_samples_val=mean_teacher_config.data_cfg.n_samples_val,
-        save_ckpt_every_kth_epoch=mean_teacher_config.training_cfg.save_ckpt_every_kth_epoch,
-        wandb_config=mean_teacher_config.wandb_cfg,
-        roi_unsupervised_train=roi_unsupervised_train,
-        roi_unsupervised_val=roi_unsupervised_val,
-        mixed_precision=mean_teacher_config.training_cfg.mixed_precision,
-        global_normalisation=mean_teacher_config.data_cfg.global_normalization,
-        norm01=mean_teacher_config.data_cfg.norm01,
-    )
 
 
 def main(

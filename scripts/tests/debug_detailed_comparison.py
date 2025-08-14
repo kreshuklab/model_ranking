@@ -3,8 +3,8 @@ import torch
 from tqdm import tqdm
 from typing import Dict, Any
 
-from model_ranking.feature_ranking import TransferFeatureExtraction
-from model_ranking.dataclass import TransferFeatureExtractionConfig
+from model_ranking import TransferFeatureExtraction
+from model_ranking import TransferFeatureExtractionConfig
 
 from pytorch3dunet.unet3d.model import UNet2D
 from pytorch3dunet.unet3d.utils import load_checkpoint

@@ -5,7 +5,7 @@ from model_ranking.config import copy_config
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-from model_ranking.dataclass import MeanTeacherConfig
+from model_ranking import MeanTeacherConfig
 
 
 def main(

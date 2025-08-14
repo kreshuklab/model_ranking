@@ -4,8 +4,8 @@ from torch_em.segmentation import (
     get_data_loader,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.self_training import weak_augmentations
-from model_ranking.pseudo_labeling import DummyDirectEvalPseudoLabeler
+from model_ranking import weak_augmentations
+from model_ranking import DummyDirectEvalPseudoLabeler
 from model_ranking.datasets import DummySelfTrainingDataset
 
 from pytorch3dunet.unet3d.model import (

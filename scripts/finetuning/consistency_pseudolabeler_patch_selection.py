@@ -6,8 +6,8 @@ import numpy as np
 import shutil
 from tqdm import tqdm
 
-# from model_ranking.self_training import get_unsupervised_loader
-from model_ranking.dataclass import (
+# from model_ranking import get_unsupervised_loader
+from model_ranking import (
     HmitoTargetConfig,
     MeanTeacherConfig,
     EPFLTargetConfig,
@@ -15,16 +15,16 @@ from model_ranking.dataclass import (
     VNCTargetConfig,
 )
 from model_ranking.datasets import get_loaders
-from model_ranking.pseudo_labeling import (
+from model_ranking import (
     ModelConsistencyPatchWisePseudoLabeler,
     InputConsistencyPatchwisePseudoLabeler,
     DummyDirectEvalPseudoLabeler,
 )
-from model_ranking.utils import find_transfer_from_pred_path
+from model_ranking import find_transfer_from_pred_path
 
-# from model_ranking.utils import save_h5
+# from model_ranking import save_h5
 
-# from model_ranking.utils import is_torch_tensor
+# from model_ranking import is_torch_tensor
 from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
 )

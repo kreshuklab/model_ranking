@@ -44,7 +44,7 @@ transformer_type = Mapping[
     List[Mapping[str, Optional[Union[str, bool, int, Sequence[int], Sequence[float]]]]],
 ]
 
-transferability_metrics = Literal[
+transferability_metric_names = Literal[
     "GBC", "LEEP", "Gaussian_LEEP", "Hscore", "Regularized_Hscore", "LogME", "NCTI"
 ]
 
@@ -3789,5 +3789,5 @@ class TransferabilityMetricConfig(BaseModel):
     source_models: Sequence[str]
     feature_config: PrecomputedFeatureConfig
     performance_config: PrecomputedPerformanceConfig
-    transferability_metric: transferability_metrics
+    transferability_metric: transferability_metric_names
     output_config: TransferabilitySaveConfig

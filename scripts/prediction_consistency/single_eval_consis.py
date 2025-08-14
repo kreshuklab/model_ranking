@@ -2,20 +2,20 @@ from typing import Annotated
 import typer
 from pathlib import Path
 
-from model_ranking.results import run_foreground_patch_selection, save_summary_metrics
+from model_ranking import run_foreground_patch_selection, save_summary_metrics
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.consistency import (
+from model_ranking import (
     run_consistency_evaluation,
 )
-from model_ranking.dataclass import (
+from model_ranking import (
     EvaluateConfig,
     ConsistencyConfig,
     SummaryResultsConfig,
 )
-from model_ranking.evaluation import run_performance_evaluation
+from model_ranking import run_performance_evaluation
 
 
 def main(

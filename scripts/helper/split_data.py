@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from model_ranking.utils import (
+from model_ranking import (
     load_h5,
     save_h5,
 )

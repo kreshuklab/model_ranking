@@ -1,13 +1,13 @@
 import torch
 from typing import Dict, List, Any
 
-from model_ranking.dataclass import (
+from model_ranking import (
     BBBC039TargetConfig,
     InstanceSegmentationConfig,
     SemanticSegmentationConfig,
     Pytorch3DUnetModelConfig,
 )
-from model_ranking.metrics import (
+from model_ranking import (
     HammingDistanceEval,
     EffectiveInvarianceEval,
     CrossEntropyEval,
@@ -16,12 +16,12 @@ from model_ranking.metrics import (
     KLDivergenceEval,
     AdaptedRandErrorEval,
 )
-from model_ranking.pseudo_labeling import (
+from model_ranking import (
     InputConsistencyPatchwisePseudoLabeler,
     ModelConsistencyPatchWisePseudoLabeler,
 )
-from model_ranking.utils import add_device_to_config
-from model_ranking.yaml_generators import (
+from model_ranking import add_device_to_config
+from model_ranking import (
     get_model_path,
 )
 from pytorch3dunet.augment.transforms import (

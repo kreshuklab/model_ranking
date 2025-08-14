@@ -3,10 +3,10 @@ from numpy.typing import NDArray
 import torch
 
 from model_ranking.datasets import calculate_global_stats
-from model_ranking.utils import load_h5
+from model_ranking import load_h5
 
-# from model_ranking.supervised_training import get_supervised_loader
-from model_ranking.self_training import get_DummySelfTraining_loader
+# from model_ranking import get_supervised_loader
+from model_ranking import get_DummySelfTraining_loader
 
 """
 data_supervised_cfg: Dict[str, Any] = {
@@ -80,7 +80,7 @@ loader = get_DummySelfTraining_loader(
 # print(f"Raw1_label shape: {raw1_label.shape}, raw2 shape: {raw2.shape}")
 
 from model_ranking.datasets import get_loaders
-from model_ranking.dataclass import (
+from model_ranking import (
     # EPFLTargetConfig,
     # HmitoTargetConfig,
     VNCTargetConfig,

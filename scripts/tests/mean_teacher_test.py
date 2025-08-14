@@ -1,6 +1,6 @@
 from typing import Dict, List, Any
 
-from model_ranking.dataclass import (
+from model_ranking import (
     InputConsisPseudoLabelerConfig,
     SemanticSegmentationConfig,
     Pytorch3DUnetModelConfig,
@@ -8,7 +8,7 @@ from model_ranking.dataclass import (
     # consistency_metric_type,
     # ModelConsisPseudoLabelerConfig,
 )
-from model_ranking.mean_teacher import run_mean_teacher
+from model_ranking import run_mean_teacher
 
 output_path = "/g/kreshuk/talks/model_ranking/tests/mean_teacher2"
 unsupervised_train_paths = [

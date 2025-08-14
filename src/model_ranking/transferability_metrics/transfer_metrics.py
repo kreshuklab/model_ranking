@@ -5,24 +5,26 @@ import os
 from numpy.typing import NDArray
 from typing import Any, Optional
 
-from model_ranking.GBC import bhattacharyya_coefficient
-from model_ranking.hscore import h_score, regularized_h_score
-from model_ranking.leep import (
+from model_ranking.transferability_metrics import (
+    bhattacharyya_coefficient,
+    h_score,
+    regularized_h_score,
     log_expected_empirical_prediction,
     gaussian_log_expected_empirical_prediction,
+    log_maximum_evidence,
+    NCTI_Score,
+    process_NCTI_scores,
 )
-from model_ranking.logme import log_maximum_evidence
-from model_ranking.NCTI import NCTI_Score, process_NCTI_scores
 from model_ranking.feature_ranking import get_precomputed_feature_path
+from model_ranking.utils import load_h5
 from model_ranking.plots import plot_performance_vs_transfer_metric
 from model_ranking.results import (
     get_NA_prediction_path,
     save_transfer_metric_results,
 )
-from model_ranking.utils import load_h5
 from model_ranking.dataclass import (
     TransferabilityMetricConfig,
-    transferability_metrics,
+    transferability_metric_names,
 )
 from model_ranking.correlation import (
     to_target_transfer_correlations,
@@ -30,7 +32,7 @@ from model_ranking.correlation import (
 
 
 def calculate_transfer_metric(  # pyright: ignore
-    metric_name: transferability_metrics,
+    metric_name: transferability_metric_names,
     features: Optional[NDArray[Any]],
     labels: NDArray[Any],
     predictions: Optional[NDArray[Any]],

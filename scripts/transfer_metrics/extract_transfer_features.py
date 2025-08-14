@@ -1,8 +1,8 @@
 import typer
 from typing import Annotated
 
-from model_ranking.dataclass import TransferFeatureExtractionConfig
-from model_ranking.feature_ranking import TransferFeatureExtraction
+from model_ranking import TransferFeatureExtractionConfig
+from model_ranking import TransferFeatureExtraction
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
