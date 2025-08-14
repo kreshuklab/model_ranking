@@ -2,7 +2,7 @@ import typer
 from typing import Annotated
 
 
-from batch_predict_checkpoints import batch_predict_checkpoints
+from scripts.finetuning.batch_predict_checkpoints import batch_predict_checkpoints
 
 from model_ranking.config import copy_config
 from model_ranking.supervised_training import run_supervised_training

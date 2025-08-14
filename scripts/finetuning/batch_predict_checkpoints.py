@@ -8,7 +8,7 @@ from model_ranking.dataclass import (
     MetaConfig,
 )
 from model_ranking.yaml_generators import generate_run_yamls
-from predict_eval import predict_eval
+from scripts.prediction_consistency.predict_eval import predict_eval
 
 
 def batch_predict_checkpoints(
