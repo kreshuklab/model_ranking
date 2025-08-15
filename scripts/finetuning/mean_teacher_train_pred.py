@@ -5,7 +5,7 @@ from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from scripts.finetuning.batch_predict_checkpoints import batch_predict_checkpoints
+from model_ranking import batch_predict_checkpoints
 from model_ranking import (
     MetaConfig,
     MeanTeacherConfig,
