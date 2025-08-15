@@ -184,6 +184,8 @@ MODEL_ABBREVIATIONS_TO_DATASET = {
     "Hm": "Hmito",
     "Rm": "Rmito",
     "V": "VNC",
+    "H": "Hmito",
+    "R": "Rmito",
 }
 
 FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
