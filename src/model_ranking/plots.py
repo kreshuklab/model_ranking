@@ -506,8 +506,10 @@ def plot_transfer_performance_heatmap(
 def plot_performance_vs_transfer_metric(
     performance_scores: Dict[str, float],
     transfer_metrics: Dict[str, float],
+    target: str,
     metric_name: str = "GBC",
     save_path: Optional[str] = None,
+    show_plot: bool = True,
 ):
     """
     Plots a scatter plot of performance (F1 score) vs transfer metric for each model.
@@ -528,18 +530,74 @@ def plot_performance_vs_transfer_metric(
             y.append(performance_scores[model])
             labels.append(model)
 
-    _ = plt.figure(figsize=(8, 6))
+    f = plt.figure(figsize=(8, 6))
     for i, model in enumerate(labels):
         _ = plt.scatter(x[i], y[i], color=colors(i), label=model, s=80)
 
     _ = plt.xlabel(f"{metric_name} Score")
     _ = plt.ylabel("F1 Score")
-    _ = plt.title(f"Performance (F1) vs {metric_name} Score per Model")
+    _ = plt.title(f"{target}: Performance (F1) vs {metric_name} Score per Model")
     _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.grid()
-    plt.show()
+    if show_plot:
+        plt.show()
 
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
         print(f"Plot saved to {save_path}")
+    return f
+
+
+def plot_performance_vs_consistency_per_perturbation_strength(
+    consistency_scores: Dict[str, Dict[str, float]],
+    performance_scores: Dict[str, Dict[str, float]],
+    aug: str,
+):
+    # Create a 2x2 subplot figure for this augmentation
+    _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
+        2, 2, figsize=(16, 12)
+    )
+    axes = axes.flatten()  # pyright: ignore
+
+    targets = list(consistency_scores.keys())
+    print(f"Processing augmentation: {aug}")
+    print(f"Number of targets: {len(targets)}")
+
+    for i, (target, scores_per_model) in enumerate(consistency_scores.items()):
+        if i >= 4:  # Only plot the first 4 targets
+            break
+
+        print(f"  Target {i+1}: {target}")
+
+        # Get the data for plotting
+        model_names = list(performance_scores[target].keys())
+        x: List[float] = []
+        y: List[float] = []
+        labels: List[str] = []
+
+        for model in model_names:
+            if model in scores_per_model:
+                x.append(scores_per_model[model])
+                y.append(performance_scores[target][model])
+                labels.append(model)
+
+        # Plot on the specific subplot
+        colors = plt.get_cmap("tab20", len(labels))
+        for j, model in enumerate(labels):
+            axes[i].scatter(x[j], y[j], color=colors(j), label=model, s=80)
+
+        axes[i].set_xlabel(f"Gauss {aug} Consistency")
+        axes[i].set_ylabel("F1 Score")
+        axes[i].set_title(f"{target}: Performance vs Consistency")
+        axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
+        axes[i].grid()
+
+    # Hide any unused subplots
+    for i in range(len(targets), 4):
+        axes[i].set_visible(False)
+
+    # Adjust layout and show
+    _ = plt.suptitle(f"Performance vs Consistency - Augmentation: {aug}", fontsize=16)
+    plt.tight_layout()
+    plt.show()
