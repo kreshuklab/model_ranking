@@ -771,3 +771,57 @@ def find_transferability_results_path(
         base_path = Path(base_path)
     path = base_path / f"{data_task}_{transfer_metric}.json"
     return path
+
+
+def match_model_names(
+    consistency_scores: Dict[str, Dict[str, float]],
+    performance_scores: Dict[str, Dict[str, float]],
+) -> Dict[str, Dict[str, float]]:
+    """
+    Match and translate consistency_scores model names to performance_scores model names.
+    Only keeps models that have matches in performance_scores.
+
+    Args:
+        consistency_scores: Dict with structure {target: {source_model: score}}
+        performance_scores: Dict with structure {target: {full_model_name: score}}
+
+    Returns:
+        Dict with same structure as consistency_scores but with model names matching performance_scores.
+        Only includes models that have matches - unmatched models are removed.
+    """
+    translated_scores: Dict[str, Dict[str, float]] = {}
+
+    for target, consis_models in consistency_scores.items():
+        if target not in performance_scores:
+            print(
+                f"Warning: Target '{target}' not found in performance_scores - skipping"
+            )
+            continue
+
+        translated_scores[target] = {}
+        perf_models = performance_scores[target]
+
+        for consis_model, score in consis_models.items():
+            # Find matching performance model name that contains the consistency model name
+            matched_models: List[str] = []
+            for perf_model in perf_models.keys():
+                if consis_model in perf_model:
+                    matched_models.append(perf_model)
+
+            if len(matched_models) == 1:
+                # Exact match found - add to translated scores
+                translated_scores[target][matched_models[0]] = score
+            elif len(matched_models) > 1:
+                # Multiple matches - take the first match and warn
+                print(
+                    f"Warning: Multiple matches found for '{consis_model}' in target '{target}': {matched_models}"
+                )
+                print(f"  Using first match: {matched_models[0]}")
+                translated_scores[target][matched_models[0]] = score
+            else:
+                # No match found - skip this model (don't add to translated_scores)
+                print(
+                    f"Info: No match found for consistency model '{consis_model}' in target '{target}' - removing from result"
+                )
+
+    return translated_scores
