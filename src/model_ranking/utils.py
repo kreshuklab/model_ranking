@@ -397,8 +397,10 @@ def find_finetuning_result_paths(
     return paths
 
 
-def identify_transfer(path: Path) -> Optional[str]:
-    match = re.search(r"[^/]*_to_[^/]*_gap", str(path))
+def identify_transfer(path: Union[Path, str]) -> Optional[str]:
+    if isinstance(path, Path):
+        path = str(path)
+    match = re.search(r"[^/]*_to_[^/]*_gap", path)
     return match.group(0) if match else None
 
 
