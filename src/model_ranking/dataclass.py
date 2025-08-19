@@ -838,7 +838,9 @@ feature_perturbation_type = Optional[
 
 
 class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
-    name: str
+    name: Literal[
+        "UNet2D", "UNet2d_as3d", "ResidualUNet2D", "ResidualUNet2D_as_3D", "UNet3D"
+    ]
     in_channels: int
     out_channels: int
     layer_order: str
@@ -849,7 +851,7 @@ class Pytorch3DUnetModelMetaConfig(BaseModel, frozen=True):
 
 
 class UnetrModelMetaConfig(BaseModel, frozen=True):
-    name: str
+    name: Literal["UnetrWrapper"]
     in_channels: int
     out_channels: int
     img_size: Union[Sequence[int], int]
@@ -3690,7 +3692,9 @@ class SelfTrainingDataConfig(BaseModel):
 
 
 class SelfTrainingModelConfig(BaseModel):
-    model: Pytorch3DUnetModelConfig
+    model: Annotated[
+        Union[Pytorch3DUnetModelConfig, UnetrModelConfig], Discriminator("name")
+    ]
     source_checkpoint: Optional[Union[str, Path]]
 
 
