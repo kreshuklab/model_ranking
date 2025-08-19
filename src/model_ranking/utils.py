@@ -17,6 +17,16 @@ from pytorch3dunet.datasets.utils import (
     get_class,  # pyright: ignore[reportUnknownVariableType]
 )
 
+MODEL_ABBREVIATIONS_TO_DATASET = {
+    #### Mitochondria
+    "E": "EPFL",
+    "Hm": "Hmito",
+    "Rm": "Rmito",
+    "V": "VNC",
+    "H": "Hmito",
+    "R": "Rmito",
+}
+
 
 def loader_classes(class_name: str):
     modules = [
@@ -456,3 +466,14 @@ def resize_data_label_pair(
             z_slice_label, (resized_shape[1], resized_shape[2]), order=0
         )
     return resized_volume, resized_label
+
+
+def get_source_from_model_name(model_name: str) -> str:
+    """
+    Extract the source dataset from the model name.
+    Assumes the model name is in the format 'source_to_target_gap'.
+    """
+    model_identifier = model_name.split("_")[0]
+    if "to" in model_identifier:
+        model_identifier = model_identifier[0]
+    return MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]

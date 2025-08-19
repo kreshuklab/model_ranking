@@ -28,10 +28,10 @@ from model_ranking.utils import (
     is_ndarray,
     is_torch_tensor,
     loader_classes,
+    get_source_from_model_name,
 )
 from model_ranking.yaml_generators import (
     get_model_path,
-    MODEL_ABBREVIATIONS_TO_DATASET,
 )
 
 per_layer_feature_type = Dict[str, NDArray[Any]]
@@ -730,11 +730,14 @@ class TransferFeatureExtraction:
 
 
 def get_precomputed_feature_path(
-    model_name: str, target: str, base_path: Union[str, Path], filetype: str = "h5"
+    model_name: str,
+    target: str,
+    base_path: Union[str, Path],
+    filetype: str = "h5",
 ):
     if isinstance(base_path, str):
         base_path = Path(base_path)
-    source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
+    source = get_source_from_model_name(model_name)
     paths = list(
         base_path.rglob(
             f"{source}_to_{target}/**/{model_name}_to_{target}_features.{filetype}"
