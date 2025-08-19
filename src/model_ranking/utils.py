@@ -2,6 +2,7 @@ import os
 import fnmatch
 from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union, Dict
 from pathlib import Path
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
@@ -10,6 +11,7 @@ from h5py import File  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import re
 import torch
+from skimage.transform import resize  # pyright: ignore[reportUnknownVariableType]
 
 from pytorch3dunet.datasets.utils import (
     get_class,  # pyright: ignore[reportUnknownVariableType]
@@ -422,3 +424,35 @@ def find_selftraining_pred_paths(
         assert len(path) == 1, f"Found {len(path)} paths for {model} in {base_path}"
         paths.append(path[0])
     return paths
+
+
+def xy_resize_scaling(source: str, target: str) -> float:
+    dataset_xy_pixel_size_nm: Dict[str, Union[int, float]] = {
+        "epfl": 5,
+        "mitoEM": 8,
+        "VNC": 4.6,
+    }
+    xy_scaling = dataset_xy_pixel_size_nm[target] / dataset_xy_pixel_size_nm[source]
+    return xy_scaling
+
+
+def resize_data_label_pair(
+    data: NDArray[Any], label: NDArray[Any], xy_scale: float, raw_order: int = 3
+):
+    resized_shape = (
+        data.shape[0],
+        int(np.round(data.shape[1] * xy_scale)),
+        int(np.round(data.shape[2] * xy_scale)),
+    )
+    resized_volume = np.zeros(resized_shape, dtype=np.float32)
+    resized_label = np.zeros(resized_shape, dtype=np.uint8)
+    for z, (z_slice, z_slice_label) in enumerate(
+        tqdm(zip(data, label), desc=f"resize per z-slice")
+    ):
+        resized_volume[z] = resize(
+            z_slice, (resized_shape[1], resized_shape[2]), order=raw_order
+        )
+        resized_label[z] = resize(
+            z_slice_label, (resized_shape[1], resized_shape[2]), order=0
+        )
+    return resized_volume, resized_label
