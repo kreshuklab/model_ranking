@@ -42,11 +42,9 @@ def log_maximum_evidence(  # pyright: ignore
         C = y.shape[1]
         for i in range(C):
             y_ = y[:, i]
-            evidence, weight = (  # pyright: ignore[reportUnknownVariableType]
-                each_evidence(y_, f, fh, v, s, vh, N, D)
-            )
-            evidences.append(evidence)  # pyright: ignore[reportUnknownArgumentType]
-            weights.append(weight)  # pyright: ignore[reportUnknownArgumentType]
+            evidence, weight = each_evidence(y_, f, fh, v, s, vh, N, D)
+            evidences.append(evidence)
+            weights.append(weight)
     else:
         C = int(y.max() + 1)  # pyright: ignore
         for i in range(C):
