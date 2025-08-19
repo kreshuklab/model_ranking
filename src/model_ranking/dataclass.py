@@ -3770,9 +3770,24 @@ class TransferFeatureExtractionConfig(BaseModel):
 
 class PrecomputedPerformanceConfig(BaseModel):
     base_path: str
+    key: str
+
+
+class PrecomputedDirectPerformanceConfig(PrecomputedPerformanceConfig):
+    name: Literal["direct_performance"]
     approach: Literal["consistency", "feature_perturbation_consistency"]
     run_id: str
-    key: str
+
+
+class PrecomputedFinetunedPerformanceConfig(PrecomputedPerformanceConfig):
+    name: Literal["finetuned_performance"]
+    finetuning_approach: Literal[
+        "confidence_threshold",
+        "direct_eval",
+        "feature_perturbation",
+        "default_selftraining",
+    ]
+    result_type: Literal["predictions", "checkpoints"]
 
 
 class PrecomputedFeatureConfig(BaseModel):
@@ -3790,8 +3805,13 @@ class TransferabilitySaveConfig(BaseModel):
 
 class TransferabilityMetricConfig(BaseModel):
     targets: Sequence[str]
-    source_models: Sequence[str]
+    source_models: Dict[str, str]
     feature_config: PrecomputedFeatureConfig
-    performance_config: PrecomputedPerformanceConfig
-    transferability_metric: transferability_metric_names
+    performance_config: Annotated[
+        Union[
+            PrecomputedDirectPerformanceConfig, PrecomputedFinetunedPerformanceConfig
+        ],
+        Discriminator("name"),
+    ]
+    transferability_metrics: Sequence[transferability_metric_names]
     output_config: TransferabilitySaveConfig

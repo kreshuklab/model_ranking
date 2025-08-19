@@ -16,11 +16,12 @@ from model_ranking.transferability_metrics import (
     process_NCTI_scores,
 )
 from model_ranking.feature_ranking import get_precomputed_feature_path
-from model_ranking.utils import load_h5
+from model_ranking.utils import load_h5, get_source_from_model_name
 from model_ranking.plots import plot_performance_vs_transfer_metric
 from model_ranking.results import (
     get_NA_prediction_path,
     save_transfer_metric_results,
+    get_finetuned_result_path,
 )
 from model_ranking.dataclass import (
     TransferabilityMetricConfig,
@@ -79,148 +80,162 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
     feature_cfg = config.feature_config
     performance_cfg = config.performance_config
     output_cfg = config.output_config
-    transfer_metric_per_target: Dict[str, Dict[str, float]] = {}
+    transfer_metric_results: Dict[str, Dict[str, Dict[str, float]]] = {}
     performance_per_target: Dict[str, Dict[str, float]] = {}
-    feature_ids = list(feature_cfg.layer_keys.keys())
-    component_scores_per_target: Dict[str, Dict[str, Dict[str, float]]] = {}
-    for target in config.targets:
-        print(f"Processing target: {target}")
-        performance_per_model: Dict[str, Any] = {}
-        transfer_metric_per_model: Union[
-            Dict[str, float], Dict[str, Tuple[float, float, float]]
-        ] = {}
-        for model_name in tqdm(config.source_models):
-            if ("V" in model_name) and (target == "VNC"):
-                continue
-            else:
-                model_identifier = model_name.split("_")[-1][:-1]
-                if model_identifier in feature_ids:
-                    key = feature_cfg.layer_keys[model_identifier]
+    for transferability_metric in config.transferability_metrics:
+        print(f"Calculating transferability metric: {transferability_metric}")
+        transfer_metric_per_target: Dict[str, Dict[str, float]] = {}
+        feature_ids = list(feature_cfg.layer_keys.keys())
+        component_scores_per_target: Dict[str, Dict[str, Dict[str, float]]] = {}
+        for target in config.targets:
+            print(f"Processing target: {target}")
+            performance_per_model: Dict[str, Any] = {}
+            transfer_metric_per_model: Union[
+                Dict[str, float], Dict[str, Tuple[float, float, float]]
+            ] = {}
+            for model_name, epoch in tqdm(config.source_models.items()):
+                source = get_source_from_model_name(model_name)
+                if (source == "VNC") and (target == "VNC"):
+                    continue
                 else:
-                    key = "decoders.2"
+                    model_identifier = model_name.split("_")[-1][:-1]
+                    if model_identifier in feature_ids:
+                        key = feature_cfg.layer_keys[model_identifier]
+                    else:
+                        key = "decoders.2"
 
-                feature_path = get_precomputed_feature_path(
-                    model_name,
-                    target,
-                    feature_cfg.base_path,
-                    filetype=feature_cfg.file_type,
-                )
-                if str(config.transferability_metric) not in ["LEEP"]:
-                    features = load_h5(feature_path, f"{key}_features")
-                    predictions = None
-                else:
-                    features = None
-                    predictions = load_h5(feature_path, f"{key}_predictions")
-                    # Threshold predictions
-                    # predictions = (predictions > performance_cfg.threshold).astype(int)
-
-                labels = load_h5(feature_path, f"{key}_labels")
-
-                performance_path = get_NA_prediction_path(
-                    model_name,
-                    target,
-                    performance_cfg.base_path,
-                    approach=performance_cfg.approach,
-                    run_id=performance_cfg.run_id,
-                )
-
-                performance_score = load_h5(performance_path, performance_cfg.key)
-
-                performance_per_model[model_name] = np.median(performance_score[:, 1])
-
-                non_zero_patch_ids = np.where(~np.all(labels == 0, axis=1))[0]
-
-                assert (
-                    features is not None or predictions is not None
-                ), "Either features or predictions must be provided for transferability metric calculation."
-
-                if features is not None:
-                    features = features[non_zero_patch_ids]
-                    features_flat = features.reshape(-1, features.shape[-1])
-                    predictions_flat = None
-                else:
-                    assert predictions is not None, "Predictions must be provided."
-                    predictions = predictions[non_zero_patch_ids]
-                    predictions_flat = predictions.reshape(-1)  # Shape: (n * 1000,)
-                    predictions_flat = np.column_stack(
-                        [1 - predictions_flat, predictions_flat]
+                    feature_path = get_precomputed_feature_path(
+                        model_name,
+                        target,
+                        feature_cfg.base_path,
+                        filetype=feature_cfg.file_type,
                     )
-                    features_flat = None
+                    if str(transferability_metric) not in ["LEEP"]:
+                        features = load_h5(feature_path, f"{key}_features")
+                        predictions = None
+                    else:
+                        features = None
+                        predictions = load_h5(feature_path, f"{key}_predictions")
+                        # Threshold predictions
+                        # predictions = (predictions > performance_cfg.threshold).astype(int)
 
-                labels = labels[non_zero_patch_ids]
+                    labels = load_h5(feature_path, f"{key}_labels")
 
-                labels_flat = labels.reshape(-1).astype(int)
+                    if performance_cfg.name == "direct_performance":
+                        performance_path = get_NA_prediction_path(
+                            model_name,
+                            target,
+                            performance_cfg.base_path,
+                            approach=performance_cfg.approach,
+                            run_id=performance_cfg.run_id,
+                        )
+                    else:
+                        performance_path = get_finetuned_result_path(
+                            model_name,
+                            finetuning_approach=performance_cfg.finetuning_approach,
+                            epoch=epoch,
+                            base_path=performance_cfg.base_path,
+                            result_type=performance_cfg.result_type,
+                        )
 
-                transfer_metric = calculate_transfer_metric(  # pyright: ignore[reportUnknownVariableType]
-                    metric_name=config.transferability_metric,
-                    features=features_flat,
-                    predictions=predictions_flat,
-                    labels=labels_flat,
-                    n_PCA_components=feature_cfg.n_PCA_components,
+                    performance_score = load_h5(performance_path, performance_cfg.key)
+
+                    performance_per_model[model_name] = np.median(
+                        performance_score[:, 1]
+                    )
+
+                    non_zero_patch_ids = np.where(~np.all(labels == 0, axis=1))[0]
+
+                    assert (
+                        features is not None or predictions is not None
+                    ), "Either features or predictions must be provided for transferability metric calculation."
+
+                    if features is not None:
+                        features = features[non_zero_patch_ids]
+                        features_flat = features.reshape(-1, features.shape[-1])
+                        predictions_flat = None
+                    else:
+                        assert predictions is not None, "Predictions must be provided."
+                        predictions = predictions[non_zero_patch_ids]
+                        predictions_flat = predictions.reshape(-1)  # Shape: (n * 1000,)
+                        predictions_flat = np.column_stack(
+                            [1 - predictions_flat, predictions_flat]
+                        )
+                        features_flat = None
+
+                    labels = labels[non_zero_patch_ids]
+
+                    labels_flat = labels.reshape(-1).astype(int)
+
+                    transfer_metric = calculate_transfer_metric(  # pyright: ignore[reportUnknownVariableType]
+                        metric_name=transferability_metric,
+                        features=features_flat,
+                        predictions=predictions_flat,
+                        labels=labels_flat,
+                        n_PCA_components=feature_cfg.n_PCA_components,
+                    )
+                    transfer_metric_per_model[model_name] = (  # pyright: ignore
+                        transfer_metric
+                    )
+
+            if transferability_metric == "NCTI":
+                # Ensure transfer_metric_per_model is not a Dict[str, float] before unpacking
+                transfer_metric_per_model, seli_scores, ncc_scores, vc_scores = (
+                    process_NCTI_scores(
+                        transfer_metric_per_model  # pyright: ignore[reportArgumentType]
+                    )
                 )
-                transfer_metric_per_model[model_name] = (  # pyright: ignore
-                    transfer_metric
+
+                component_scores_per_target[target] = {
+                    "SELI": seli_scores,
+                    "NCC": ncc_scores,
+                    "VC": vc_scores,
+                }
+
+            transfer_metric_per_target[target] = transfer_metric_per_model
+            performance_per_target[target] = performance_per_model
+            if output_cfg.save_plot:
+                assert (
+                    output_cfg.save_base_path is not None
+                ), "Save base path must be provided for plotting."
+                assert (
+                    output_cfg.save_name is not None
+                ), "Save name must be provided for plotting."
+                save_path = f"{output_cfg.save_base_path}/figs/{target}_{output_cfg.save_name}.png"
+                os.makedirs(output_cfg.save_base_path, exist_ok=True)
+                _ = plot_performance_vs_transfer_metric(
+                    performance_per_model,
+                    transfer_metric_per_model,
+                    target=target,
+                    metric_name=transferability_metric,
+                    save_path=save_path,
                 )
 
-        if config.transferability_metric == "NCTI":
-            # Ensure transfer_metric_per_model is not a Dict[str, float] before unpacking
-            transfer_metric_per_model, seli_scores, ncc_scores, vc_scores = (
-                process_NCTI_scores(
-                    transfer_metric_per_model  # pyright: ignore[reportArgumentType]
-                )
+        correlation_scores: Dict[str, NDArray[Any]] = {}
+
+        correlation_scores["KT"], correlation_scores["SP"], correlation_scores["PE"] = (
+            to_target_transfer_correlations(
+                config.targets,
+                transfer_metric_per_target,
+                performance_per_target,
             )
+        )
 
-            component_scores_per_target[target] = {
-                "SELI": seli_scores,
-                "NCC": ncc_scores,
-                "VC": vc_scores,
-            }
-
-        transfer_metric_per_target[target] = transfer_metric_per_model
-        performance_per_target[target] = performance_per_model
-        if output_cfg.save_plot:
-            assert (
-                output_cfg.save_base_path is not None
-            ), "Save base path must be provided for plotting."
-            assert (
-                output_cfg.save_name is not None
-            ), "Save name must be provided for plotting."
-            save_path = (
-                f"{output_cfg.save_base_path}/figs/{target}_{output_cfg.save_name}.png"
-            )
+        if output_cfg.save_base_path is not None:
+            assert output_cfg.save_name is not None, "Save name must be provided."
             os.makedirs(output_cfg.save_base_path, exist_ok=True)
-            plot_performance_vs_transfer_metric(
-                performance_per_model,
-                transfer_metric_per_model,
-                metric_name=config.transferability_metric,
-                save_path=save_path,
+
+            if len(component_scores_per_target) > 0:
+                cmp_scores_per_target = component_scores_per_target
+            else:
+                cmp_scores_per_target = None
+
+            save_transfer_metric_results(
+                transfer_metric_per_target,
+                performance_per_target,
+                correlation_scores=correlation_scores,
+                save_dir=output_cfg.save_base_path,
+                experiment_name=f"{output_cfg.save_name}_{transferability_metric}",
+                component_transfer_scores_per_target=cmp_scores_per_target,
             )
-
-    correlation_scores: Dict[str, NDArray[Any]] = {}
-
-    correlation_scores["KT"], correlation_scores["SP"], correlation_scores["PE"] = (
-        to_target_transfer_correlations(
-            config.targets,
-            transfer_metric_per_target,
-            performance_per_target,
-        )
-    )
-
-    if output_cfg.save_base_path is not None:
-        assert output_cfg.save_name is not None, "Save name must be provided."
-        os.makedirs(output_cfg.save_base_path, exist_ok=True)
-
-        if len(component_scores_per_target) > 0:
-            cmp_scores_per_target = component_scores_per_target
-        else:
-            cmp_scores_per_target = None
-
-        save_transfer_metric_results(
-            transfer_metric_per_target,
-            performance_per_target,
-            correlation_scores=correlation_scores,
-            save_dir=output_cfg.save_base_path,
-            experiment_name=output_cfg.save_name,
-            component_transfer_scores_per_target=cmp_scores_per_target,
-        )
-    return transfer_metric_per_target, performance_per_target
+    return transfer_metric_results, performance_per_target
