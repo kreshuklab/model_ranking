@@ -1,4 +1,15 @@
-from typing import Dict, List, Mapping, Optional, Union, Any, Sequence, Tuple, Set
+from typing import (
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Union,
+    Any,
+    Sequence,
+    Tuple,
+    Set,
+)
 from pathlib import Path
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
@@ -548,7 +559,9 @@ def get_NA_performance_score(
     target: str,
     base_path: Union[str, Path],
     performance_key: str = "hard_f1",
-    approach: str = "consistency",
+    approach: Literal[
+        "consistency", "feature_perturbation_consistency"
+    ] = "consistency",
     run_id: str = "P_full",
 ):
     path = get_NA_prediction_path(
@@ -566,7 +579,9 @@ def get_NA_prediction_path(
     model_name: str,
     target: str,
     base_path: Union[str, Path],
-    approach: str = "consistency",
+    approach: Literal[
+        "consistency", "feature_perturbation_consistency"
+    ] = "consistency",
     run_id: str = "P_full",
 ):
     if isinstance(base_path, str):
@@ -581,6 +596,43 @@ def get_NA_prediction_path(
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
     return paths[0]
+
+
+def get_finetuned_result_path(
+    model_name: str,
+    finetuning_approach: Literal[
+        "confidence_threshold",
+        "direct_eval",
+        "feature_perturbation",
+        "default_selftraining",
+    ],
+    epoch: str,
+    base_path: Union[str, Path],
+    result_type: Literal["predictions", "checkpoints"] = "predictions",
+):
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+    transfer = model_name.split("_")[0]
+    source = MODEL_ABBREVIATIONS_TO_DATASET[transfer[0]]
+    target = MODEL_ABBREVIATIONS_TO_DATASET[transfer[-1]]
+    transfer = f"{source}_to_{target}_gap"
+    results_dir_paths = list(
+        base_path.rglob(
+            f"{transfer}/{finetuning_approach}/{result_type}/{model_name}/{epoch}"
+        )
+    )
+    assert (
+        len(results_dir_paths) == 1
+    ), f"Expected exactly one path for {model_name}, found {len(results_dir_paths)}"
+    if result_type == "predictions":
+        path = list(results_dir_paths[0].glob("predictions/*predictions.h5"))
+        assert (
+            len(path) == 1
+        ), f"Expected exactly one predictions file, found {len(path)}"
+        path = path[0]
+    else:
+        path = results_dir_paths[0] / f"{epoch}.pt"
+    return path
 
 
 # Convert numpy types to Python native types for JSON serialization
