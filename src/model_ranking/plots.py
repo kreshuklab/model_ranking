@@ -554,6 +554,7 @@ def plot_performance_vs_transfer_metric_multi_target(
     performance_scores: Dict[str, Dict[str, float]],
     transfer_metric: str,
     figsize: Tuple[int, int] = (16, 12),
+    finetuned: bool = False,
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
@@ -599,6 +600,9 @@ def plot_performance_vs_transfer_metric_multi_target(
         axes[i].set_visible(False)
 
     # Adjust layout and show
-    _ = plt.suptitle(f"Performance vs {transfer_metric}", fontsize=16)
+    performance_title = "Performance"
+    if finetuned:
+        performance_title += " (Finetuned)"
+    _ = plt.suptitle(f"{performance_title} vs {transfer_metric}", fontsize=16)
     plt.tight_layout()
     plt.show()
