@@ -41,9 +41,9 @@ def calculate_transfer_metric(  # pyright: ignore
 ):
     if metric_name == "GBC":
         assert features is not None, "Features must be provided for GBC metric."
-        assert (
-            n_PCA_components is not None
-        ), "n_PCA_components must be provided for GBC metric."
+        # assert (
+        #     n_PCA_components is not None
+        # ), "n_PCA_components must be provided for GBC metric."
         return bhattacharyya_coefficient(
             features, labels, n_feature_components=n_PCA_components
         )
@@ -201,7 +201,7 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                 assert (
                     output_cfg.save_name is not None
                 ), "Save name must be provided for plotting."
-                save_path = f"{output_cfg.save_base_path}/figs/{target}_{output_cfg.save_name}.png"
+                save_path = f"{output_cfg.save_base_path}/figs/{target}_{output_cfg.save_name}_{transferability_metric}.png"
                 os.makedirs(output_cfg.save_base_path, exist_ok=True)
                 _ = plot_performance_vs_transfer_metric(
                     performance_per_model,
