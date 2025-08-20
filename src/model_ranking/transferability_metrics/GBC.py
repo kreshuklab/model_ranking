@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from sklearn.decomposition import PCA
-from typing import Dict, Any, Literal, List, Union
+from typing import Dict, Any, Literal, List, Optional, Union
 
 from model_ranking.utils import is_ndarray
 
@@ -61,7 +61,7 @@ def bhattacharyya_coefficient(
     features: NDArray[Any],
     target_labels: NDArray[Any],
     gaussian_type: Literal["diagonal", "spherical"] = "diagonal",
-    n_feature_components: int = 16,
+    n_feature_components: Optional[int] = 16,
 ):
     """Compute Gaussian Bhattacharyya Coefficient (GBC).
       Args:
@@ -75,21 +75,19 @@ def bhattacharyya_coefficient(
 
     assert gaussian_type in ("diagonal", "spherical")
 
-    n_components = min(n_feature_components, features.shape[1])
-    features_pca = PCA(  # pyright: ignore[reportUnknownVariableType]
-        n_components=n_components, random_state=42
-    ).fit_transform(features)
+    if n_feature_components:
+        n_components = min(n_feature_components, features.shape[1])
+        features = PCA(  # pyright: ignore[reportUnknownVariableType]
+            n_components=n_components, random_state=42
+        ).fit_transform(features)
 
-    assert is_ndarray(features_pca), f"Expected features_pca to be a numpy array"
+    assert is_ndarray(features), f"Expected features_pca to be a numpy array"
 
     unique_labels = np.unique(target_labels)
     unique_labels = list(unique_labels)
     per_class_stats = compute_per_class_mean_and_variance(
-        features_pca, target_labels, unique_labels
+        features, target_labels, unique_labels
     )
-    # per_class_stats = compute_per_class_mean_and_variance(
-    #     features, target_labels, unique_labels
-    # )
 
     per_class_bhattacharyya_distance: List[float] = []
     for c1 in unique_labels:
