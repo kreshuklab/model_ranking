@@ -9,11 +9,12 @@ def NCTI_Score(
     X: NDArray[Any], y: NDArray[Any], PCA_components: int = 16
 ) -> tuple[float, float, float]:
     C = np.unique(y).shape[0]
-    pca = PCA(n_components=PCA_components)
-    X = pca.fit_transform(X, y)  # pyright: ignore
 
+    n_components = min(PCA_components, X.shape[1])
+    pca = PCA(n_components=n_components)
+    X = pca.fit_transform(X, y)  # pyright: ignore
     temp = max(np.exp(-pca.explained_variance_[:32].sum()), 1e-10)
-    # print(pca.explained_variance_[:32].sum() / pca.explained_variance_.sum())
+    print(pca.explained_variance_[:32].sum() / pca.explained_variance_.sum())
 
     if temp == 1e-10:
         clf = LinearDiscriminantAnalysis(solver="svd")
