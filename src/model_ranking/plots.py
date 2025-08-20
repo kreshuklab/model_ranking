@@ -549,22 +549,23 @@ def plot_performance_vs_transfer_metric(
     return f
 
 
-def plot_performance_vs_consistency_per_perturbation_strength(
-    consistency_scores: Dict[str, Dict[str, float]],
+def plot_performance_vs_transfer_metric_multi_target(
+    transfer_scores: Dict[str, Dict[str, float]],
     performance_scores: Dict[str, Dict[str, float]],
-    aug: str,
+    transfer_metric: str,
+    figsize: Tuple[int, int] = (16, 12),
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
-        2, 2, figsize=(16, 12)
+        2, 2, figsize=figsize
     )
     axes = axes.flatten()  # pyright: ignore
 
-    targets = list(consistency_scores.keys())
-    print(f"Processing augmentation: {aug}")
+    targets = list(transfer_scores.keys())
+    print(f"Processing: {transfer_metric}")
     print(f"Number of targets: {len(targets)}")
 
-    for i, (target, scores_per_model) in enumerate(consistency_scores.items()):
+    for i, (target, scores_per_model) in enumerate(transfer_scores.items()):
         if i >= 4:  # Only plot the first 4 targets
             break
 
@@ -587,9 +588,9 @@ def plot_performance_vs_consistency_per_perturbation_strength(
         for j, model in enumerate(labels):
             axes[i].scatter(x[j], y[j], color=colors(j), label=model, s=80)
 
-        axes[i].set_xlabel(f"Gauss {aug} Consistency")
+        axes[i].set_xlabel(f"{transfer_metric}")
         axes[i].set_ylabel("F1 Score")
-        axes[i].set_title(f"{target}: Performance vs Consistency")
+        axes[i].set_title(f"{target}: Performance vs {transfer_metric}")
         axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
         axes[i].grid()
 
@@ -598,6 +599,6 @@ def plot_performance_vs_consistency_per_perturbation_strength(
         axes[i].set_visible(False)
 
     # Adjust layout and show
-    _ = plt.suptitle(f"Performance vs Consistency - Augmentation: {aug}", fontsize=16)
+    _ = plt.suptitle(f"Performance vs {transfer_metric}", fontsize=16)
     plt.tight_layout()
     plt.show()
