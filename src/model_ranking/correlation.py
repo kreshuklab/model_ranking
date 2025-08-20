@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.typing import NDArray
+import pandas as pd
 from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
     kendalltau,  # pyright: ignore[reportUnknownVariableType]
     spearmanr,  # pyright: ignore[reportUnknownVariableType]
@@ -196,3 +197,30 @@ def to_target_transfer_correlations(
             )
         )
     return per_target_KT, per_target_SP, per_target_PE
+
+
+def correlation_table(
+    KT_per_target: NDArray[Any],
+    SP_per_target: NDArray[Any],
+    PE_per_target: NDArray[Any],
+    targets: Sequence[str],
+    idx: int = 0,
+):
+    df = pd.DataFrame(
+        {
+            "kt": KT_per_target[:, idx, 0],
+            "kt pval": KT_per_target[:, idx, 1],
+            "s rho": SP_per_target[:, idx, 0],
+            "s rho pval": SP_per_target[:, idx, 1],
+            "pr": PE_per_target[:, idx, 0],
+            "pr pval": PE_per_target[:, idx, 1],
+        },
+    )
+    df["targets"] = targets
+    df = df.set_index("targets")
+    df.index = pd.MultiIndex.from_product(
+        [["Mito"], df.index], names=["Task", "targets"]
+    )
+    # Round all float columns to 2 significant figures
+    df = df.map(lambda x: round(x, 2) if isinstance(x, float) else x)  # pyright: ignore
+    return df
