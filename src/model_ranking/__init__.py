@@ -23,6 +23,9 @@ from .evaluation import *
 # Feature ranking and transfer learning
 from .feature_ranking import *
 
+# Feature analysis and visualization
+from .feature_analysis import *
+
 # Finetuning
 from .finetuning import *
 
