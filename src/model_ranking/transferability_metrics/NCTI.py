@@ -14,7 +14,7 @@ def NCTI_Score(
     pca = PCA(n_components=n_components)
     X = pca.fit_transform(X, y)  # pyright: ignore
     temp = max(np.exp(-pca.explained_variance_[:32].sum()), 1e-10)
-    print(pca.explained_variance_[:32].sum() / pca.explained_variance_.sum())
+    # print(pca.explained_variance_[:32].sum() / pca.explained_variance_.sum())
 
     if temp == 1e-10:
         clf = LinearDiscriminantAnalysis(solver="svd")
