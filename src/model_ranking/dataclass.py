@@ -2970,9 +2970,10 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = (
-        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
-    )
+    # feature_indices_path: Optional[str] = (
+    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
+    # )
+    feature_indices_path: Optional[str] = None
     # feature_indices_path: Optional[str] = (
     #     "/g/kreshuk/talks/model_ranking/notebooks/checks/EPFL_to_EPFL/E_model5_to_EPFL_features.npz"
     # )
@@ -3119,9 +3120,10 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = (
-        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
-    )
+    # feature_indices_path: Optional[str] = (
+    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
+    # )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3265,9 +3267,10 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = (
-        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
-    )
+    # feature_indices_path: Optional[str] = (
+    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
+    # )
+    feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
@@ -3424,9 +3427,10 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             halo_shape=(0, 0, 0),
         ),
     )
-    feature_indices_path: Optional[str] = (
-        "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
-    )
+    # feature_indices_path: Optional[str] = (
+    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
+    # )
+    feature_indices_path: Optional[str] = None
     # feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
@@ -3815,3 +3819,16 @@ class TransferabilityMetricConfig(BaseModel):
     ]
     transferability_metrics: Sequence[transferability_metric_names]
     output_config: TransferabilitySaveConfig
+
+
+class FSA_SaveConfig(BaseModel):
+    save_base_path: str
+    save_name: str
+
+
+class FeatureSpaceAnalysisConfig(BaseModel):
+    targets: Sequence[str]
+    source_models: Sequence[str]
+    feature_config: PrecomputedFeatureConfig
+    output_config: FSA_SaveConfig
+    max_samples: int
