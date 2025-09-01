@@ -15,6 +15,8 @@ from .correlation import *
 # Key data classes and configurations
 from .dataclass import *
 
+from .classification import *
+
 # Datasets
 from .datasets import *
 
