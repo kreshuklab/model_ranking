@@ -26,14 +26,16 @@ class ClassificationPatchPositionConfig(BaseModel):
     patch_pos_path: str
     patch_pos_key: str
     roi: Optional[Sequence[Sequence[int]]]
+    rnd_seed: Optional[int]
+    n_unique_patches: Optional[int]
 
 
-class TTAugmentationsConfig(BaseModel):
-    aug_rnd_seed: int
+class AugmentationsConfig(BaseModel):
+    aug_rnd_seed: Optional[int]
     transform_params: Optional[Sequence[Sequence[Any]]]
     raw_transform_params: Optional[Sequence[Sequence[Any]]]
     ndim: int
-    n_samples: int
+    n_samples: Optional[int]
 
 
 class ClassificationFilteredDatasetConfig(BaseModel):
@@ -43,16 +45,17 @@ class ClassificationFilteredDatasetConfig(BaseModel):
     mask_key: str
     patch_shape: Tuple[int, int, int]
     repeat_patches: bool
-    patch_rnd_seed: int
+    sample_patches: bool
+    patch_rnd_seed: Optional[int]
     mask_return_mode: bool
     patch_return_mode: bool
 
 
-class ClassificationTTALoaderConfig(BaseModel):
+class ClassificationLoaderConfig(BaseModel):
     patch_position: ClassificationPatchPositionConfig
-    TTAugmentations: Optional[TTAugmentationsConfig]
+    aug_config: Optional[AugmentationsConfig]
     dataset: ClassificationFilteredDatasetConfig
-    n_samples: int
+    n_samples: Optional[int]
     ndim: int
     batch_size: int
     shuffle: bool
