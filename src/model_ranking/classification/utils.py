@@ -61,4 +61,22 @@ def get_patch_positions(config: ClassificationPatchPositionConfig):
         roi = np.array(config.roi)
         select_ids = np.all((patch_pos >= roi[:, 0]) & (patch_pos <= roi[:, 1]), axis=1)
         patch_pos = patch_pos[select_ids]
+
+    if config.n_unique_patches:
+        if config.n_unique_patches > len(patch_pos):
+            print(
+                f"Warning: n_unique_patches ({config.n_unique_patches}) is greater than the"
+                + f" number of available patches ({len(patch_pos)}) taking full set."
+            )
+        else:
+            if config.rnd_seed is not None:
+                rng = np.random.default_rng(config.rnd_seed)
+                patch_pos = rng.choice(
+                    patch_pos, size=config.n_unique_patches, replace=False
+                )
+            else:
+                patch_pos = np.random.choice(
+                    patch_pos, size=config.n_unique_patches, replace=False
+                )
+    print(f"number of unique patches loaded: {len(patch_pos)}")
     return patch_pos
