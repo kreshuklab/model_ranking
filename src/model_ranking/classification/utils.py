@@ -4,6 +4,10 @@ import os
 import torch
 from typing import Any, Dict, List, Union
 
+from .dataclass import ClassificationPatchPositionConfig
+
+from model_ranking.utils import load_h5
+
 
 def merge_dicts(dicts: Union[List[Dict[Any, Any]], List[OrderedDict[str, Any]]]):
     if not dicts:
@@ -46,3 +50,15 @@ def load_checkpoint_resnet(
         new_state_dict[name] = v
     _ = model.load_state_dict(new_state_dict)
     return model
+
+
+def get_patch_positions(config: ClassificationPatchPositionConfig):
+    # Load classification patch positions from h5 file
+    patch_pos = load_h5(config.patch_pos_path, config.patch_pos_key)
+    # If region of interest of orginal data volume specified, only
+    # keep patches within this region
+    if config.roi is not None:
+        roi = np.array(config.roi)
+        select_ids = np.all((patch_pos >= roi[:, 0]) & (patch_pos <= roi[:, 1]), axis=1)
+        patch_pos = patch_pos[select_ids]
+    return patch_pos
