@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 from typing import Optional, Sequence, Any
 from torch.utils.data import DataLoader
 
-from model_ranking.datasets import ClassificationFilteredDataset
+from .datasets import ClassificationFilteredDataset
 from model_ranking.utils import load_h5, is_ndarray
 
 from torch_em.segmentation import get_data_loader  # pyright: ignore
