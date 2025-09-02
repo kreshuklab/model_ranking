@@ -1,6 +1,7 @@
 from elf.io import open_file  # pyright: ignore
 import numpy as np
 from numpy.typing import NDArray
+from pathlib import Path
 import torch
 from torch.utils.data import Dataset
 from torchvision.transforms import Compose  # pyright: ignore[reportMissingTypeStubs]
@@ -33,9 +34,9 @@ class ClassificationFilteredDataset(Dataset[Any]):
 
     def __init__(
         self,
-        raw_path: str,
+        raw_path: Union[str, Path],
         raw_key: str,
-        mask_path: str,
+        mask_path: Union[str, Path],
         mask_key: str,
         patch_shape: Sequence[int],
         patch_starts: NDArray[Any],
