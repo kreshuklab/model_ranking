@@ -45,6 +45,7 @@ class ClassificationFilteredDataset(Dataset[Any]):
         dtype: torch.dtype = torch.float32,
         n_samples: Optional[int] = None,
         repeat_patches: bool = False,
+        sample_patches: bool = True,
         ndim: Optional[int] = 2,
         random_seed: Optional[int] = None,
         mask_return: bool = False,
@@ -87,17 +88,15 @@ class ClassificationFilteredDataset(Dataset[Any]):
         ), f"{patch_shape}, {self._ndim}"
         self.patch_shape = patch_shape
         self.dtype = dtype
-        self.random_seed = random_seed
 
         self.raw_transform = raw_transform
         self.transform = transform
-        self.max_len = len(patch_starts)
         # self.TTA_alphas = TTA_alphas
 
-        self._len = self.max_len if n_samples is None else n_samples
+        self._len = len(patch_starts) if n_samples is None else n_samples
         self.sample_shape = patch_shape
         self.patch_start_positions = self.patch_start_sample(
-            patch_starts, self._len, self.random_seed, self.repeat_patches
+            patch_starts, self._len, random_seed, self.repeat_patches, sample_patches
         )
         assert len(self.patch_start_positions) == self._len
 
@@ -114,12 +113,16 @@ class ClassificationFilteredDataset(Dataset[Any]):
         num_samples: int,
         random_seed: Optional[int],
         repeat_patches: bool,
+        sample: bool,
     ):
-        if random_seed is None:
+        if sample == False:
             assert len(patch_positions) >= num_samples, "Not enough patches to sample"
             return patch_positions[:num_samples]
         else:
-            r = np.random.RandomState(random_seed)
+            if random_seed:
+                r = np.random.RandomState(random_seed)
+            else:
+                r = np.random.RandomState()
             return patch_positions[
                 r.choice(
                     patch_positions.shape[0],
