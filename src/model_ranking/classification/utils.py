@@ -27,12 +27,13 @@ def merge_dicts(dicts: Union[List[Dict[Any, Any]], List[OrderedDict[str, Any]]])
     return merged_dict
 
 
-def load_checkpoint_resnet18(
+def load_checkpoint_resnet(
     model_name: str,
     model: torch.nn.Module,
     path: str,
     location: str,
     ckpt: str = "best",
+    model_key: str = "resnet_18",
 ):
     # load model
     checkpoint_path = os.path.join(path, model_name, f"{ckpt}.pt")
@@ -41,7 +42,7 @@ def load_checkpoint_resnet18(
     checkpoint = torch.load(checkpoint_path, map_location=location)
     new_state_dict: OrderedDict[str, Any] = OrderedDict()
     for k, v in checkpoint["model_state"].items():
-        name = "resnet_18." + k
+        name = f"{model_key}." + k
         new_state_dict[name] = v
     _ = model.load_state_dict(new_state_dict)
     return model
