@@ -1,6 +1,8 @@
 from collections import OrderedDict
 import numpy as np
 import os
+from pathlib import Path
+import shutil
 import torch
 from typing import Any, Dict, List, Union
 
@@ -80,3 +82,8 @@ def get_patch_positions(config: ClassificationPatchPositionConfig):
                 )
     print(f"number of unique patches loaded: {len(patch_pos)}")
     return patch_pos
+
+
+def copy_classification_config(old_path: Union[str, Path], save_path: Union[str, Path]):
+    new_path = Path(save_path).parent / Path(old_path).name
+    _ = shutil.copy2(old_path, new_path)
