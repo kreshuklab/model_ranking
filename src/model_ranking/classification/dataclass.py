@@ -1,6 +1,6 @@
 from pathlib import Path
 from pydantic import BaseModel
-from typing import Any, List, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 
 class Conv1Config(BaseModel):
@@ -31,11 +31,9 @@ class ClassificationPatchPositionConfig(BaseModel):
 
 
 class AugmentationsConfig(BaseModel):
-    aug_rnd_seed: Optional[int]
-    transform_params: Optional[Sequence[Sequence[Any]]]
-    raw_transform_params: Optional[Sequence[Sequence[Any]]]
+    transform_params: Optional[Sequence[Dict[str, Any]]]
+    raw_transform_params: Optional[Sequence[Dict[str, Any]]]
     ndim: int
-    n_samples: Optional[int]
 
 
 class ClassificationFilteredDatasetConfig(BaseModel):
@@ -60,3 +58,13 @@ class ClassificationLoaderConfig(BaseModel):
     batch_size: int
     shuffle: bool
     num_workers: int
+
+
+class ClassificationOutputConfig(BaseModel):
+    save_dir_path: Union[str, Path]
+
+
+class ClassificationPredictConfig(BaseModel):
+    loader: ClassificationLoaderConfig
+    model: ClassificationModelConfig
+    output: ClassificationOutputConfig
