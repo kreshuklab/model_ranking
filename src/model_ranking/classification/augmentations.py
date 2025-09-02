@@ -8,7 +8,7 @@ from torch_em.transform.raw import (
 from typing import Any, Sequence
 
 
-from .dataclass import TTAugmentationsConfig
+from .dataclass import AugmentationsConfig
 
 AUGMENTATION_ABBREVIATIONS = {
     "None": "None",
@@ -23,9 +23,9 @@ AUGMENTATION_ABBREVIATIONS = {
 }
 
 
-def classification_raw_TTAs(
-    config: TTAugmentationsConfig, raw_transform: Sequence[Any]
-):
+def classification_raw_TTAs(config: AugmentationsConfig, raw_transform: Sequence[Any]):
+    assert config.n_samples is not None, "Number of samples must be specified"
+    assert config.aug_rnd_seed is not None, "Random seed must be specified"
     TTA_alphas = get_TTA_aug_alphas(
         raw_transform, config.n_samples, config.aug_rnd_seed
     )
@@ -34,7 +34,7 @@ def classification_raw_TTAs(
 
 
 def classification_geometric_TTAs(
-    config: TTAugmentationsConfig, transform: Sequence[Any]
+    config: AugmentationsConfig, transform: Sequence[Any]
 ):
     TT_transform = get_augmentations(config.ndim, transform)
     return TT_transform
