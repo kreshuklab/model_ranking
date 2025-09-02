@@ -1,14 +1,12 @@
 import numpy as np
 from numpy.typing import NDArray
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, List, Union
+from typing import Any, Callable, Dict, Optional, Sequence, List, Union, Tuple
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
 import h5py  # pyright: ignore[reportMissingTypeStubs]
 
-from CCFV.utils.sliding_window_sampling import (  # pyright: ignore[reportMissingTypeStubs]
-    FeatureExtractor,
-)
 from tqdm import tqdm
 
 from pytorch3dunet.unet3d.model import (
@@ -35,6 +33,48 @@ from model_ranking.yaml_generators import (
 )
 
 per_layer_feature_type = Dict[str, NDArray[Any]]
+
+
+class FeatureExtractor(nn.Module):
+    def __init__(self, model: nn.Module, layers: List[str]):
+        super().__init__()
+        self.model = model
+        self.layers = layers
+        self._features_input: Dict[str, torch.Tensor] = {
+            layer: torch.empty(0) for layer in layers
+        }
+        self._features_output: Dict[str, torch.Tensor] = {
+            layer: torch.empty(0) for layer in layers
+        }
+        self.handlers: Dict[str, torch.utils.hooks.RemovableHandle] = {}
+
+        for layer_id in layers:
+            modules_dict: Dict[str, nn.Module] = dict(
+                self.model.named_modules()  # pyright: ignore[reportUnknownArgumentType]
+            )
+            layer = modules_dict[layer_id]
+            self.handlers[layer_id] = layer.register_forward_hook(
+                self.save_outputs_hook(layer_id)
+            )
+
+    def save_outputs_hook(self, layer_id: str) -> Callable[..., None]:
+        def fn(module: nn.Module, input: Any, output: torch.Tensor) -> None:
+            self._features_input[layer_id] = input[0]
+            self._features_output[layer_id] = output
+
+        return fn
+
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor], torch.Tensor]:
+        pred = self.model(x)
+        features_output_copy = self._features_output.copy()
+        features_input_copy = self._features_input.copy()
+        return features_output_copy, features_input_copy, pred
+
+    def remove_handler(self) -> None:
+        for handler in self.handlers.values():
+            handler.remove()
 
 
 def sample_pixels(
