@@ -1,11 +1,10 @@
 from numpy.typing import NDArray
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Union
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose  # pyright: ignore[reportMissingTypeStubs]
 
 from .augmentations import (
     classification_geometric_TTAs,
-    classification_raw_TTAs,
     AUGMENTATION_ABBREVIATIONS,
 )
 from .datasets import ClassificationFilteredDataset
@@ -19,7 +18,8 @@ from torch_em.transform.augmentation import (
 )
 from torch_em.transform.raw import (
     normalize,  # pyright: ignore
-    get_raw_augmentations,  # pyright: ignore
+    get_raw_augmentations,
+    get_single_TTA_raw_augmentation,
 )
 
 
@@ -92,13 +92,10 @@ def classification_loader(
 
 def get_classification_TTA_loaders(
     config: ClassificationLoaderConfig,
-) -> Tuple[
-    Dict[str, DataLoader[ClassificationFilteredDataset]], Dict[str, NDArray[Any]]
-]:
+) -> Dict[str, DataLoader[ClassificationFilteredDataset]]:
     patch_positions = get_patch_positions(config.patch_position)
 
     loaders: Dict[str, DataLoader[ClassificationFilteredDataset]] = {}
-    alphas: Dict[str, NDArray[Any]] = {}
 
     if config.aug_config is None:
         loaders["None"] = classification_loader(
@@ -114,9 +111,9 @@ def get_classification_TTA_loaders(
                 TT_transform = classification_geometric_TTAs(
                     config.aug_config, transform_param
                 )
-                count = applied_transforms.count(transform_param[0])
-                applied_transforms.append(transform_param[0])
-                loaders[f"{transform_param[0]}_{count}"] = classification_loader(
+                count = applied_transforms.count(transform_param["name"])
+                applied_transforms.append(transform_param["name"])
+                loaders[f"{transform_param['name']}_{count}"] = classification_loader(
                     config,
                     patch_positions,
                     raw_transform=normalize,  # pyright: ignore[reportUnknownArgumentType]
@@ -125,24 +122,21 @@ def get_classification_TTA_loaders(
         if config.aug_config.raw_transform_params:
             applied_raw_transforms = []
             for raw_transform_param in config.aug_config.raw_transform_params:
-                aug_type = AUGMENTATION_ABBREVIATIONS[raw_transform_param[0]]
-                alpha_range = raw_transform_param[1]["alpha"]
+                aug_type = AUGMENTATION_ABBREVIATIONS[raw_transform_param["name"]]
+                alpha_range = raw_transform_param["params"]["alpha"]
                 aug_key = (
                     f"{aug_type}_a{str(alpha_range[0]).replace('.', '')}-"
                     f"{str(alpha_range[1]).replace('.', '')}"
                 )
-                TTA_alphas, TT_raw_transform = classification_raw_TTAs(
-                    config.aug_config, raw_transform_param
-                )
+                TT_raw_transform = get_single_TTA_raw_augmentation(raw_transform_param)
 
-                count = applied_raw_transforms.count(raw_transform_param[0])
-                applied_raw_transforms.append(raw_transform_param[0])
+                count = applied_raw_transforms.count(raw_transform_param["name"])
+                applied_raw_transforms.append(raw_transform_param["name"])
                 loaders[aug_key] = classification_loader(
                     config,
                     patch_positions,
                     raw_transform=TT_raw_transform,
                     transform=None,
                 )
-                alphas[aug_key] = TTA_alphas
 
-    return loaders, alphas
+    return loaders
