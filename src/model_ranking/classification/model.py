@@ -2,15 +2,28 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torchvision.models as models  # pyright: ignore[reportMissingTypeStubs]
-from typing import Any
+from typing import Any, List
+from torch.utils.hooks import RemovableHandle
 
 from .dataclass import ClassificationModelConfig
 
 
-def initialise_resNet18(model_config: ClassificationModelConfig) -> nn.Module:
-    resnet_18 = models.resnet18()
+class ResNet(nn.Module):
+    def __init__(self, model_config: ClassificationModelConfig):
+        super().__init__()
+        self.ResNet = initialise_resNet(model_config)
+
+    def forward(self, x: torch.Tensor):
+        return self.ResNet(x)
+
+
+def initialise_resNet(model_config: ClassificationModelConfig) -> nn.Module:
+    if model_config.modelType == "ResNet18":
+        model = models.resnet18()
+    else:
+        raise ValueError(f"Unknown model type: {model_config.modelType}")
     conv1_cfg = model_config.conv1
-    resnet_18.conv1 = nn.Conv2d(
+    model.conv1 = nn.Conv2d(
         conv1_cfg.in_channels,
         conv1_cfg.out_channels,
         kernel_size=conv1_cfg.kernel_size,
@@ -18,17 +31,17 @@ def initialise_resNet18(model_config: ClassificationModelConfig) -> nn.Module:
         padding=conv1_cfg.padding,
         bias=conv1_cfg.bias,
     )
-    nr_filters = resnet_18.fc.in_features
-    resnet_18.fc = nn.Linear(nr_filters, model_config.out_channels)
-    return resnet_18
+    nr_filters = model.fc.in_features
+    model.fc = nn.Linear(nr_filters, model_config.out_channels)
+    return model
 
 
 class ResNet18_classification(nn.Module):
     def __init__(self, model_config: ClassificationModelConfig):
         super().__init__()
 
-        self.resnet_18 = initialise_resNet18(model_config)
-        self.forward_hooks = []
+        self.resnet_18 = initialise_resNet(model_config)
+        self.forward_hooks: List[RemovableHandle] = []
 
         # register hooks
         if model_config.feature_layers:
@@ -47,6 +60,17 @@ class ResNet18_classification(nn.Module):
             self.layer_acts[layer_name] = output
 
         return hook
+
+    def remove_hooks(self):
+        """Remove all registered forward hooks to prevent memory leaks."""
+        for hook in self.forward_hooks:
+            hook.remove()
+        self.forward_hooks.clear()
+
+    def __del__(self):
+        """Cleanup hooks when the object is destroyed."""
+        if hasattr(self, "forward_hooks"):
+            self.remove_hooks()
 
     # forward pass
     def forward(self, x: torch.Tensor):
