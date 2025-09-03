@@ -1,7 +1,7 @@
 from torch_em.segmentation import (
     get_augmentations,  # pyright: ignore[reportUnknownVariableType]
 )
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 
 from .dataclass import AugmentationsConfig
@@ -17,6 +17,11 @@ AUGMENTATION_ABBREVIATIONS = {
     "RandomGamma": "Gamma",
     "AdditiveGaussianNoise": "Gauss",
 }
+
+
+augmentation_type = Literal[
+    "None", "HFlip", "VFlip", "Rot", "Aff", "Ctr", "Brt", "Gamma", "Gauss"
+]
 
 
 def classification_geometric_TTAs(
