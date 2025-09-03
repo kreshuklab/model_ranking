@@ -28,6 +28,7 @@ class ClassificationPatchPositionConfig(BaseModel):
     roi: Optional[Sequence[Sequence[int]]]
     rnd_seed: Optional[int]
     n_unique_patches: Optional[int]
+    slice_offset: Optional[int]
 
 
 class AugmentationsConfig(BaseModel):
@@ -62,6 +63,7 @@ class ClassificationLoaderConfig(BaseModel):
 
 class ClassificationOutputConfig(BaseModel):
     save_dir_path: Union[str, Path]
+    prediction_threshold: float
 
 
 class ClassificationPredictConfig(BaseModel):
