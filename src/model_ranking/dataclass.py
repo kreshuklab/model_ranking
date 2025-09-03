@@ -3775,6 +3775,7 @@ class TransferFeatureExtractionConfig(BaseModel):
 class PrecomputedPerformanceConfig(BaseModel):
     base_path: str
     key: str
+    invert_score: bool = False
 
 
 class PrecomputedDirectPerformanceConfig(PrecomputedPerformanceConfig):
@@ -3826,7 +3827,6 @@ class TransferabilitySaveConfig(BaseModel):
 class TransferabilityMetricConfig(BaseModel):
     targets: Sequence[str]
     source_models: Dict[str, str]
-    target_task: Literal["segmentation", "classification"] = "segmentation"
     feature_config: PrecomputedFeatureConfig
     performance_config: Annotated[performance_type, Discriminator("name")]
     transferability_metrics: Sequence[transferability_metric_names]
