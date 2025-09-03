@@ -77,6 +77,7 @@ def classification_loader(
         repeat_patches=dataset_cfg.repeat_patches,
         transform=transform,
         random_seed=dataset_cfg.patch_rnd_seed,
+        sample_patches=dataset_cfg.sample_patches,
         n_samples=config.n_samples,
         mask_return=dataset_cfg.mask_return_mode,
         patch_return=dataset_cfg.patch_return_mode,
