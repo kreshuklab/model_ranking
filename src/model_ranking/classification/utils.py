@@ -4,11 +4,20 @@ import os
 from pathlib import Path
 import shutil
 import torch
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Mapping, Union
 
+from .augmentations import augmentation_type
 from .dataclass import ClassificationPatchPositionConfig
 
 from model_ranking.utils import load_h5
+
+CLASSIFICATION_DATASETS = {
+    "epfl": "EPFL",
+    "EPFL": "EPFL",
+    "Hmito": "Hmito",
+    "Rmito": "Rmito",
+    "VNC": "VNC",
+}
 
 
 def merge_dicts(dicts: Union[List[Dict[Any, Any]], List[OrderedDict[str, Any]]]):
@@ -59,6 +68,8 @@ def get_patch_positions(config: ClassificationPatchPositionConfig):
     patch_pos = load_h5(config.patch_pos_path, config.patch_pos_key)
     # If region of interest of orginal data volume specified, only
     # keep patches within this region
+    if config.slice_offset:
+        patch_pos[:, 0] -= config.slice_offset
     if config.roi is not None:
         roi = np.array(config.roi)
         select_ids = np.all((patch_pos >= roi[:, 0]) & (patch_pos <= roi[:, 1]), axis=1)
@@ -87,3 +98,51 @@ def get_patch_positions(config: ClassificationPatchPositionConfig):
 def copy_classification_config(old_path: Union[str, Path], save_path: Union[str, Path]):
     new_path = Path(save_path).parent / Path(old_path).name
     _ = shutil.copy2(old_path, new_path)
+
+
+def get_classification_transfer(
+    model_name: str,
+    data_path: str,
+    dataset_mapping: Mapping[str, str] = CLASSIFICATION_DATASETS,
+) -> str:
+    source = None
+    target = None
+    for key in dataset_mapping.keys():
+        if key in model_name:
+            source = dataset_mapping[key]
+        if key in data_path:
+            target = dataset_mapping[key]
+        if source and target:
+            break
+    assert isinstance(source, str) and isinstance(target, str)
+    return f"{source}_to_{target}"
+
+
+def get_source_from_classification_model_name(
+    model_name: str, dataset_mapping: Mapping[str, str] = CLASSIFICATION_DATASETS
+) -> str:
+    source = None
+    for key in dataset_mapping.keys():
+        if key in model_name:
+            source = dataset_mapping[key]
+            break
+    assert isinstance(source, str)
+    return source
+
+
+def get_classification_pred_path(
+    model_name: str,
+    target: str,
+    base_path: Union[str, Path],
+    aug: augmentation_type = "None",
+):
+    if isinstance(base_path, str):
+        base_path = Path(base_path)
+    source = get_source_from_classification_model_name(model_name)
+    paths = list(
+        base_path.rglob(f"{source}_to_{target}/{model_name}/{aug}/predictions.h5")
+    )
+    assert (
+        len(paths) == 1
+    ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
+    return paths[0]

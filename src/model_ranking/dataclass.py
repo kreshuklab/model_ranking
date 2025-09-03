@@ -3794,6 +3794,22 @@ class PrecomputedFinetunedPerformanceConfig(PrecomputedPerformanceConfig):
     result_type: Literal["predictions", "checkpoints"]
 
 
+class PrecomputedClassificationPerformanceConfig(PrecomputedPerformanceConfig):
+    name: Literal["classification_performance"]
+
+
+performance_type = Union[
+    PrecomputedDirectPerformanceConfig,
+    PrecomputedFinetunedPerformanceConfig,
+    PrecomputedClassificationPerformanceConfig,
+]
+
+segmentation_performance_type = Union[
+    PrecomputedDirectPerformanceConfig,
+    PrecomputedFinetunedPerformanceConfig,
+]
+
+
 class PrecomputedFeatureConfig(BaseModel):
     base_path: str
     file_type: str
@@ -3810,13 +3826,9 @@ class TransferabilitySaveConfig(BaseModel):
 class TransferabilityMetricConfig(BaseModel):
     targets: Sequence[str]
     source_models: Dict[str, str]
+    target_task: Literal["segmentation", "classification"] = "segmentation"
     feature_config: PrecomputedFeatureConfig
-    performance_config: Annotated[
-        Union[
-            PrecomputedDirectPerformanceConfig, PrecomputedFinetunedPerformanceConfig
-        ],
-        Discriminator("name"),
-    ]
+    performance_config: Annotated[performance_type, Discriminator("name")]
     transferability_metrics: Sequence[transferability_metric_names]
     output_config: TransferabilitySaveConfig
 

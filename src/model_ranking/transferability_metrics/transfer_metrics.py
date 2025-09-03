@@ -5,6 +5,10 @@ import os
 from numpy.typing import NDArray
 from typing import Any, Optional
 
+from model_ranking.classification.transfer_metrics import (
+    get_transfer_data_classification,
+)
+
 from model_ranking.transferability_metrics import (
     bhattacharyya_coefficient,
     h_score,
@@ -26,6 +30,8 @@ from model_ranking.results import (
 from model_ranking.dataclass import (
     TransferabilityMetricConfig,
     transferability_metric_names,
+    PrecomputedFeatureConfig,
+    segmentation_performance_type,
 )
 from model_ranking.correlation import (
     to_target_transfer_correlations,
@@ -76,6 +82,86 @@ def calculate_transfer_metric(  # pyright: ignore
         raise ValueError(f"Unknown transfer metric: {metric_name}")
 
 
+def get_transfer_data_segmentation(
+    model_name: str,
+    target: str,
+    epoch: str,
+    feature_config: PrecomputedFeatureConfig,
+    transferability_metric: transferability_metric_names,
+    performance_config: segmentation_performance_type,
+):
+    feature_ids = list(feature_config.layer_keys.keys())
+    model_identifier = model_name.split("_")[-1][:-1]
+    if model_identifier in feature_ids:
+        key = feature_config.layer_keys[model_identifier]
+    else:
+        key = "decoders.2"
+
+    feature_path = get_precomputed_feature_path(
+        model_name,
+        target,
+        feature_config.base_path,
+        filetype=feature_config.file_type,
+    )
+    if str(transferability_metric) not in ["LEEP"]:
+        features = load_h5(feature_path, f"{key}_features")
+        predictions = None
+    else:
+        features = None
+        predictions = load_h5(feature_path, f"{key}_predictions")
+
+    labels = load_h5(feature_path, f"{key}_labels")
+
+    if performance_config.name == "direct_performance":
+        performance_path = get_NA_prediction_path(
+            model_name,
+            target,
+            performance_config.base_path,
+            approach=performance_config.approach,
+            run_id=performance_config.run_id,
+        )
+    else:
+        performance_path = get_finetuned_result_path(
+            model_name,
+            finetuning_approach=performance_config.finetuning_approach,
+            epoch=epoch,
+            base_path=performance_config.base_path,
+            result_type=performance_config.result_type,
+        )
+
+    performance_score = load_h5(performance_path, performance_config.key)
+
+    performance_score = np.median(performance_score[:, 1])
+
+    non_zero_patch_ids = np.where(~np.all(labels == 0, axis=1))[0]
+
+    assert (
+        features is not None or predictions is not None
+    ), "Either features or predictions must be provided for transferability metric calculation."
+
+    if features is not None:
+        features = features[non_zero_patch_ids]
+        features_flat = features.reshape(-1, features.shape[-1])
+        predictions_flat = None
+    else:
+        assert predictions is not None, "Predictions must be provided."
+        predictions = predictions[non_zero_patch_ids]
+        predictions_flat = predictions.reshape(-1)  # Shape: (n * 1000,)
+        predictions_flat = np.column_stack([1 - predictions_flat, predictions_flat])
+        features_flat = None
+
+    labels = labels[non_zero_patch_ids]
+
+    labels_flat = labels.reshape(-1).astype(int)
+
+    return (
+        features_flat,
+        predictions_flat,
+        labels_flat,
+        performance_score,
+    )
+
+
 def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
     feature_cfg = config.feature_config
     performance_cfg = config.performance_config
@@ -85,7 +171,6 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
     for transferability_metric in config.transferability_metrics:
         print(f"Calculating transferability metric: {transferability_metric}")
         transfer_metric_per_target: Dict[str, Dict[str, float]] = {}
-        feature_ids = list(feature_cfg.layer_keys.keys())
         component_scores_per_target: Dict[str, Dict[str, Dict[str, float]]] = {}
         for target in config.targets:
             print(f"Processing target: {target}")
@@ -98,80 +183,41 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                 if (source == "VNC") and (target == "VNC"):
                     continue
                 else:
-                    model_identifier = model_name.split("_")[-1][:-1]
-                    if model_identifier in feature_ids:
-                        key = feature_cfg.layer_keys[model_identifier]
-                    else:
-                        key = "decoders.2"
-
-                    feature_path = get_precomputed_feature_path(
-                        model_name,
-                        target,
-                        feature_cfg.base_path,
-                        filetype=feature_cfg.file_type,
-                    )
-                    if str(transferability_metric) not in ["LEEP"]:
-                        features = load_h5(feature_path, f"{key}_features")
-                        predictions = None
-                    else:
-                        features = None
-                        predictions = load_h5(feature_path, f"{key}_predictions")
-                        # Threshold predictions
-                        # predictions = (predictions > performance_cfg.threshold).astype(int)
-
-                    labels = load_h5(feature_path, f"{key}_labels")
-
-                    if performance_cfg.name == "direct_performance":
-                        performance_path = get_NA_prediction_path(
+                    if performance_cfg.name == "classification_performance":
+                        (
+                            features,
+                            predictions,
+                            labels,
+                            performance_score,
+                        ) = get_transfer_data_classification(
                             model_name,
                             target,
-                            performance_cfg.base_path,
-                            approach=performance_cfg.approach,
-                            run_id=performance_cfg.run_id,
+                            feature_cfg,
+                            transferability_metric,
+                            performance_cfg,
                         )
                     else:
-                        performance_path = get_finetuned_result_path(
+                        (
+                            features,
+                            predictions,
+                            labels,
+                            performance_score,
+                        ) = get_transfer_data_segmentation(
                             model_name,
-                            finetuning_approach=performance_cfg.finetuning_approach,
-                            epoch=epoch,
-                            base_path=performance_cfg.base_path,
-                            result_type=performance_cfg.result_type,
+                            target,
+                            epoch,
+                            feature_cfg,
+                            transferability_metric,
+                            performance_cfg,
                         )
 
-                    performance_score = load_h5(performance_path, performance_cfg.key)
-
-                    performance_per_model[model_name] = np.median(
-                        performance_score[:, 1]
-                    )
-
-                    non_zero_patch_ids = np.where(~np.all(labels == 0, axis=1))[0]
-
-                    assert (
-                        features is not None or predictions is not None
-                    ), "Either features or predictions must be provided for transferability metric calculation."
-
-                    if features is not None:
-                        features = features[non_zero_patch_ids]
-                        features_flat = features.reshape(-1, features.shape[-1])
-                        predictions_flat = None
-                    else:
-                        assert predictions is not None, "Predictions must be provided."
-                        predictions = predictions[non_zero_patch_ids]
-                        predictions_flat = predictions.reshape(-1)  # Shape: (n * 1000,)
-                        predictions_flat = np.column_stack(
-                            [1 - predictions_flat, predictions_flat]
-                        )
-                        features_flat = None
-
-                    labels = labels[non_zero_patch_ids]
-
-                    labels_flat = labels.reshape(-1).astype(int)
+                    performance_per_model[model_name] = performance_score
 
                     transfer_metric = calculate_transfer_metric(  # pyright: ignore[reportUnknownVariableType]
                         metric_name=transferability_metric,
-                        features=features_flat,
-                        predictions=predictions_flat,
-                        labels=labels_flat,
+                        features=features,
+                        predictions=predictions,
+                        labels=labels,
                         n_PCA_components=feature_cfg.n_PCA_components,
                     )
                     transfer_metric_per_model[model_name] = (  # pyright: ignore
