@@ -1,9 +1,11 @@
 from collections import OrderedDict
 import numpy as np
+from numpy.typing import NDArray
+import sklearn.metrics as metrics
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from tqdm import tqdm
 
 from .datasets import ClassificationFilteredDataset
@@ -92,3 +94,23 @@ def predict_with_features(
         output["features"] = merged_layerwise_features
 
     return output
+
+
+def classification_prediction_evaluation(
+    predictions: NDArray[Any], labels: NDArray[Any]
+) -> Tuple[float, float, float, float]:
+    accuracy_error = 1.0 - metrics.accuracy_score(labels, predictions)
+    precision = metrics.precision_score(  # pyright: ignore[reportUnknownVariableType]
+        labels, predictions
+    )
+    recall = metrics.recall_score(  # pyright: ignore[reportUnknownVariableType]
+        labels, predictions
+    )
+    f1_score = metrics.f1_score(  # pyright: ignore[reportUnknownVariableType]
+        labels, predictions
+    )
+    assert isinstance(accuracy_error, float)
+    assert isinstance(precision, float)
+    assert isinstance(recall, float)
+    assert isinstance(f1_score, float)
+    return accuracy_error, precision, recall, f1_score
