@@ -42,11 +42,14 @@ def get_transfer_data_classification(
 
     performance = load_h5(pred_path, performance_config.key)
 
+    if performance_config.invert_score == True:
+        performance = 1 - performance
+
     assert (
         features is not None or predictions is not None
     ), "Either features or predictions must be provided for transferability metric calculation."
 
-    if predictions:
+    if predictions is not None:
         predictions = np.column_stack([1 - predictions, predictions])
 
     labels = labels.astype(int)
