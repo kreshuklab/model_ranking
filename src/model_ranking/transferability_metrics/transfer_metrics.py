@@ -8,6 +8,7 @@ from typing import Any, Optional
 from model_ranking.classification.transfer_metrics import (
     get_transfer_data_classification,
 )
+from model_ranking.classification.utils import get_source_from_classification_model_name
 
 from model_ranking.transferability_metrics import (
     bhattacharyya_coefficient,
@@ -133,6 +134,9 @@ def get_transfer_data_segmentation(
 
     performance_score = np.median(performance_score[:, 1])
 
+    if performance_config.invert_score == True:
+        performance_score = 1 - performance_score
+
     non_zero_patch_ids = np.where(~np.all(labels == 0, axis=1))[0]
 
     assert (
@@ -179,7 +183,11 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                 Dict[str, float], Dict[str, Tuple[float, float, float]]
             ] = {}
             for model_name, epoch in tqdm(config.source_models.items()):
-                source = get_source_from_model_name(model_name)
+                if performance_cfg.name == "classification_performance":
+                    source = get_source_from_classification_model_name(model_name)
+                else:
+                    source = get_source_from_model_name(model_name)
+
                 if (source == "VNC") and (target == "VNC"):
                     continue
                 else:
@@ -254,6 +262,7 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                     transfer_metric_per_model,
                     target=target,
                     metric_name=transferability_metric,
+                    performance_metric_name=performance_cfg.key,
                     save_path=save_path,
                 )
 
