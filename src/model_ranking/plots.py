@@ -508,6 +508,7 @@ def plot_performance_vs_transfer_metric(
     transfer_metrics: Dict[str, float],
     target: str,
     metric_name: str = "GBC",
+    performance_metric_name: str = "F1",
     save_path: Optional[str] = None,
     show_plot: bool = True,
 ):
@@ -535,8 +536,10 @@ def plot_performance_vs_transfer_metric(
         _ = plt.scatter(x[i], y[i], color=colors(i), label=model, s=80)
 
     _ = plt.xlabel(f"{metric_name} Score")
-    _ = plt.ylabel("F1 Score")
-    _ = plt.title(f"{target}: Performance (F1) vs {metric_name} Score per Model")
+    _ = plt.ylabel(performance_metric_name)
+    _ = plt.title(
+        f"{target}: Performance ({performance_metric_name}) vs {metric_name} Score per Model"
+    )
     _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.grid()
