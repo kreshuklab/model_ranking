@@ -471,7 +471,7 @@ def resize_data_label_pair(
 def get_source_from_model_name(model_name: str) -> str:
     """
     Extract the source dataset from the model name.
-    Assumes the model name is in the format 'source_to_target_gap'.
+    Assumes the model name is in the format 'source_abbrev_(model_postfix)'.
     """
     model_identifier = model_name.split("_")[0]
     if "to" in model_identifier:
