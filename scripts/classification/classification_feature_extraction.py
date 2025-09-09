@@ -11,7 +11,7 @@ from model_ranking import (
     copy_classification_config,
     get_classification_transfer,
     get_classification_TTA_loaders,
-    load_checkpoint_classnet,
+    load_from_checkpoint,
     predict_with_features,
     ClassificationNet,
 )
@@ -35,13 +35,14 @@ def main(
     if device == "cpu":
         print("WARNING: No GPU available, using CPU")
     model = ClassificationNet(cfg.model)
-    model = load_checkpoint_classnet(
+    model = load_from_checkpoint(
         cfg.model.modelname,
         model=model,
         path=str(cfg.model.ckpt_path),
         location=device,
-        model_key="ClassNet",
+        layer_key="ClassNet",
     )
+    assert isinstance(model, torch.nn.Module)
     model = model.eval()
 
     for aug, loader in tqdm(loaders.items()):
