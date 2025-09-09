@@ -8,10 +8,10 @@ from .dataclass import ClassificationModelConfig
 class ClassificationNet(nn.Module):
     def __init__(self, model_config: ClassificationModelConfig):
         super().__init__()
-        self.classification_net = initialise_classification_net(model_config)
+        self.ClassNet = initialise_classification_net(model_config)
 
     def forward(self, x: torch.Tensor):
-        return self.classification_net(x)
+        return self.ClassNet(x)
 
 
 def initialise_classification_net(model_config: ClassificationModelConfig) -> nn.Module:

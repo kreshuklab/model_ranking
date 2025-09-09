@@ -11,9 +11,9 @@ from model_ranking import (
     copy_classification_config,
     get_classification_transfer,
     get_classification_TTA_loaders,
-    load_checkpoint_resnet,
+    load_checkpoint_classnet,
     predict_with_features,
-    ResNet,
+    ClassificationNet,
 )
 
 from pytorch3dunet.unet3d.config import (
@@ -34,13 +34,13 @@ def main(
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print("WARNING: No GPU available, using CPU")
-    model = ResNet(cfg.model)
-    model = load_checkpoint_resnet(
+    model = ClassificationNet(cfg.model)
+    model = load_checkpoint_classnet(
         cfg.model.modelname,
         model=model,
         path=str(cfg.model.ckpt_path),
         location=device,
-        model_key="ResNet",
+        model_key="ClassNet",
     )
     model = model.eval()
 

@@ -42,7 +42,7 @@ def merge_dicts(dicts: Union[List[Dict[Any, Any]], List[OrderedDict[str, Any]]])
     return merged_dict
 
 
-def load_checkpoint_resnet(
+def load_checkpoint_classnet(
     model_name: str,
     model: torch.nn.Module,
     path: str,
