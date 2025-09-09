@@ -2,6 +2,8 @@ from pathlib import Path
 from pydantic import BaseModel, Discriminator
 from typing import Annotated, Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
+from model_ranking.dataclass import WandbConfig
+
 
 class Conv1Config(BaseModel):
     in_channels: int
@@ -137,3 +139,29 @@ class SchedulerConfig(BaseModel):
     mode: str = "min"
     factor: float = 0.5
     patience: int = 5
+
+
+class LoggingSettings(BaseModel):
+    log_image_interval: int
+    log_val_images: bool
+    log_pred: bool
+
+
+class TrainingSettingsConfig(BaseModel):
+    model_name: str
+    save_path: str
+    num_epochs: int
+    logging: LoggingSettings
+    loss_function: Literal["BCEWithLogitsLoss"] = "BCEWithLogitsLoss"
+    learning_rate: float = 1e-4
+    ckpt_name: Optional[str]
+    scheduler_kwargs: SchedulerConfig = SchedulerConfig()
+
+
+class ClassificationTrainConfig(BaseModel):
+    wandb: WandbConfig
+    train_loader: ClassificationLoaderConfig
+    val_loader: ClassificationLoaderConfig
+    test_loader: Optional[ClassificationLoaderConfig]
+    model: ClassificationModelConfig
+    training_config: TrainingSettingsConfig

@@ -11,8 +11,8 @@ from tqdm import trange
 from typing import Any, List, Optional
 import wandb
 
-from .dataclass import SchedulerConfig
-from .utils import load_from_checkpoint, save_checkpoint
+from .dataclass import TrainingSettingsConfig
+from .utils import load_from_checkpoint, save_checkpoint, get_loss_function
 from .validate import validate
 
 
@@ -103,33 +103,25 @@ def train(
 
 def run_training(
     model: torch.nn.Module,
-    loss_function: torch.nn.Module,
-    device: torch.device,
-    num_epochs: int,
-    log_image_interval: int,
     train_loader: DataLoader[Any],
     val_loader: DataLoader[Any],
-    name: str,
-    learning_rate: float = 1e-4,
-    scheduler_kwargs: SchedulerConfig = SchedulerConfig(),
-    ckpt_name: str = "latest.pt",
-    path_to_run_folder: str = ".",
-    **kwargs: Any,
+    device: torch.device,
+    config: TrainingSettingsConfig,
 ):
-    _ = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    checkpoint_path = os.path.join(path_to_run_folder, name)
+    model = model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+    checkpoint_path = os.path.join(config.save_path, config.model_name)
     assert wandb.run is not None
-    if (
-        os.path.exists(os.path.join(checkpoint_path, ckpt_name + ".pt"))
-        and wandb.run.resumed
-    ):
+    if config.ckpt_name is not None:
+        ckpt_path = os.path.join(checkpoint_path, config.ckpt_name + ".pt")
+        assert os.path.exists(ckpt_path), f"Checkpoint {ckpt_path} does not exist"
+        assert wandb.run.resumed
         result = load_from_checkpoint(
-            name=name,
+            name=config.model_name,
             model=model,
-            path=path_to_run_folder,
+            path=config.save_path,
             location=device,
-            ckpt=ckpt_name,
+            ckpt=config.ckpt_name,
             optimizer=optimizer,
         )
         # Since optimizer is provided, we know this returns the tuple form
@@ -152,11 +144,12 @@ def run_training(
         os.makedirs(checkpoint_path, exist_ok=False)
 
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, **scheduler_kwargs.model_dump()
+        optimizer, **config.scheduler_kwargs.model_dump()
     )
-    _ = loss_function.to(device)
 
-    for epoch in trange(num_epochs, file=sys.stdout):
+    loss_function = get_loss_function(config.loss_function).to(device)
+
+    for epoch in trange(config.num_epochs, file=sys.stdout):
         current_epoch = epoch + starting_epoch
         train(
             model=model,
@@ -165,8 +158,8 @@ def run_training(
             loss_function=loss_function,
             device=device,
             epoch=current_epoch,
-            log_image_interval=log_image_interval,
-            log_pred=kwargs.get("log_pred", False),
+            log_image_interval=config.logging.log_image_interval,
+            log_pred=config.logging.log_pred,
         )
 
         step = (current_epoch + 1) * len(train_loader)
@@ -177,7 +170,8 @@ def run_training(
             loss_function=loss_function,
             device=device,
             step=step,
-            **kwargs,
+            log_val_images=config.logging.log_val_images,
+            log_pred=config.logging.log_pred,
         )
 
         lr_scheduler.step(current_loss)

@@ -4,12 +4,14 @@ import os
 from pathlib import Path
 import shutil
 import torch
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
+import wandb
 
 from .augmentations import augmentation_type
 from .dataclass import ClassificationPatchPositionConfig
 
 from model_ranking.utils import load_h5
+from model_ranking.dataclass import WandbConfig
 
 CLASSIFICATION_DATASETS = {
     "epfl": "EPFL",
@@ -208,3 +210,31 @@ def get_classification_pred_path(
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
     return paths[0]
+
+
+def initialise_wandb(
+    wandb_config: WandbConfig, config: Optional[Dict[str, Any]] = None
+):
+    if wandb_config.run_id is not None:
+        _ = wandb.init(
+            project=wandb_config.project,
+            name=wandb_config.name,
+            id=wandb_config.run_id,
+            config=config,
+            resume="must",
+            mode=wandb_config.mode,
+        )
+    else:
+        _ = wandb.init(
+            project=wandb_config.project,
+            name=wandb_config.name,
+            config=config,
+            mode=wandb_config.mode,
+        )
+
+
+def get_loss_function(name: Literal["BCEWithLogitsLoss"]) -> torch.nn.Module:
+    if name == "BCEWithLogitsLoss":
+        return torch.nn.BCEWithLogitsLoss()
+    else:
+        raise ValueError(f"Unknown loss function {name}")
