@@ -1,6 +1,6 @@
 from pathlib import Path
-from pydantic import BaseModel
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from pydantic import BaseModel, Discriminator
+from typing import Annotated, Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 
 class Conv1Config(BaseModel):
@@ -12,11 +12,72 @@ class Conv1Config(BaseModel):
     bias: bool
 
 
+class ResNetConv1Config(Conv1Config):
+    name: Literal["ResNet18", "ResNet50"]
+    in_channels: int = 1
+    out_channels: int = 64
+    kernel_size: int = 7
+    stride: int = 2
+    padding: int = 3
+    bias: bool = False
+
+
+class DenseNetConv1Config(Conv1Config):
+    name: Literal["DenseNet121", "DenseNet169"]
+    in_channels: int = 1
+    out_channels: int = 64
+    kernel_size: int = 7
+    stride: int = 2
+    padding: int = 3
+    bias: bool = False
+
+
+class MobileNetV2Conv1Config(Conv1Config):
+    name: Literal["MobileNetV2"]
+    in_channels: int = 1
+    out_channels: int = 32
+    kernel_size: int = 3
+    stride: int = 2
+    padding: int = 1
+    bias: bool = False
+
+
+class MobileNetV3Conv1Config(Conv1Config):
+    name: Literal["MobileNetV3"]
+    in_channels: int = 1
+    out_channels: int = 16
+    kernel_size: int = 3
+    stride: int = 2
+    padding: int = 1
+    bias: bool = False
+
+
+class VGGConv1Config(Conv1Config):
+    name: Literal["VGG16", "VGG19"]
+    in_channels: int = 1
+    out_channels: int = 64
+    kernel_size: int = 3
+    stride: int = 1
+    padding: int = 1
+    bias: bool = False
+
+
+classification_conv1_type = Annotated[
+    Union[
+        ResNetConv1Config,
+        DenseNetConv1Config,
+        MobileNetV2Conv1Config,
+        MobileNetV3Conv1Config,
+        VGGConv1Config,
+    ],
+    Discriminator("name"),
+]
+
+
 class ClassificationModelConfig(BaseModel):
-    conv1: Conv1Config
+    conv1: classification_conv1_type
     out_channels: int
     modelname: str
-    modelType: Literal["ResNet18"]
     ckpt_path: Union[str, Path]
     ckpt_key: str
     feature_layers: Optional[Union[List[str], List[int]]]

@@ -1,29 +1,22 @@
-from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torchvision.models as models  # pyright: ignore[reportMissingTypeStubs]
-from typing import Any, List
-from torch.utils.hooks import RemovableHandle
 
 from .dataclass import ClassificationModelConfig
 
 
-class ResNet(nn.Module):
+class ClassificationNet(nn.Module):
     def __init__(self, model_config: ClassificationModelConfig):
         super().__init__()
-        self.ResNet = initialise_resNet(model_config)
+        self.classification_net = initialise_classification_net(model_config)
 
     def forward(self, x: torch.Tensor):
-        return self.ResNet(x)
+        return self.classification_net(x)
 
 
-def initialise_resNet(model_config: ClassificationModelConfig) -> nn.Module:
-    if model_config.modelType == "ResNet18":
-        model = models.resnet18()
-    else:
-        raise ValueError(f"Unknown model type: {model_config.modelType}")
+def initialise_classification_net(model_config: ClassificationModelConfig) -> nn.Module:
     conv1_cfg = model_config.conv1
-    model.conv1 = nn.Conv2d(
+    input_conv = nn.Conv2d(
         conv1_cfg.in_channels,
         conv1_cfg.out_channels,
         kernel_size=conv1_cfg.kernel_size,
@@ -31,52 +24,47 @@ def initialise_resNet(model_config: ClassificationModelConfig) -> nn.Module:
         padding=conv1_cfg.padding,
         bias=conv1_cfg.bias,
     )
-    nr_filters = model.fc.in_features
-    model.fc = nn.Linear(nr_filters, model_config.out_channels)
+    if conv1_cfg.name == "ResNet18":
+        model = models.resnet18()
+        model.conv1 = input_conv
+        nr_filters = model.fc.in_features
+        model.fc = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "ResNet50":
+        model = models.resnet50()
+        model.conv1 = input_conv
+        nr_filters = model.fc.in_features
+        model.fc = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "DenseNet121":
+        model = models.densenet121()
+        model.features.conv0 = input_conv
+        nr_filters = model.classifier.in_features
+        model.classifier = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "DenseNet169":
+        model = models.densenet169()
+        model.features.conv0 = input_conv
+        nr_filters = model.classifier.in_features
+        model.classifier = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "MobileNetV2":
+        model = models.mobilenet_v2()
+        model.features[0][0] = input_conv
+        nr_filters = model.classifier[1].in_features
+        model.classifier[1] = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "MobileNetV3":
+        model = models.mobilenet_v3_small()
+        model.features[0][0] = input_conv
+        nr_filters = model.classifier[3].in_features
+        model.classifier[3] = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "VGG16":
+        model = models.vgg16()
+        model.features[0] = input_conv  # pyright: ignore[reportIndexIssue]
+        nr_filters = model.classifier[6].in_features
+        model.classifier[6] = nn.Linear(nr_filters, model_config.out_channels)
+    elif conv1_cfg.name == "VGG19":
+        model = models.vgg19()
+        model.features[0] = input_conv  # pyright: ignore[reportIndexIssue]
+        nr_filters = model.classifier[6].in_features
+        model.classifier[6] = nn.Linear(nr_filters, model_config.out_channels)
+    else:
+        raise NotImplementedError(f"Model {conv1_cfg.name} not implemented.")
+
     return model
-
-
-class ResNet18_classification(nn.Module):
-    def __init__(self, model_config: ClassificationModelConfig):
-        super().__init__()
-
-        self.resnet_18 = initialise_resNet(model_config)
-        self.forward_hooks: List[RemovableHandle] = []
-
-        # register hooks
-        if model_config.feature_layers:
-            self.layer_acts: OrderedDict[str, Any] = OrderedDict()
-            for layer_num, layer_name in enumerate(self.resnet_18._modules.keys()):
-                if layer_num in model_config.feature_layers:
-                    self.forward_hooks.append(
-                        getattr(self.resnet_18, layer_name).register_forward_hook(
-                            self.get_activations(layer_name)
-                        )
-                    )
-
-    # Defining hook to get intermediate features
-    def get_activations(self, layer_name: str):
-        def hook(module: nn.Module, input: Any, output: Any):
-            self.layer_acts[layer_name] = output
-
-        return hook
-
-    def remove_hooks(self):
-        """Remove all registered forward hooks to prevent memory leaks."""
-        for hook in self.forward_hooks:
-            hook.remove()
-        self.forward_hooks.clear()
-
-    def __del__(self):
-        """Cleanup hooks when the object is destroyed."""
-        if hasattr(self, "forward_hooks"):
-            self.remove_hooks()
-
-    # forward pass
-    def forward(self, x: torch.Tensor):
-        out = self.resnet_18(x)
-        return out
-
-    def features(self, x: torch.Tensor):
-        pred = self.forward(x)
-        return pred, self.layer_acts
