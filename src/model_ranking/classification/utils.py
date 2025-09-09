@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import torch
-from typing import Any, Dict, List, Mapping, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from .augmentations import augmentation_type
 from .dataclass import ClassificationPatchPositionConfig
@@ -42,25 +42,87 @@ def merge_dicts(dicts: Union[List[Dict[Any, Any]], List[OrderedDict[str, Any]]])
     return merged_dict
 
 
-def load_checkpoint_classnet(
-    model_name: str,
+def load_from_checkpoint(
+    name: str,
     model: torch.nn.Module,
     path: str,
-    location: str,
-    ckpt: str = "best",
-    model_key: str = "resnet_18",
-):
+    location: Union[str, torch.device],
+    ckpt: str = "best.pt",
+    optimizer: Optional[torch.optim.Optimizer] = None,
+    key: str = "model_state",
+    layer_key: Optional[str] = "ClassNet",
+) -> Union[
+    torch.nn.Module,
+    Tuple[torch.nn.Module, torch.optim.Optimizer, int, float, int, float],
+]:
     # load model
-    checkpoint_path = os.path.join(path, model_name, f"{ckpt}.pt")
+    checkpoint_path = os.path.join(path, name, f"{ckpt}")
     if not os.path.exists(checkpoint_path):
         raise ValueError(f"Cannot find checkpoint {checkpoint_path}")
+
     checkpoint = torch.load(checkpoint_path, map_location=location)
-    new_state_dict: OrderedDict[str, Any] = OrderedDict()
-    for k, v in checkpoint["model_state"].items():
-        name = f"{model_key}." + k
-        new_state_dict[name] = v
-    _ = model.load_state_dict(new_state_dict)
-    return model
+    if layer_key is not None:
+        new_state_dict: OrderedDict[str, Any] = OrderedDict()
+        for k, v in checkpoint[key].items():
+            name = f"{layer_key}." + k
+            new_state_dict[name] = v
+        _ = model.load_state_dict(new_state_dict)
+    else:
+        _ = model.load_state_dict(checkpoint[key])
+    if optimizer is None:
+        return model
+
+    else:
+        # optimizer.load_state_dict(checkpoint["optimizer"], strict=False)
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        best_epoch = checkpoint["best_epoch"]
+        best_loss = checkpoint["best_loss"]
+        current_epoch = checkpoint["current_epoch"]
+        current_loss = checkpoint["current_loss"]
+        return (
+            model,
+            optimizer,
+            best_epoch,
+            best_loss,
+            current_epoch,
+            current_loss,
+        )
+
+
+def save_checkpoint(
+    ckpt: str,
+    model: torch.nn.Module,
+    path: str,
+    optimizer: torch.optim.Optimizer,
+    best_epoch: int,
+    best_loss: float,
+    epoch: int,
+    loss: float,
+):
+    """Save model checkpoint.
+
+    Parameters:
+    model - the model to be saved
+    optimizer - the optimizer to be saved
+    epoch - the current epoch
+    path - the path to the checkpoint folder
+    """
+    save_path = os.path.join(path, f"{ckpt}.pt")
+
+    if ckpt == "best" or ckpt == "latest":
+        torch.save(
+            {
+                "model_state": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "best_epoch": best_epoch,
+                "best_loss": best_loss,
+                "current_epoch": epoch,
+                "current_loss": loss,
+            },
+            save_path,
+        )
+    else:
+        raise ValueError(f"Invalid checkpoint type: {ckpt}")
 
 
 def get_patch_positions(config: ClassificationPatchPositionConfig):

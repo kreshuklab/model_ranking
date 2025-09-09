@@ -3,5 +3,7 @@ from .data_loader import *
 from .datasets import *
 from .model import *
 from .predict import *
+from .train import *
 from .transfer_metrics import *
 from .utils import *
+from .validate import *

@@ -131,3 +131,9 @@ class ClassificationPredictConfig(BaseModel):
     loader: ClassificationLoaderConfig
     model: ClassificationModelConfig
     output: ClassificationOutputConfig
+
+
+class SchedulerConfig(BaseModel):
+    mode: str = "min"
+    factor: float = 0.5
+    patience: int = 5
