@@ -21,11 +21,7 @@ from pytorch3dunet.unet3d.config import (
 )
 
 
-def main(
-    config: Path = typer.Option(
-        ..., help="Path to config yaml for difference image calculation"
-    )
-):
+def main(config: Path = typer.Option(..., help="Path to config yaml")):
     cfg_data, _ = load_config_direct(config)
     cfg = ClassificationPredictConfig.model_validate(cfg_data)
 
@@ -66,7 +62,7 @@ def main(
 
         save_path = save_dir_path / "predictions.h5"
 
-        copy_classification_config(old_path=config, save_path=save_path)
+        copy_classification_config(old_path=config, save_path=save_path.parent)
 
         # Run classification prediction
         model_output = predict_with_features(
