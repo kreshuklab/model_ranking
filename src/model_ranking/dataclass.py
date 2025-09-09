@@ -564,6 +564,9 @@ class WandbConfig(BaseModel):
     project: str
     name: str
     mode: Literal["disabled", "online", "offline"]
+    run_id: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
+    resume: Union[bool, None, Literal["allow", "never", "must", "auto"]] = None
 
 
 class FeaturePerturbationBaseConfig(BaseModel):
