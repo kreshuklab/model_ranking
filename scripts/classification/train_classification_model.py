@@ -1,28 +1,32 @@
-# type: ignore
-import wandb
-import torch.nn as nn
+import os
 import typer
 import torch
 from pathlib import Path
-from torchvision import models
-from torch.nn.modules.loss import BCEWithLogitsLoss
-
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 from model_ranking import (
     ClassificationTrainConfig,
-    initialise_wandb,
+    copy_classification_config,
     get_classification_dataloader,
-    ClassificationNet,
+    initialise_wandb,
     run_training,
 )
 
 
-def main(config: Path = None):
-    config_data, _ = load_config_direct(config=config)
+def main(config: Path = typer.Option(..., help="Path to config yaml")):
+    config_data, _ = load_config_direct(config)
     cfg = ClassificationTrainConfig.model_validate(config_data)
+
+    output_path = (
+        Path(cfg.training_config.save_path)
+        / cfg.model_cfg.conv1.name
+        / cfg.model_cfg.modelname
+    )
+    os.makedirs(output_path, exist_ok=True)
+
+    copy_classification_config(old_path=config, save_path=output_path)
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
@@ -36,16 +40,12 @@ def main(config: Path = None):
     train_loader = get_classification_dataloader(cfg.train_loader)
     val_loader = get_classification_dataloader(cfg.val_loader)
 
-    # set up backbone model
-    print("Initialize model")
-    model = ClassificationNet(cfg.model)
-
     run_training(
-        model=model,
         train_loader=train_loader,
         val_loader=val_loader,
-        device=device,
+        device=torch.device(device),
         config=cfg.training_config,
+        model_cfg=cfg.model_cfg,
     )
 
     # if cfg.test_loader is not None:

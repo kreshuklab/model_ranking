@@ -8,6 +8,8 @@ from typing import Any, List, Union
 
 import wandb
 
+from .utils import create_image_grid
+
 
 def validate(
     model: nn.Module,
@@ -35,8 +37,8 @@ def validate(
 
     # we record the loss and the predictions / labels for all samples
     mean_loss = 0
-    predictions: List[NDArray[np.int32]] = []
-    labels: List[NDArray[np.int32]] = []
+    predictions: List[NDArray[np.int16]] = []
+    labels: List[NDArray[np.int16]] = []
 
     # the model parameters should not be updated during validation
     # torch.no_grad disables gradient updates in its scope
@@ -54,8 +56,8 @@ def validate(
             )
 
             # store the predictions and labels
-            predictions.append(prediction[:, 0].to("cpu").numpy().astype(np.int32))
-            labels.append(y[:, 0].to("cpu").numpy().astype(np.int32))
+            predictions.append(prediction[:, 0].to("cpu").numpy().astype(np.int16))
+            labels.append(y[:, 0].to("cpu").numpy().astype(np.int16))
 
     # predictions and labels to numpy arrays
     pred_cmb = np.concatenate(predictions)
@@ -74,18 +76,21 @@ def validate(
     )
 
     if log_val_images:
-        if len(x) > 32:  # type: ignore
-            x = x[:32]  # type: ignore
-            y = y[:32]  # type: ignore
-            prediction = prediction[:32]  # type: ignore
+        # Create image grid from batch (limit to 12 images max)
+        image_grid = create_image_grid(x, max_images=12)  # type: ignore
+
+        # Create caption with predictions and labels (for first 12 items)
+        batch_size = min(x.size(0), 12)  # type: ignore
+        pred_values = prediction[:batch_size, 0].to("cpu").numpy()  # type: ignore
+        label_values = y[:batch_size, 0].to("cpu").numpy()  # type: ignore
+        caption = f"pred: {pred_values}, label: {label_values}"
+
         wandb.log(
             {
-                "validation-image": [
-                    wandb.Image(
-                        x,  # type: ignore
-                        caption=f"pred: {prediction[:, 0].to('cpu').numpy()}, label: {y[:, 0].to('cpu').numpy()}",  # type: ignore
-                    )
-                ],
+                "validation-image": wandb.Image(
+                    image_grid.cpu().numpy(),
+                    caption=caption,
+                )
             },
             step=step,
         )

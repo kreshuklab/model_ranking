@@ -80,8 +80,8 @@ class ClassificationModelConfig(BaseModel):
     conv1: classification_conv1_type
     out_channels: int
     modelname: str
-    ckpt_path: Union[str, Path]
-    ckpt_key: str
+    ckpt_path: Optional[str]
+    ckpt_key: Optional[str]
     feature_layers: Optional[Union[List[str], List[int]]]
 
 
@@ -148,13 +148,11 @@ class LoggingSettings(BaseModel):
 
 
 class TrainingSettingsConfig(BaseModel):
-    model_name: str
     save_path: str
     num_epochs: int
     logging: LoggingSettings
     loss_function: Literal["BCEWithLogitsLoss"] = "BCEWithLogitsLoss"
     learning_rate: float = 1e-4
-    ckpt_name: Optional[str]
     scheduler_kwargs: SchedulerConfig = SchedulerConfig()
 
 
@@ -163,5 +161,5 @@ class ClassificationTrainConfig(BaseModel):
     train_loader: ClassificationLoaderConfig
     val_loader: ClassificationLoaderConfig
     test_loader: Optional[ClassificationLoaderConfig]
-    model: ClassificationModelConfig
+    model_cfg: ClassificationModelConfig
     training_config: TrainingSettingsConfig

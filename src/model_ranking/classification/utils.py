@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import torch
+import torchvision.utils as vutils  # pyright: ignore[reportMissingTypeStubs]
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 import wandb
 
@@ -160,7 +161,7 @@ def get_patch_positions(config: ClassificationPatchPositionConfig):
 
 
 def copy_classification_config(old_path: Union[str, Path], save_path: Union[str, Path]):
-    new_path = Path(save_path).parent / Path(old_path).name
+    new_path = Path(save_path) / Path(old_path).name
     _ = shutil.copy2(old_path, new_path)
 
 
@@ -238,3 +239,36 @@ def get_loss_function(name: Literal["BCEWithLogitsLoss"]) -> torch.nn.Module:
         return torch.nn.BCEWithLogitsLoss()
     else:
         raise ValueError(f"Unknown loss function {name}")
+
+
+def create_image_grid(batch_tensor: torch.Tensor, max_images: int = 12) -> torch.Tensor:
+    """
+    Convert a batch of images to a grid for logging.
+
+    Parameters:
+    batch_tensor - tensor of shape [batch_size, channels, height, width]
+    max_images - maximum number of images to include in the grid (default: 12)
+
+    Returns:
+    grid_tensor - tensor representing the image grid
+    """
+    # Take only the first max_images if batch is larger
+    if batch_tensor.size(0) > max_images:
+        batch_tensor = batch_tensor[:max_images]
+
+    batch_size = batch_tensor.size(0)
+
+    # Calculate grid dimensions (up to 4x3 = 12 images)
+    if batch_size <= 4:
+        nrow = batch_size
+    elif batch_size <= 8:
+        nrow = 4
+    else:  # batch_size <= 12
+        nrow = 4
+
+    grid = vutils.make_grid(batch_tensor, nrow=nrow, normalize=True, padding=2)
+
+    # Convert from CHW to HWC for wandb (wandb expects HWC format)
+    grid = grid.permute(1, 2, 0)
+
+    return grid

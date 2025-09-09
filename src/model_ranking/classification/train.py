@@ -11,8 +11,14 @@ from tqdm import trange
 from typing import Any, List, Optional
 import wandb
 
-from .dataclass import TrainingSettingsConfig
-from .utils import load_from_checkpoint, save_checkpoint, get_loss_function
+from .dataclass import TrainingSettingsConfig, ClassificationModelConfig
+from .model import ClassificationNet
+from .utils import (
+    create_image_grid,
+    load_from_checkpoint,
+    save_checkpoint,
+    get_loss_function,
+)
 from .validate import validate
 
 
@@ -72,15 +78,17 @@ def train(
         # check if we log images, and if we do then send the
         # current image to tensorboard
         if log_image_interval is not None and step % log_image_interval == 0:
-            wandb.log({"input": [wandb.Image(x)]}, step=step)
+            # Create image grid from batch
+            image_grid = create_image_grid(x, max_images=12)
+            wandb.log({"input": wandb.Image(image_grid.cpu().numpy())}, step=step)
 
         prediction = torch.as_tensor(
-            (torch.sigmoid(prediction)) > 0.5, dtype=torch.int32
+            (torch.sigmoid(prediction)) > 0.5, dtype=torch.int16
         )
 
         # store the predictions and labels
-        predictions.append(prediction[:, 0].to("cpu").numpy().astype(np.int32))
-        labels.append(y[:, 0].to("cpu").numpy())
+        predictions.append(prediction[:, 0].to("cpu").numpy().astype(np.int16))
+        labels.append(y[:, 0].to("cpu").numpy().astype(np.int16))
 
     # predictions and labels to numpy arrays
     pred_cmb = np.concatenate(predictions)
@@ -102,26 +110,33 @@ def train(
 
 
 def run_training(
-    model: torch.nn.Module,
     train_loader: DataLoader[Any],
     val_loader: DataLoader[Any],
     device: torch.device,
+    model_cfg: ClassificationModelConfig,
     config: TrainingSettingsConfig,
 ):
+    # set up backbone model
+    print("Initialize model")
+    model = ClassificationNet(model_cfg)
+
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    checkpoint_path = os.path.join(config.save_path, config.model_name)
+    save_path = os.path.join(
+        config.save_path, model_cfg.conv1.name, model_cfg.modelname
+    )
     assert wandb.run is not None
-    if config.ckpt_name is not None:
-        ckpt_path = os.path.join(checkpoint_path, config.ckpt_name + ".pt")
-        assert os.path.exists(ckpt_path), f"Checkpoint {ckpt_path} does not exist"
+    if model_cfg.ckpt_path is not None:
         assert wandb.run.resumed
+        assert (
+            model_cfg.ckpt_key is not None
+        ), "When resuming a run, a checkpoint key must be provided"
         result = load_from_checkpoint(
-            name=config.model_name,
+            name=model_cfg.modelname,
             model=model,
-            path=config.save_path,
+            path=model_cfg.ckpt_path,
             location=device,
-            ckpt=config.ckpt_name,
+            key=model_cfg.ckpt_key,
             optimizer=optimizer,
         )
         # Since optimizer is provided, we know this returns the tuple form
@@ -141,7 +156,7 @@ def run_training(
         best_loss = np.inf
         best_epoch = 0
         starting_epoch = 0
-        os.makedirs(checkpoint_path, exist_ok=False)
+        os.makedirs(save_path, exist_ok=True)
 
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, **config.scheduler_kwargs.model_dump()
@@ -182,7 +197,7 @@ def run_training(
             save_checkpoint(
                 "best",
                 model,
-                checkpoint_path,
+                save_path,
                 optimizer,
                 best_epoch,
                 best_loss,
@@ -193,7 +208,7 @@ def run_training(
         save_checkpoint(
             "latest",
             model,
-            checkpoint_path,
+            save_path,
             optimizer,
             best_epoch,
             best_loss,
