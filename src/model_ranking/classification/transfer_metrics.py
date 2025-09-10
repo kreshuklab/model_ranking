@@ -20,9 +20,10 @@ def get_transfer_data_classification(
     performance_config: PrecomputedClassificationPerformanceConfig,
 ):
     feature_ids = list(feature_config.layer_keys.keys())
-    model_identifier = model_name.split("_")[-1][:-1]
-    if model_identifier in feature_ids:
-        key = feature_config.layer_keys[model_identifier]
+    matching_feature_ids = [fid for fid in feature_ids if fid in model_name]
+    assert len(matching_feature_ids) <= 1, "Multiple matching feature ids found."
+    if len(matching_feature_ids) == 1:
+        key = feature_config.layer_keys[matching_feature_ids[0]]
     else:
         key = "ResNet.avgpool"
 
