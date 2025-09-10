@@ -122,6 +122,7 @@ class ClassificationLoaderConfig(BaseModel):
     batch_size: int
     shuffle: bool
     num_workers: int
+    loader_rnd_seed: Optional[int] = None
 
 
 class ClassificationOutputConfig(BaseModel):
