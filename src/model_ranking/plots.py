@@ -549,6 +549,7 @@ def plot_performance_vs_transfer_metric(
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
         print(f"Plot saved to {save_path}")
+        plt.close(f)
     return f
 
 
