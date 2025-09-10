@@ -83,6 +83,8 @@ class ClassificationModelConfig(BaseModel):
     ckpt_path: Optional[str]
     ckpt_key: Optional[str]
     feature_layers: Optional[Union[List[str], List[int]]]
+    input_features: bool = False
+    layer_key: Optional[str] = "ClassNet"
 
 
 class ClassificationPatchPositionConfig(BaseModel):
