@@ -2,6 +2,7 @@ from numpy.typing import NDArray
 from typing import Any, Callable, Dict, Optional, Union
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose  # pyright: ignore[reportMissingTypeStubs]
+import torch
 
 from .augmentations import (
     classification_geometric_TTAs,
@@ -25,8 +26,8 @@ from torch_em.transform.raw import (
 
 def get_classification_dataloader(
     config: ClassificationLoaderConfig,
+    generator: Optional[torch.Generator] = None,
 ) -> DataLoader[Any]:
-
     patch_cfg = config.patch_position
     patch_positions = get_patch_positions(patch_cfg)
 
@@ -55,6 +56,7 @@ def get_classification_dataloader(
         patch_positions,
         raw_transform=raw_transform,  # pyright: ignore[reportUnknownArgumentType]
         transform=transforms,
+        generator=generator,
     )
 
 
@@ -63,6 +65,7 @@ def classification_loader(
     patch_positions: NDArray[Any],
     raw_transform: Optional[Union[Compose, Callable[[Any], NDArray[Any]]]],
     transform: Optional[KorniaAugmentationPipeline],
+    generator: Optional[torch.Generator] = None,
 ) -> DataLoader[ClassificationFilteredDataset]:
     dataset_cfg = config.dataset
     ds = ClassificationFilteredDataset(
@@ -83,11 +86,19 @@ def classification_loader(
         patch_return=dataset_cfg.patch_return_mode,
     )
 
+    print(f"Number of patches in the dataset: {len(ds)}")
+
+    # Use provided generator for reproducible shuffling
+    if generator is None and config.shuffle and config.loader_rnd_seed is not None:
+        generator = torch.Generator()
+        _ = generator.manual_seed(config.loader_rnd_seed)
+
     return get_data_loader(  # pyright: ignore[reportUnknownVariableType]
         ds,
         batch_size=config.batch_size,
         shuffle=config.shuffle,
         num_workers=config.num_workers,
+        generator=generator,
     )
 
 
