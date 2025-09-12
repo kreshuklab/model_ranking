@@ -2,6 +2,7 @@ from .dataclass import *
 from .data_loader import *
 from .datasets import *
 from .model import *
+from .plots import *
 from .predict import *
 from .train import *
 from .transfer_metrics import *
