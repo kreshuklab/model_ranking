@@ -25,6 +25,8 @@ MODEL_TO_DATASET = {
     "Hm": "Hmito",
     "Rm": "Rmito",
     "V": "VNC",
+    "H": "Hmito",
+    "R": "Rmito",
 }
 
 
@@ -559,6 +561,7 @@ def plot_performance_vs_transfer_metric_multi_target(
     transfer_metric: str,
     figsize: Tuple[int, int] = (16, 12),
     finetuned: bool = False,
+    source_model_only: bool = False,
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
@@ -578,6 +581,12 @@ def plot_performance_vs_transfer_metric_multi_target(
 
         # Get the data for plotting
         model_names = list(performance_scores[target].keys())
+
+        if source_model_only:
+            model_names = [
+                m for m in model_names if MODEL_TO_DATASET[m.split("_")[0]] == target
+            ]
+
         x: List[float] = []
         y: List[float] = []
         labels: List[str] = []
@@ -596,7 +605,8 @@ def plot_performance_vs_transfer_metric_multi_target(
         axes[i].set_xlabel(f"{transfer_metric}")
         axes[i].set_ylabel("F1 Score")
         axes[i].set_title(f"{target}: Performance vs {transfer_metric}")
-        axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
+        if source_model_only == True:
+            axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
         axes[i].grid()
 
     # Hide any unused subplots
@@ -608,5 +618,7 @@ def plot_performance_vs_transfer_metric_multi_target(
     if finetuned:
         performance_title += " (Finetuned)"
     _ = plt.suptitle(f"{performance_title} vs {transfer_metric}", fontsize=16)
+    if source_model_only == False:
+        _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.show()
