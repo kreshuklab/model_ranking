@@ -900,9 +900,9 @@ class FeaturePerturbationConfig(BaseModel):
 
 class OutputSettingsConfig(BaseModel):
     result_dir: str
-    approach: str
+    approach: Optional[str]
     base_dir_path: str
-    output_folder: str = "norm"
+    output_folder: Optional[str] = "norm"
 
 
 class LoaderMetaConfig(BaseModel):
@@ -1160,9 +1160,13 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 class SourceModelConfigBase(BaseModel):
     # model: Pytorch3DUnetModelMetaConfig
     model_name: str
-    model_type: Literal["UNet2D", "ResidualUNet2D", "UnetrWrapper", "UNet2d_as3d"] = (
-        "UNet2D"
-    )
+    model_type: Literal[
+        "UNet2D",
+        "ResidualUNet2D",
+        "UnetrWrapper",
+        "UNet2d_as3d",
+        "ResidualUNet2D_as_3D",
+    ] = "UNet2D"
     checkpoint_name: str = "best_checkpoint"
 
 
@@ -1179,28 +1183,6 @@ UNET2D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
 
 UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     name="UNet2D",
-    in_channels=1,
-    out_channels=1,
-    layer_order="bcr",
-    f_maps=32,
-    final_sigmoid=True,
-    feature_return=False,
-    is_segmentation=True,
-)
-
-UNET2D_AS_3D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
-    name="UNet2d_as3d",
-    in_channels=1,
-    out_channels=1,
-    layer_order="bcr",
-    f_maps=(32, 64, 128),
-    final_sigmoid=True,
-    feature_return=False,
-    is_segmentation=True,
-)
-
-UNET2D_AS_3D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
-    name="UNet2d_as3d",
     in_channels=1,
     out_channels=1,
     layer_order="bcr",
@@ -1280,6 +1262,7 @@ class ModelSourceConfig(SourceModelConfigBase):
             "UNet2D",
             "ResidualUNet2D",
             "UNet2d_as3d",
+            "ResidualUNet2D_as_3D",
         ], f"Invalid model type: {self.model_type}"
         if self.model_type == "UNet2D" or self.model_type == "UNet2d_as3d":
             if self.source_name in [
@@ -1294,17 +1277,18 @@ class ModelSourceConfig(SourceModelConfigBase):
                 "Rmito",
                 "VNC",
             ]:
-                if self.model_type == "UNet2d_as3d":
-                    model = UNET2D_AS_3D_4LAYER_ARCHITECTURE
-                else:
-                    model = UNET2D_4LAYER_ARCHITECTURE
+                model = UNET2D_4LAYER_ARCHITECTURE.model_copy(
+                    update={"name": self.model_type}
+                )
             else:
-                if self.model_type == "UNet2d_as3d":
-                    model = UNET2D_AS_3D_3LAYER_ARCHITECTURE
-                else:
-                    model = UNET2D_3LAYER_ARCHITECTURE
+                model = UNET2D_3LAYER_ARCHITECTURE.model_copy(
+                    update={"name": self.model_type}
+                )
+
         else:
-            model = RESIDUALUNET2D_5LAYER_ARCHITECTURE
+            model = RESIDUALUNET2D_5LAYER_ARCHITECTURE.model_copy(
+                update={"name": self.model_type}
+            )
         return Pytorch3DUnetModelConfig(
             name=model.name,
             in_channels=model.in_channels,
