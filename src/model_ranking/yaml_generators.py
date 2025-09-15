@@ -377,12 +377,22 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         save_name = f"feat_{feature_perturbation_name}_aug_{aug_name}"
 
                     if meta_cfg.run_mode == "pred_eval":
-                        pred_dir_path = str(Path(output_folder_path) / "predictions")
+                        if Path(output_folder_path).stem == "predictions":
+                            pred_dir_path = output_folder_path
+                        else:
+                            pred_dir_path = str(
+                                Path(output_folder_path) / "predictions"
+                            )
+                        Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
+
+                    elif meta_cfg.run_mode == "adaptive_batchnorm":
+                        pred_dir_path = ""
 
                     else:
                         pred_dir_path = str(
                             Path(output_folder_path) / save_name / "predictions"
                         )
+                        Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
 
                     none_pred_path = str(
                         Path(output_folder_path) / "none" / "predictions"
@@ -766,7 +776,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         yaml_save_path = (
                             Path(meta_cfg.output_settings.base_dir_path)
                             / f"{source_model.source_name}_to_{target_cfg.name}_gap"
-                            / source_model.model_name
+                            / (
+                                f"{DATASET_TO_MODEL_ABBREVIATIONS[source_model.source_name]}to"
+                                + f"{DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]}_{source_model.model_name}"
+                            )
                             / meta_cfg.output_settings.result_dir
                             / "model_update.yaml"
                         )
