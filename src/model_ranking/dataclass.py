@@ -1160,7 +1160,9 @@ class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
 class SourceModelConfigBase(BaseModel):
     # model: Pytorch3DUnetModelMetaConfig
     model_name: str
-    model_type: Literal["UNet2D", "ResidualUNet2D", "UnetrWrapper"] = "UNet2D"
+    model_type: Literal["UNet2D", "ResidualUNet2D", "UnetrWrapper", "UNet2d_as3d"] = (
+        "UNet2D"
+    )
     checkpoint_name: str = "best_checkpoint"
 
 
@@ -1186,6 +1188,28 @@ UNET2D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     is_segmentation=True,
 )
 
+UNET2D_AS_3D_3LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
+    name="UNet2d_as3d",
+    in_channels=1,
+    out_channels=1,
+    layer_order="bcr",
+    f_maps=(32, 64, 128),
+    final_sigmoid=True,
+    feature_return=False,
+    is_segmentation=True,
+)
+
+UNET2D_AS_3D_4LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
+    name="UNet2d_as3d",
+    in_channels=1,
+    out_channels=1,
+    layer_order="bcr",
+    f_maps=32,
+    final_sigmoid=True,
+    feature_return=False,
+    is_segmentation=True,
+)
+
 RESIDUALUNET2D_5LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     name="ResidualUNet2D",
     in_channels=1,
@@ -1196,6 +1220,7 @@ RESIDUALUNET2D_5LAYER_ARCHITECTURE = Pytorch3DUnetModelMetaConfig(
     feature_return=False,
     is_segmentation=True,
 )
+
 
 UNETR_DEFAULT_ARCHITECTURE = UnetrModelMetaConfig(
     name="UnetrWrapper",
@@ -1254,8 +1279,9 @@ class ModelSourceConfig(SourceModelConfigBase):
         assert self.model_type in [
             "UNet2D",
             "ResidualUNet2D",
+            "UNet2d_as3d",
         ], f"Invalid model type: {self.model_type}"
-        if self.model_type == "UNet2D":
+        if self.model_type == "UNet2D" or self.model_type == "UNet2d_as3d":
             if self.source_name in [
                 "Go-Nuclear",
                 "S_BIAD1196",
@@ -1268,9 +1294,15 @@ class ModelSourceConfig(SourceModelConfigBase):
                 "Rmito",
                 "VNC",
             ]:
-                model = UNET2D_4LAYER_ARCHITECTURE
+                if self.model_type == "UNet2d_as3d":
+                    model = UNET2D_AS_3D_4LAYER_ARCHITECTURE
+                else:
+                    model = UNET2D_4LAYER_ARCHITECTURE
             else:
-                model = UNET2D_3LAYER_ARCHITECTURE
+                if self.model_type == "UNet2d_as3d":
+                    model = UNET2D_AS_3D_3LAYER_ARCHITECTURE
+                else:
+                    model = UNET2D_3LAYER_ARCHITECTURE
         else:
             model = RESIDUALUNET2D_5LAYER_ARCHITECTURE
         return Pytorch3DUnetModelConfig(
@@ -3547,7 +3579,12 @@ class MetaConfig(BaseModel):
     source_models: Sequence[ModelSourceConfig]
     segmentation_mode: Literal["instance", "semantic"]
     run_mode: Literal[
-        "full", "evaluation", "consistency", "pred_eval", "summary_results"
+        "full",
+        "evaluation",
+        "consistency",
+        "pred_eval",
+        "summary_results",
+        "adaptive_batchnorm",
     ]
     summary_results: SummaryResultsMetaConfig
     overwrite_yaml: bool

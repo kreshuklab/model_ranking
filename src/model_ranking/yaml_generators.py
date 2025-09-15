@@ -19,6 +19,7 @@ from model_ranking.dataclass import (
     EvaluateConfig,
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
+    SelfTrainingModelConfig,
     UnetrModelConfig,
     SBIAD1410LoaderMetaConfig,
     SummaryResultsConfig,
@@ -376,15 +377,18 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         save_name = f"feat_{feature_perturbation_name}_aug_{aug_name}"
 
                     if meta_cfg.run_mode == "pred_eval":
-                        pred_dir_path = output_folder_path + "/" + "predictions"
+                        pred_dir_path = str(Path(output_folder_path) / "predictions")
 
                     else:
-                        pred_dir_path = (
-                            output_folder_path + "/" + save_name + "/predictions"
+                        pred_dir_path = str(
+                            Path(output_folder_path) / save_name / "predictions"
                         )
-                    none_pred_path = output_folder_path + "/" + "none" + "/predictions"
+
+                    none_pred_path = str(
+                        Path(output_folder_path) / "none" / "predictions"
+                    )
                     # make directory if needed
-                    Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
+                    # Path(pred_dir_path).mkdir(parents=True, exist_ok=True)
 
                     # get prediction file_name postfix for eval and consis loaders, legacy postifix on older models
                     # is equal to the perturbation aplied to prediction, on current models it is equal to "predictions"
@@ -617,6 +621,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
+                        # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
 
                         if source_model_path.endswith(".pt"):
@@ -656,6 +661,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
+                        # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = Path(yaml_dir_path) / "pred.yml"
 
                         if source_model_path.endswith(".pt"):
@@ -695,6 +701,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.save_results.save_select_patches,
                         )
+                        # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = (
                             Path(yaml_dir_path)
                             / f"{save_name}_{consis_cfg.consistency_metric.save_key}.yml"
@@ -724,7 +731,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                             # save_select_patches=meta_cfg.summary_results.save_select_patches,
                         )
-
+                        # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = (
                             Path(yaml_dir_path)
                             / f"{save_name}_{eval_cfg.eval_metric.eval_save_key}_eval.yml"
@@ -744,12 +751,36 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             overwrite_scores=meta_cfg.summary_results.overwrite_scores,
                             save_name_postfix=meta_cfg.summary_results.save_name_postfix,
                         )
+                        # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = (
                             Path(yaml_dir_path)
                             / f"{save_name}_metric_summary{meta_cfg.summary_results.save_name_postfix}.yml"
                         )
                         yaml_dict_order = [
                             {"summary_results": summary_results_cfg.model_dump()},
+                        ]
+
+                    elif meta_cfg.run_mode == "adaptive_batchnorm":
+                        # yaml_save_path = Path(yaml_dir_path) / "pred.yml"
+
+                        yaml_save_path = (
+                            Path(meta_cfg.output_settings.base_dir_path)
+                            / f"{source_model.source_name}_to_{target_cfg.name}_gap"
+                            / source_model.model_name
+                            / meta_cfg.output_settings.result_dir
+                            / "model_update.yaml"
+                        )
+
+                        # yaml_save_path = Path(output_folder_path)
+
+                        model_config = SelfTrainingModelConfig(
+                            model=model_cfg, source_checkpoint=source_model_path
+                        )
+
+                        yaml_dict_order = [
+                            {"model_cfg": model_config.model_dump()},
+                            {"loaders": pred_loader_cfg.model_dump()},
+                            {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
                         ]
 
                     else:

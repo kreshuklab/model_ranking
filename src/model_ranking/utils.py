@@ -328,7 +328,7 @@ def get_output_dir(
             )
 
     # Create save folder if it doesn't exist
-    Path(output_path).mkdir(parents=True, exist_ok=True)
+    # Path(output_path).mkdir(parents=True, exist_ok=True)
     return output_path
 
 
