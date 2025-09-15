@@ -302,7 +302,7 @@ def get_output_dir(
     target: str,
     model_name: str,
     output_folder: Optional[str] = "patchwise",
-    approach: str = "consistency",
+    approach: Optional[str] = "consistency",
     result_type: str = "prediction",
     base_seg_folder: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
 ):
@@ -311,20 +311,41 @@ def get_output_dir(
     ).exists(), f"Base segmentation folder {base_seg_folder} does not exist"
 
     if "segmentation_ModelSelection" in base_seg_folder:
-        output_path = (
-            f"{base_seg_folder}/{source}_to_{target}/{approach}/{model_name}/"
-            f"{output_folder}/{result_type}"
+        assert output_folder is not None, "output_folder cannot be None"
+        assert approach is not None, "approach cannot be None"
+        output_path = str(
+            Path(base_seg_folder)
+            / f"{source}_to_{target}"
+            / approach
+            / model_name
+            / output_folder
+            / result_type
+        )
+    elif "AdaptiveBatchNorm" in base_seg_folder:
+        output_path = str(
+            Path(base_seg_folder)
+            / f"{source}_to_{target}_gap"
+            / model_name
+            / result_type
         )
     else:
+        assert approach is not None, "approach cannot be None"
         if output_folder is not None:
-            output_path = (
-                f"{base_seg_folder}/{source}_to_{target}_gap/{approach}/{result_type}"
-                f"/{model_name}/{output_folder}"
+            output_path = str(
+                Path(base_seg_folder)
+                / f"{source}_to_{target}_gap"
+                / approach
+                / result_type
+                / model_name
+                / output_folder
             )
         else:
-            output_path = (
-                f"{base_seg_folder}/{source}_to_{target}_gap/{approach}/{result_type}"
-                f"/{model_name}"
+            output_path = str(
+                Path(base_seg_folder)
+                / f"{source}_to_{target}_gap"
+                / approach
+                / result_type
+                / model_name
             )
 
     # Create save folder if it doesn't exist
