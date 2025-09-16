@@ -9,6 +9,7 @@ from model_ranking import (
     MetaConfig,
     generate_run_yamls,
     run_adaptive_batchnorm,
+    run_sequential_adaptive_batchnorm,
     AdaptiveBatchNormConfig,
     copy_checkpoint_with_updated_model,
 )
@@ -18,6 +19,7 @@ def main(
     config: Annotated[
         str, typer.Option(help="Path to the meta configuration file", exists=True)
     ],
+    sequential: bool = typer.Option(False, help="Use sequential BN adaptation"),
 ):
     cfg, _ = load_config_direct(config)
 
@@ -39,7 +41,12 @@ def main(
                 adabn_cfg.model_cfg.source_checkpoint is not None
             ), "Source checkpoint must be specified for adaptive batch norm"
 
-            updated_model = run_adaptive_batchnorm(adabn_cfg)
+            if sequential == True:
+                print("Running sequential adaptive batch norm...")
+                updated_model = run_sequential_adaptive_batchnorm(adabn_cfg)
+            else:
+                print("Running standard adaptive batch norm...")
+                updated_model = run_adaptive_batchnorm(adabn_cfg)
 
             copy_checkpoint_with_updated_model(
                 source_checkpoint_path=adabn_cfg.model_cfg.source_checkpoint,
