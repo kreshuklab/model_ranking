@@ -498,3 +498,34 @@ def get_source_from_model_name(model_name: str) -> str:
     if "to" in model_identifier:
         model_identifier = model_identifier[0]
     return MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]
+
+
+def find_batchnorm_pred_path(
+    model_name: str,
+    base_path: Union[Path, str],
+    perturbation: str = "none",
+    return_summary: bool = False,
+    summary_postfix: str = "full",
+) -> Path:
+    transfer = model_name.split("_")[0]
+    source, target = transfer.split("to")
+    pred_dir_path = (
+        Path(base_path)
+        / (
+            f"{MODEL_ABBREVIATIONS_TO_DATASET[source]}_to_"
+            + f"{MODEL_ABBREVIATIONS_TO_DATASET[target]}_gap"
+        )
+        / model_name
+        / "predictions"
+        / perturbation
+        / "predictions"
+    )
+    if return_summary:
+        pred_path = list(pred_dir_path.glob(f"*metric_summary_{summary_postfix}.h5"))
+    else:
+        pred_path = list(pred_dir_path.glob("*predictions.h5"))
+    assert (
+        len(pred_path) == 1
+    ), f"Found {len(pred_path)} prediction files for {model_name} at {pred_dir_path}"
+    pred_path = pred_path[0]
+    return pred_path
