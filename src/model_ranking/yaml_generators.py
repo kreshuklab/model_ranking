@@ -778,7 +778,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             / f"{source_model.source_name}_to_{target_cfg.name}_gap"
                             / (
                                 f"{DATASET_TO_MODEL_ABBREVIATIONS[source_model.source_name]}to"
-                                + f"{DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]}_{source_model.model_name}"
+                                + f"{DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]}_"
+                                + f"{'_'.join(source_model.model_name.split('_')[1:])}"
                             )
                             / meta_cfg.output_settings.result_dir
                             / "model_update.yaml"
