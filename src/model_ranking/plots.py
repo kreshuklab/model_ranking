@@ -605,7 +605,7 @@ def plot_performance_vs_transfer_metric_multi_target(
         axes[i].set_xlabel(f"{transfer_metric}")
         axes[i].set_ylabel("F1 Score")
         axes[i].set_title(f"{target}: Performance vs {transfer_metric}")
-        if source_model_only == True:
+        if (source_model_only == True) or (finetuned == True):
             axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
         axes[i].grid()
 
@@ -618,7 +618,127 @@ def plot_performance_vs_transfer_metric_multi_target(
     if finetuned:
         performance_title += " (Finetuned)"
     _ = plt.suptitle(f"{performance_title} vs {transfer_metric}", fontsize=16)
-    if source_model_only == False:
+    if (source_model_only == False) and (finetuned == False):
         _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.show()
+
+
+# Alternative function that creates separate figures for each target
+def plot_model_performance_separate_figures(
+    per_target_perf_results: Dict[str, Dict[str, Dict[str, float]]],
+    figsize: Tuple[int, int] = (14, 8),
+    save_plots: bool = False,
+    save_dir: str = "./plots",
+) -> None:
+    """
+    Plot separate multi-bar plots for each target dataset.
+
+    Parameters:
+    -----------
+    per_target_perf_results : Dict[str, Dict[str, Dict[str, float]]]
+        Performance results structured as {target: {model: {approach: score}}}
+    figsize : tuple
+        Figure size for each plot (width, height)
+    save_plots : bool
+        Whether to save plots to disk
+    save_dir : str
+        Directory to save plots if save_plots is True
+    """
+    # Create save directory if needed
+    if save_plots:
+        from pathlib import Path
+
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
+
+    # Get all unique approaches across all models and targets
+    all_approaches: set[str] = set()
+    for target_data in per_target_perf_results.values():
+        for model_data in target_data.values():
+            all_approaches.update(model_data.keys())
+    approaches = sorted(list(all_approaches))
+
+    # Color palette for approaches
+    colors = plt.cm.Set3(range(len(approaches)))  # pyright: ignore
+    approach_colors = dict(zip(approaches, colors))  # pyright: ignore
+
+    for target, target_data in per_target_perf_results.items():
+        _, ax = plt.subplots(figsize=figsize)
+
+        # Prepare data for plotting
+        models = list(target_data.keys())
+        n_models = len(models)
+        n_approaches = len(approaches)
+
+        # Set up bar positions
+        bar_width = 0.8 / n_approaches
+        x_positions = range(n_models)
+
+        # Plot bars for each approach
+        for approach_idx, approach in enumerate(approaches):
+            approach_scores = []
+            for model in models:
+                score = target_data[model].get(
+                    approach, 0.0
+                )  # Default to 0 if approach not available
+                approach_scores.append(score)
+
+            # Calculate bar positions for this approach
+            bar_positions = [
+                x + (approach_idx - n_approaches / 2 + 0.5) * bar_width
+                for x in x_positions
+            ]
+
+            # Plot bars
+            bars = ax.bar(
+                bar_positions,
+                approach_scores,  # pyright: ignore[reportUnknownArgumentType]
+                bar_width,
+                label=approach,
+                color=approach_colors[
+                    approach
+                ],  # pyright: ignore[reportUnknownArgumentType]
+                alpha=0.8,
+            )
+
+            # Add value labels on bars
+            for bar, score in zip(bars, approach_scores):  # pyright: ignore
+                if score > 0:  # Only label non-zero values
+                    height = bar.get_height()  # pyright: ignore
+                    _ = ax.text(
+                        bar.get_x() + bar.get_width() / 2.0,  # pyright: ignore
+                        height + 0.01,  # pyright: ignore
+                        f"{score:.3f}",
+                        ha="center",
+                        va="bottom",
+                        fontsize=9,
+                        rotation=90,
+                    )
+
+        # Customize the plot
+        _ = ax.set_xlabel("Models", fontsize=12)
+        _ = ax.set_ylabel("Performance Score (F1)", fontsize=12)
+        _ = ax.set_title(
+            f"Model Performance on {target} Dataset", fontsize=14, fontweight="bold"
+        )
+        _ = ax.set_xticks(x_positions)
+        _ = ax.set_xticklabels(models, rotation=45, ha="right")
+        _ = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+        _ = ax.grid(True, alpha=0.3)
+        _ = ax.set_ylim(
+            0,
+            max([max(model_data.values()) for model_data in target_data.values()])
+            * 1.15,
+        )
+
+        plt.tight_layout()
+
+        if save_plots:
+            plt.savefig(
+                f"{save_dir}/model_performance_{target}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
+            print(f"Plot saved to {save_dir}/model_performance_{target}.png")
+
+        plt.show()
