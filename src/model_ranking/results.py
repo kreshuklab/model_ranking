@@ -290,7 +290,9 @@ def get_summary_results(
         "Hmito": "Hm_model3",
         "Rmito": "Rm_model3",
     },
-    selected_norms: Mapping[str, Union[List[Tuple[float, float]], List[None]]] = {
+    selected_norms: Mapping[
+        str, Union[List[Tuple[float, float]], List[None], List[str]]
+    ] = {
         "BBBC039": [(5.0, 98.0)],
         "DSB2018": [(5.0, 98.0)],
         "Go-Nuclear": [(0, 99.8)],
@@ -303,14 +305,14 @@ def get_summary_results(
         "FlyWing": [(5.0, 95.0)],
         "Ovules": [(5.0, 95.0)],
         "PNAS": [(5.0, 95.0)],
-        "EPFL": [None],
-        "Hmito": [None],
-        "Rmito": [None],
-        "VNC": [None],
+        "EPFL": ["Normalize"],
+        "Hmito": ["Normalize"],
+        "Rmito": ["Normalize"],
+        "VNC": ["Normalize"],
     },
     perf_key: str = "hard_f1",
     select_results_by_source: bool = False,
-    approach: str = "consistency",
+    approach: Optional[str] = "consistency",
     per_transfer_norms: bool = False,
     per_target_norms: bool = True,
     consis_postfix: str = "mean",
@@ -352,16 +354,20 @@ def get_summary_results(
             for norm in norms:
                 if norm == None:
                     norm_foldername = "norm_Normalize"
+                    dir_path = Path(output_dir)
+                elif norm == "Normalize":
+                    norm_foldername = "norm_Normalize"
+                    dir_path = Path(output_dir) / norm_foldername
                 else:
                     norm_foldername = f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
-                norm_dir_path = Path(output_dir) / norm_foldername
+                    dir_path = Path(output_dir) / norm_foldername
 
                 consis_per_aug_strength: Dict[str, NDArray[Any]] = {}
                 perf_per_aug_strength: Dict[str, NDArray[Any]] = {}
 
                 if selected_augmentations is None:
                     metric_filepath = list(
-                        Path(norm_dir_path).rglob(
+                        Path(dir_path).rglob(
                             f"**/metric_summary{summary_results_postfix}.h5"
                         )
                     )[0]
@@ -373,12 +379,15 @@ def get_summary_results(
                     for aug, alphas in selected_augmentations.items():
                         if aug == "none":
                             metric_filepath = list(
-                                (Path(norm_dir_path) / f"{aug}").rglob(
+                                (Path(dir_path) / f"{aug}").rglob(
                                     f"**/metric_summary{summary_results_postfix}.h5"
                                 )
-                            )[0]
+                            )
+                            assert (
+                                len(metric_filepath) == 1
+                            ), f"Found {len(metric_filepath)} files for {Path(dir_path)}/{aug}"
                             perf_score = load_summary_metric(
-                                metric_filepath, perf_key, perf_postfix
+                                metric_filepath[0], perf_key, perf_postfix
                             )
                             no_aug_PN_perf_scores[norm_foldername] = float(perf_score)
                         else:
@@ -389,16 +398,21 @@ def get_summary_results(
                             perf_per_alpha = np.zeros(len(alphas))
                             for i, alpha in enumerate(alphas):
                                 metric_filepath = list(
-                                    (Path(norm_dir_path) / f"{aug}_{alpha}").rglob(
+                                    (Path(dir_path) / f"{aug}_{alpha}").rglob(
                                         f"**/metric_summary{summary_results_postfix}.h5"
                                     )
-                                )[0]
+                                )
+                                assert (
+                                    len(metric_filepath) == 1
+                                ), f"Found {len(metric_filepath)} files for {Path(dir_path)}/{aug}_{alpha}"
                                 consis_score = load_summary_metric(
-                                    metric_filepath, consis_keys[target], consis_postfix
+                                    metric_filepath[0],
+                                    consis_keys[target],
+                                    consis_postfix,
                                 )
                                 consis_per_alpha[i] = consis_score
                                 perf_score = load_summary_metric(
-                                    metric_filepath, perf_key, perf_postfix
+                                    metric_filepath[0], perf_key, perf_postfix
                                 )
                                 perf_per_alpha[i] = perf_score
 
@@ -535,20 +549,21 @@ def cmb_consistency_score_weighted_average(
     w_fg: float = 0.5,
     w_bg: float = 0.5,
     perturbation_key: str = "DO",
+    norm_key: str = "norm_Normalize",
 ):
     per_target_cmb_consistency: per_target_consis_result_type = {}
     for target in foreground_consistency.keys():
         per_model_cmb_consistency = {}
         for model in foreground_consistency[target].keys():
-            bckg_consis = background_consistency[target][model]["norm_Normalize"][
+            bckg_consis = background_consistency[target][model][norm_key][
                 perturbation_key
             ]
-            forg_consis = foreground_consistency[target][model]["norm_Normalize"][
+            forg_consis = foreground_consistency[target][model][norm_key][
                 perturbation_key
             ]
             cmb_consis = (w_fg * forg_consis + w_bg * bckg_consis) / (w_fg + w_bg)
             per_model_cmb_consistency[model] = {
-                "norm_Normalize": {perturbation_key: cmb_consis}
+                norm_key: {perturbation_key: cmb_consis}
             }
         per_target_cmb_consistency[target] = per_model_cmb_consistency
     return per_target_cmb_consistency
