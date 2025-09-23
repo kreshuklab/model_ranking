@@ -20,6 +20,7 @@ from model_ranking.dataclass import (
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
     SelfTrainingModelConfig,
+    TransformerConsistencyMetaConfig,
     UnetrModelConfig,
     SBIAD1410LoaderMetaConfig,
     SummaryResultsConfig,
@@ -772,7 +773,9 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                     elif meta_cfg.run_mode == "adaptive_batchnorm":
                         # yaml_save_path = Path(yaml_dir_path) / "pred.yml"
-
+                        assert (
+                            meta_cfg.output_settings.result_dir is not None
+                        ), "result_dir cannot be None for adaptive_batchnorm run mode"
                         yaml_save_path = (
                             Path(meta_cfg.output_settings.base_dir_path)
                             / f"{source_model.source_name}_to_{target_cfg.name}_gap"
@@ -808,4 +811,81 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     )
             # for yaml_paths at key transfer_title if path contains "none" then ensure it is at index zero
             yaml_paths[transfer_title].sort(key=lambda x: 0 if "none" in str(x) else 1)
+    return yaml_paths
+
+
+def transformer_consistency_yaml_generator(
+    meta_cfg: TransformerConsistencyMetaConfig,
+) -> Dict[str, List[Path]]:
+    """
+    Generate yaml files for transformer based consistency evaluation
+
+    """
+    assert (
+        meta_cfg.consistency_settings is not None
+    ), "Consistency settings cannot be None"
+    consis_metric_cfg = meta_cfg.consistency_settings
+    yaml_paths: Dict[str, List[Path]] = {}
+
+    for source_model in meta_cfg.source_models:
+        for target_cfg in meta_cfg.target_datasets:
+            transfer_title = f"{source_model.model_type}_to_{target_cfg.name}"
+            output_dir = get_output_dir(
+                source=source_model.model_type,
+                target=target_cfg.name,
+                model_name=source_model.model_name,
+                approach=meta_cfg.output_settings.approach,
+                result_type=meta_cfg.output_settings.base_dir_path,
+                base_seg_folder=meta_cfg.output_settings.base_dir_path,
+            )
+            augs_cfg = generate_aug_config(meta_cfg.input_augs)
+            for aug_name in augs_cfg.keys():
+                if aug_name == "none":
+                    save_name = "none"
+                else:
+                    save_name = aug_name
+
+                pred_dir_path = str(Path(output_dir) / save_name / "predictions")
+                none_pred_path = str(Path(output_dir) / "none" / "predictions")
+
+                assert isinstance(
+                    target_cfg.consis_dataloader_instance,
+                    Eval_TIF_DataloaderMetaConfig,
+                )
+                consis_loader_cfg = (
+                    target_cfg.consis_dataloader_instance.create_consis_config(
+                        perturbed_dir=(pred_dir_path,),
+                        unperturbed_dir=(none_pred_path,),
+                    )
+                )
+
+                consis_cfg = ConsistencyConfig(
+                    consistency_dataloader=consis_loader_cfg,
+                    consistency_metric=consis_metric_cfg,
+                )
+
+                summary_results_cfg = SummaryResultsConfig(
+                    filter_patches=None,
+                    # output_path=str(Path(pred_dir_path).parent),
+                    output_path=pred_dir_path,
+                    eval_key=None,
+                    consis_key=consis_cfg.consistency_metric.save_key,
+                    overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                    save_name_postfix=meta_cfg.summary_results.save_name_postfix,
+                )
+                yaml_save_path = (
+                    Path(pred_dir_path).parent
+                    / f"{save_name}_{consis_cfg.consistency_metric.save_key}.yml"
+                )
+                yaml_dict_order = [
+                    {"summary_results": summary_results_cfg.model_dump()},
+                    {"consistency": consis_cfg.model_dump()},
+                ]
+
+                yaml_paths.setdefault(transfer_title, []).append(yaml_save_path)
+                save_yaml(
+                    yaml_order=yaml_dict_order,
+                    yaml_path=yaml_save_path,
+                    overwrite=meta_cfg.overwrite_yaml,
+                )
     return yaml_paths
