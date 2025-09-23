@@ -152,15 +152,16 @@ def save_summary_metrics(
     for pred_path in pred_paths:
         if "metric_summary" in pred_path.name:
             continue
-        filename = extract_filename(pred_path)
-        assert filename is not None, "filename not fround in pred_path"
+        # filename = extract_filename(pred_path)
+        # assert filename is not None, "filename not found in pred_path"
         if isinstance(config.filter_patches, ForegroundFilterConfig):
+            filename = extract_filename(pred_path)
+            assert filename is not None, "filename not found in pred_path"
             sp_key = f"foreground_patches_th{str(config.filter_patches.foreground_threshold).replace('.', '')}"
             select_patches = load_h5(pred_path, sp_key)
+            select_vol_patches_per_pred[filename] = select_patches
         else:
             select_patches = None
-
-        select_vol_patches_per_pred[filename] = select_patches
 
         if config.eval_key is not None:
             perf_score = load_select_prediction_scores(
