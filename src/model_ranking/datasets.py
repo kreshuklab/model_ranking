@@ -37,7 +37,7 @@ from pytorch3dunet.unet3d.utils import (
 from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
 from model_ranking.dataclass import (
     EvalDatasetConfig,
-    mito_target_dataset_type,
+    mito_dataset_type,
 )
 from torch_em.util.image import load_data
 from torch_em.util.util import (
@@ -64,7 +64,7 @@ def traverse_pred_files(file_paths: Sequence[str], save_postfix: str) -> List[st
 
 
 def get_datasets(
-    config: mito_target_dataset_type,
+    config: mito_dataset_type,
     phase: Literal["train", "test"],
     output_path: Optional[str] = None,
     data_base_path: str = "/scratch/talks/data",
@@ -89,7 +89,7 @@ def get_datasets(
 
 
 def get_loaders(
-    config: mito_target_dataset_type,
+    config: mito_dataset_type,
     phase: Literal["train", "test"],
     output_path: Optional[str],
     shuffle: bool = True,

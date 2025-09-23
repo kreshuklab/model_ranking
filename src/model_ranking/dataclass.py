@@ -899,7 +899,7 @@ class FeaturePerturbationConfig(BaseModel):
 
 
 class OutputSettingsConfig(BaseModel):
-    result_dir: str
+    result_dir: Optional[str]
     approach: Optional[str]
     base_dir_path: str
     output_folder: Optional[str] = "norm"
@@ -1166,6 +1166,9 @@ class SourceModelConfigBase(BaseModel):
         "UnetrWrapper",
         "UNet2d_as3d",
         "ResidualUNet2D_as_3D",
+        "Cellpose_SAM",
+        "Micro_SAM",
+        "SAM",
     ] = "UNet2D"
     checkpoint_name: str = "best_checkpoint"
 
@@ -1242,6 +1245,7 @@ dataset_names = Literal[
     "Hoechst",
     "S_BIAD634",
     "S_BIAD895",
+    "Covid_IF",
 ]
 
 
@@ -1373,6 +1377,7 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
         "Hmito",
         "Rmito",
         "VNC",
+        "Covid_IF",
     ]
     loader: Annotated[
         Union[
@@ -3517,12 +3522,134 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
 
 
+class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
+    name: Literal["Covid_IF"] = "Covid_IF"
+    loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
+        dataset="Standard_TIF_Dataset",
+        batch_size=5,
+        num_workers=8,
+        global_norm=False,
+        percentiles=None,
+        image_dir=("/g/kreshuk/talks/data/covid_if",),
+        mask_dir=("/g/kreshuk/talks/data/covid_if",),
+        transformer={
+            "raw": [
+                {"name": "Normalize"},
+                {"name": "ToTensor", "expand_dims": True},
+            ],
+        },
+    )
+    predictor_semantic: TIFNucleiSemanticPredictorConfig = (
+        TIFNucleiSemanticPredictorConfig(
+            name="DSB2018Predictor",
+        )
+    )
+    predictor_instance: TIFNucleiInstancePredictorConfig = (
+        TIFNucleiInstancePredictorConfig(
+            name="NucleiInstancePredictor",
+            save_segmentation=True,
+            min_size=50,
+            zero_largest_instance=False,
+            no_adjust_background=False,
+        )
+    )
+    eval_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="prediction",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=("/g/kreshuk/talks/data/covid_if",),
+            mask_key="labels/cells/s0",
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [
+                    {"name": "Relabel"},
+                    {"name": "BlobsToMask", "append_label": False},
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    eval_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="prediction",
+            min_object_size=50,
+            instance_zero_background=False,
+            mask_dir=("/g/kreshuk/talks/data/covid_if",),
+            mask_key="labels/cells/s0",
+            transformer={
+                "raw": [{"name": "ToTensor", "expand_dims": True}],
+                "label": [{"name": "ToTensor", "expand_dims": True}],
+            },
+        )
+    )
+    consis_dataloader_semantic: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="prediction",
+            min_object_size=None,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="prediction",
+            transformer={
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    consis_dataloader_instance: Eval_TIF_DataloaderMetaConfig = (
+        Eval_TIF_DataloaderMetaConfig(
+            batch_size=1,
+            num_workers=8,
+            name="Standard_TIF_Dataset",
+            expand_dims=True,
+            global_norm=False,
+            percentiles=None,
+            image_key="prediction",
+            min_object_size=0,
+            instance_zero_background=False,
+            mask_dir=None,
+            mask_key="prediction",
+            transformer={
+                "raw": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+                "label": [
+                    {"name": "ToTensor", "expand_dims": True},
+                ],
+            },
+        )
+    )
+    filter_results: None = None
+
+
 class SummaryResultsMetaConfig(BaseModel):
     overwrite_scores: bool
     consis_key: Optional[str] = None
     eval_key: Optional[str] = None
     save_name_postfix: str = ""
-    filter_patches: bool = True
+    filter_patches: bool = False
 
 
 target_dataset_type = Annotated[
@@ -3543,11 +3670,12 @@ target_dataset_type = Annotated[
         HmitoTargetConfig,
         RmitoTargetConfig,
         VNCTargetConfig,
+        CovidIFTargetConfig,
     ],
     Discriminator("name"),
 ]
 
-mito_target_dataset_type = Annotated[
+mito_dataset_type = Annotated[
     Union[
         EPFLTargetConfig,
         HmitoTargetConfig,
@@ -3578,6 +3706,17 @@ class MetaConfig(BaseModel):
     output_settings: OutputSettingsConfig
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Optional[eval_metric_type]
+    consistency_settings: Optional[consistency_metric_type]
+
+
+class TransformerConsistencyMetaConfig(BaseModel):
+    source_models: Sequence[SourceModelConfigBase]
+    target_datasets: Sequence[target_dataset_type]
+    data_base_path: str
+    overwrite_yaml: bool
+    input_augs: Dict[str, List[Tuple[float, float]]]
+    summary_results: SummaryResultsMetaConfig
+    output_settings: OutputSettingsConfig
     consistency_settings: Optional[consistency_metric_type]
 
 
@@ -3767,17 +3906,6 @@ class SupervisedFinetuningConfig(BaseModel):
     training_cfg: SelfTrainingTrainConfig
     wandb_cfg: Optional[WandbConfig]
     loader_cfg: Dict[str, Any]
-
-
-mito_dataset_type = Annotated[
-    Union[
-        EPFLTargetConfig,
-        HmitoTargetConfig,
-        RmitoTargetConfig,
-        VNCTargetConfig,
-    ],
-    Discriminator("name"),
-]
 
 
 class FeatureSampleConfig(BaseModel):
