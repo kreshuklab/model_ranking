@@ -303,7 +303,7 @@ def get_output_dir(
     model_name: str,
     output_folder: Optional[str] = "patchwise",
     approach: Optional[str] = "consistency",
-    result_type: str = "prediction",
+    result_type: Optional[str] = "prediction",
     base_seg_folder: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
 ):
     assert Path(
@@ -313,6 +313,7 @@ def get_output_dir(
     if "segmentation_ModelSelection" in base_seg_folder:
         assert output_folder is not None, "output_folder cannot be None"
         assert approach is not None, "approach cannot be None"
+        assert result_type is not None, "result_type cannot be None"
         output_path = str(
             Path(base_seg_folder)
             / f"{source}_to_{target}"
@@ -322,14 +323,23 @@ def get_output_dir(
             / result_type
         )
     elif "AdaptiveBatchNorm" in base_seg_folder:
+        assert result_type is not None, "result_type cannot be None"
         output_path = str(
             Path(base_seg_folder)
             / f"{source}_to_{target}_gap"
             / model_name
             / result_type
         )
+
+    elif "SAM" in source:
+        assert approach is not None, "approach cannot be None"
+        output_path = str(
+            Path(base_seg_folder) / target / source / approach / model_name
+        )
+
     else:
         assert approach is not None, "approach cannot be None"
+        assert result_type is not None, "result_type cannot be None"
         if output_folder is not None:
             output_path = str(
                 Path(base_seg_folder)
