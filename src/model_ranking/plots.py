@@ -513,6 +513,8 @@ def plot_performance_vs_transfer_metric(
     performance_metric_name: str = "F1",
     save_path: Optional[str] = None,
     show_plot: bool = True,
+    invert_perf_metric: bool = False,
+    invert_transfer_metric: bool = False,
 ):
     """
     Plots a scatter plot of performance (F1 score) vs transfer metric for each model.
@@ -529,8 +531,14 @@ def plot_performance_vs_transfer_metric(
     labels: List[str] = []
     for model in model_names:
         if model in transfer_metrics:
-            x.append(transfer_metrics[model])
-            y.append(performance_scores[model])
+            trans_score = transfer_metrics[model]
+            perf_score = performance_scores[model]
+            if invert_transfer_metric:
+                trans_score = 1 - trans_score
+            if invert_perf_metric:
+                perf_score = 1 - perf_score
+            x.append(trans_score)
+            y.append(perf_score)
             labels.append(model)
 
     f = plt.figure(figsize=(8, 6))
