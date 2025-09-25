@@ -13,6 +13,7 @@ from pytorch3dunet.datasets.hdf5 import StandardHDF5Dataset
 
 from model_ranking.dataclass import (
     ConsistencyConfig,
+    ConsistencyPatchedTransformerConfig,
     EvalDataloaderConfig,
     TIFEvalDatasetConfig,
 )
@@ -25,6 +26,7 @@ from model_ranking.utils import (
     save_h5,
     loader_classes,
     is_ndarray,
+    load_predictions_transformers,
 )
 
 
@@ -162,6 +164,8 @@ def run_consistency_evaluation(
                 consis_scores[0]
             ), "Number of predictions and scores differ"
             for i, pred_path in enumerate(pred_paths):
+                if "metric_summary" in str(pred_path.stem):
+                    continue
                 # save scores in pred_file
                 consis_PP = calculate_per_patch_consistency(
                     consis_scores[0][i].squeeze(), metric_cfg.name
@@ -220,3 +224,53 @@ def calculate_per_patch_consistency(consis_score: NDArray[Any], consis_name: str
             )
 
     return consis_score_PP
+
+
+def run_patched_transformer_consistency(
+    config: ConsistencyPatchedTransformerConfig,
+):
+    perturbed_cfg = config.predictions_perturbed
+    unperturbed_cfg = config.predictions_unperturbed
+    metric_cfg = config.metric_config
+
+    perturbed_preds, perturbed_path = load_predictions_transformers(
+        model_name=perturbed_cfg.model_name,
+        TTA_aug=perturbed_cfg.TTA_key,
+        base_dir_path=perturbed_cfg.base_dir_path,
+        file_identifier=perturbed_cfg.file_identifier,
+    )
+    assert len(perturbed_path) == 1, "Only one prediction file supported"
+    unperturbed_preds, unperturbed_path = load_predictions_transformers(
+        model_name=unperturbed_cfg.model_name,
+        TTA_aug=unperturbed_cfg.TTA_key,
+        base_dir_path=unperturbed_cfg.base_dir_path,
+        file_identifier=unperturbed_cfg.file_identifier,
+    )
+    assert len(unperturbed_path) == 1, "Only one prediction file supported"
+
+    assert perturbed_preds.shape == unperturbed_preds.shape, (
+        f"Shape mismatch between perturbed {perturbed_preds.shape} and"
+        + f" unperturbed {unperturbed_preds.shape} predictions"
+    )
+
+    metric = metric_cfg.initialise_metric(incomplete_gt=False)
+    scores = metric_cfg.initialise_score_array(len(perturbed_preds))
+    consis_masks = np.zeros_like(perturbed_preds, dtype=bool)
+
+    for i, (p_pred, unp_pred) in enumerate(zip(perturbed_preds, unperturbed_preds)):
+        scores[i], consis_masks[i] = metric(p_pred, unp_pred)
+
+    if metric_cfg.save_key is not None:
+        save_h5(
+            perturbed_path[0],
+            metric_cfg.save_key,
+            scores,
+            overwrite=config.overwrite_scores,
+        )
+        if metric_cfg.save_mask:
+            save_h5(
+                perturbed_path[0],
+                metric_cfg.save_key + "_mask",
+                consis_masks,
+                overwrite=config.overwrite_scores,
+            )

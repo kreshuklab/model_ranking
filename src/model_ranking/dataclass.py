@@ -3995,3 +3995,17 @@ class FeatureSpaceAnalysisConfig(BaseModel):
     feature_config: PrecomputedFeatureConfig
     output_config: FSA_SaveConfig
     max_samples: int
+
+
+class LoadTransformerPredictionsConfig(BaseModel):
+    model_name: str
+    TTA_key: str
+    base_dir_path: str
+    file_identifier: str
+
+
+class ConsistencyPatchedTransformerConfig(BaseModel):
+    predictions_perturbed: LoadTransformerPredictionsConfig
+    predictions_unperturbed: LoadTransformerPredictionsConfig
+    metric_config: AdaptedRandErrorConsisConfig
+    overwrite_scores: bool = False

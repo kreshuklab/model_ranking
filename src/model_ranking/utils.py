@@ -2,6 +2,7 @@ import os
 import fnmatch
 from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union, Dict
 from pathlib import Path
+from natsort import natsorted
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -539,3 +540,27 @@ def find_batchnorm_pred_path(
     ), f"Found {len(pred_path)} prediction files for {model_name} at {pred_dir_path}"
     pred_path = pred_path[0]
     return pred_path
+
+
+def load_predictions_transformers(
+    model_name: str,
+    TTA_aug: str,
+    base_dir_path: Union[str, Path],
+    prediction_key: str = "prediction",
+    id_range: Optional[Tuple[int, int]] = None,
+    file_identifier: str = "sample",
+):
+    pred_paths = natsorted(
+        Path(base_dir_path).rglob(f"{model_name}/{TTA_aug}/**/{file_identifier}*.h5")
+    )
+    if id_range is not None:
+        pred_paths = pred_paths[id_range[0] : id_range[1]]
+
+    preds: List[NDArray[Any]] = []
+    for path in pred_paths:
+        with h5py.File(path, "r") as f:
+            ds = f[prediction_key]
+            assert isinstance(ds, h5py.Dataset)
+            preds.append(ds[...])  # pyright: ignore[reportUnknownArgumentType]
+    pred_cmb = np.stack(preds, axis=0)
+    return pred_cmb, pred_paths
