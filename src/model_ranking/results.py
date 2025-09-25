@@ -143,7 +143,7 @@ def select_foreground_patches(
 def save_summary_metrics(
     config: SummaryResultsConfig,
 ):
-    pred_paths = sorted(Path(config.output_path).glob("*.h5"))
+    pred_paths = sorted(Path(config.output_path).rglob("*.h5"))
     assert len(pred_paths) > 0, f"No prediction files found in {config.output_path}"
     perf_scores: List[NDArray[Any]] = []
     consis_scores: List[NDArray[Any]] = []
@@ -893,3 +893,134 @@ def match_model_names(
                 )
 
     return translated_scores
+
+
+def get_transformer_result(
+    source: str,
+    model_name: str,
+    TTA_key: str,
+    eval_metric: Literal["mSA", "mS50", "mS75"] = "mSA",
+    consis_key: str = "AdaRand_consis_median",
+    eval_key: str = "mSA_scores_median",
+    target: str = "Covid_IF",
+    approach: str = "consistency",
+    summary_results_postfix: str = "_full",
+    base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
+):
+    dir_path = get_output_dir(
+        source=source,
+        target=target,
+        model_name=model_name,
+        approach=approach,
+        base_seg_folder=base_dir_path,
+    )
+
+    metric_filepath = list(
+        (Path(dir_path) / TTA_key).rglob(
+            f"**/metric_summary{summary_results_postfix}.h5"
+        )
+    )
+    assert (
+        len(metric_filepath) == 1
+    ), f"Expected exactly one metric file for no augmentation, got {len(metric_filepath)}"
+    metric_filepath = metric_filepath[0]
+    eval_score = load_h5(metric_filepath, eval_key)
+    eval_metric_idx = {"mSA": 0, "mS50": 1, "mS75": 2}[eval_metric]
+    eval_score = eval_score[eval_metric_idx]
+    if TTA_key == "none":
+        consis_score = None
+    else:
+        consis_score = load_h5(metric_filepath, consis_key)[0]
+    return eval_score, consis_score
+
+
+def get_transformer_results_aug_sweep(
+    source_models: Dict[str, List[str]],
+    selected_augmentations: Dict[str, List[str]] = {
+        "gauss": [
+            "a001-003",
+            "a003-005",
+            "a005-007",
+            "a007-01",
+            "a01-012",
+            "a012-015",
+            "a015-02",
+        ],
+    },
+    consis_key: str = "AdaRand_consis_median",
+    eval_key: str = "mSA_scores_median",
+    target: str = "Covid_IF",
+    approach: str = "consistency",
+    summary_results_postfix: str = "_full",
+    base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
+):
+
+    direct_eval_results: Dict[str, float] = {}
+    p_eval_results: Dict[str, Dict[str, NDArray[Any]]] = {}
+    consis_results: Dict[str, Dict[str, NDArray[Any]]] = {}
+    for source, models in source_models.items():
+        for model_name in models:
+            eval_scores_per_aug: Dict[str, NDArray[Any]] = {}
+            consis_scores_per_aug: Dict[str, NDArray[Any]] = {}
+            direct_eval, _ = get_transformer_result(
+                source=source,
+                model_name=model_name,
+                TTA_key="none",
+                consis_key=consis_key,
+                eval_key=eval_key,
+                target=target,
+                approach=approach,
+                summary_results_postfix=summary_results_postfix,
+                base_dir_path=base_dir_path,
+            )
+            for aug_type, alphas in selected_augmentations.items():
+                p_eval_scores: NDArray[Any] = np.zeros(len(alphas))
+                consis_scores: NDArray[Any] = np.zeros(len(alphas))
+                for i, alpha in enumerate(alphas):
+                    TTA_key = f"{aug_type}_{alpha}"
+                    p_eval, consis = get_transformer_result(
+                        source=source,
+                        model_name=model_name,
+                        TTA_key=TTA_key,
+                        consis_key=consis_key,
+                        eval_key=eval_key,
+                        target=target,
+                        approach=approach,
+                        summary_results_postfix=summary_results_postfix,
+                        base_dir_path=base_dir_path,
+                    )
+                    assert (
+                        consis is not None
+                    ), "Consistency score should not be None for augmentations"
+                    p_eval_scores[i] = p_eval
+                    consis_scores[i] = consis
+                eval_scores_per_aug[aug_type] = p_eval_scores
+                consis_scores_per_aug[aug_type] = consis_scores
+            p_eval_results[model_name] = eval_scores_per_aug
+            consis_results[model_name] = consis_scores_per_aug
+            direct_eval_results[model_name] = direct_eval
+    return direct_eval_results, p_eval_results, consis_results
+
+
+def extract_values_at_index(
+    results: Dict[str, Dict[str, NDArray[Any]]], aug_key: str, index: int
+) -> Dict[str, float]:
+    """
+    Extract values at a specific index from the augmentation results.
+
+    Args:
+        results: Dictionary from get_transformer_results_aug_sweep (consis_results or p_eval_results)
+        aug_key: The augmentation key (e.g., "gauss")
+        index: The index to extract from the array of values
+
+    Returns:
+        Dictionary with model names as keys and the extracted values as floats
+    """
+    extracted: Dict[str, float] = {}
+    for model_name, aug_results in results.items():
+        if aug_key in aug_results:
+            extracted[model_name] = aug_results[aug_key][index]
+        else:
+            print(f"Warning: {aug_key} not found in results for model {model_name}")
+
+    return extracted

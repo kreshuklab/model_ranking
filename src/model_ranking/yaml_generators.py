@@ -866,8 +866,8 @@ def transformer_consistency_yaml_generator(
 
                 summary_results_cfg = SummaryResultsConfig(
                     filter_patches=None,
-                    # output_path=str(Path(pred_dir_path).parent),
-                    output_path=pred_dir_path,
+                    output_path=str(Path(pred_dir_path).parent),
+                    # output_path=pred_dir_path,
                     eval_key=None,
                     consis_key=consis_cfg.consistency_metric.save_key,
                     overwrite_scores=meta_cfg.summary_results.overwrite_scores,
