@@ -239,6 +239,7 @@ def run_patched_transformer_consistency(
         base_dir_path=perturbed_cfg.base_dir_path,
         file_identifier=perturbed_cfg.file_identifier,
     )
+    perturbed_preds = perturbed_preds.squeeze()
     assert len(perturbed_path) == 1, "Only one prediction file supported"
     unperturbed_preds, unperturbed_path = load_predictions_transformers(
         model_name=unperturbed_cfg.model_name,
@@ -246,6 +247,7 @@ def run_patched_transformer_consistency(
         base_dir_path=unperturbed_cfg.base_dir_path,
         file_identifier=unperturbed_cfg.file_identifier,
     )
+    unperturbed_preds = unperturbed_preds.squeeze()
     assert len(unperturbed_path) == 1, "Only one prediction file supported"
 
     assert perturbed_preds.shape == unperturbed_preds.shape, (
@@ -257,7 +259,9 @@ def run_patched_transformer_consistency(
     scores = metric_cfg.initialise_score_array(len(perturbed_preds))
     consis_masks = np.zeros_like(perturbed_preds, dtype=bool)
 
-    for i, (p_pred, unp_pred) in enumerate(zip(perturbed_preds, unperturbed_preds)):
+    for i, (p_pred, unp_pred) in enumerate(
+        tqdm(zip(perturbed_preds, unperturbed_preds), total=len(perturbed_preds))
+    ):
         scores[i], consis_masks[i] = metric(p_pred, unp_pred)
 
     if metric_cfg.save_key is not None:
@@ -265,12 +269,12 @@ def run_patched_transformer_consistency(
             perturbed_path[0],
             metric_cfg.save_key,
             scores,
-            overwrite=config.overwrite_scores,
+            overwrite=metric_cfg.overwrite_score,
         )
         if metric_cfg.save_mask:
             save_h5(
                 perturbed_path[0],
                 metric_cfg.save_key + "_mask",
                 consis_masks,
-                overwrite=config.overwrite_scores,
+                overwrite=metric_cfg.overwrite_score,
             )
