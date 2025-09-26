@@ -79,7 +79,7 @@ class ConsistencyMetaConfig(BaseModel, frozen=True):
     save_key: Optional[str]
     save_mask: Optional[bool]
     mask_threshold: float
-    overwrite_score: Optional[bool]
+    overwrite_score: bool
     bckg_consistency: bool = False
     # invert_threshold: bool = False
     # greater_than_threshold: bool = True
@@ -4008,4 +4008,3 @@ class ConsistencyPatchedTransformerConfig(BaseModel):
     predictions_perturbed: LoadTransformerPredictionsConfig
     predictions_unperturbed: LoadTransformerPredictionsConfig
     metric_config: AdaptedRandErrorConsisConfig
-    overwrite_scores: bool = False
