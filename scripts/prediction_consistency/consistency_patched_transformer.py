@@ -15,7 +15,7 @@ def main(
     config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
 ):
     config_values, _ = load_config_direct(config)
-    consis_config = ConsistencyPatchedTransformerConfig.model_validate(**config_values)
+    consis_config = ConsistencyPatchedTransformerConfig.model_validate(config_values)
 
     run_patched_transformer_consistency(consis_config)
 
