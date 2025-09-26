@@ -4008,3 +4008,4 @@ class ConsistencyPatchedTransformerConfig(BaseModel):
     predictions_perturbed: LoadTransformerPredictionsConfig
     predictions_unperturbed: LoadTransformerPredictionsConfig
     metric_config: AdaptedRandErrorConsisConfig
+    summary: SummaryResultsConfig
