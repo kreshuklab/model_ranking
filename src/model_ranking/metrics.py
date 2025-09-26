@@ -372,8 +372,6 @@ def adaRandError_eval(
     assert (num_dilations is not None and num_erosions is not None) or (
         num_dilations is None and num_erosions is None
     ), "Either both num_dilations and num_erosions must be provided or neither"
-    batch_scores = np.zeros((pred.shape[0], 3), dtype=np.float32)
-    consis_mask = np.zeros_like(pred)
     if pred.ndim == 2:
         pred = np.expand_dims(pred, axis=0)
         gt = np.expand_dims(gt, axis=0)
@@ -381,6 +379,8 @@ def adaRandError_eval(
     assert (
         pred.shape == gt.shape
     ), f"pred and gt have different shapes: {pred.shape} {gt.shape}"
+    batch_scores = np.zeros((pred.shape[0], 3), dtype=np.float32)
+    consis_mask = np.zeros_like(pred)
     for j in range(len(pred)):
         if gt[j].sum() == 0:
             # Prevent warning from empty GT patches
