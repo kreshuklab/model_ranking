@@ -905,12 +905,14 @@ def get_transformer_result(
     target: str = "Covid_IF",
     approach: str = "consistency",
     summary_results_postfix: str = "_full",
+    output_folder: Optional[str] = None,
     base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
 ):
     dir_path = get_output_dir(
         source=source,
         target=target,
         model_name=model_name,
+        output_folder=output_folder,
         approach=approach,
         base_seg_folder=base_dir_path,
     )
@@ -952,6 +954,7 @@ def get_transformer_results_aug_sweep(
     target: str = "Covid_IF",
     approach: str = "consistency",
     summary_results_postfix: str = "_full",
+    output_folder: Optional[str] = None,
     base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
 ):
 
@@ -971,9 +974,12 @@ def get_transformer_results_aug_sweep(
                 target=target,
                 approach=approach,
                 summary_results_postfix=summary_results_postfix,
+                output_folder=output_folder,
                 base_dir_path=base_dir_path,
             )
             for aug_type, alphas in selected_augmentations.items():
+                if aug_type == "none":
+                    continue
                 p_eval_scores: NDArray[Any] = np.zeros(len(alphas))
                 consis_scores: NDArray[Any] = np.zeros(len(alphas))
                 for i, alpha in enumerate(alphas):
@@ -987,6 +993,7 @@ def get_transformer_results_aug_sweep(
                         target=target,
                         approach=approach,
                         summary_results_postfix=summary_results_postfix,
+                        output_folder=output_folder,
                         base_dir_path=base_dir_path,
                     )
                     assert (

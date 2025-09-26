@@ -334,9 +334,19 @@ def get_output_dir(
 
     elif "SAM" in source:
         assert approach is not None, "approach cannot be None"
-        output_path = str(
-            Path(base_seg_folder) / target / source / approach / model_name
-        )
+        if output_folder is not None:
+            output_path = str(
+                Path(base_seg_folder)
+                / target
+                / source
+                / output_folder
+                / approach
+                / model_name
+            )
+        else:
+            output_path = str(
+                Path(base_seg_folder) / target / source / approach / model_name
+            )
 
     else:
         assert approach is not None, "approach cannot be None"
