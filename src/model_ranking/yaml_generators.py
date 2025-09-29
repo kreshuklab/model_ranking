@@ -835,7 +835,7 @@ def transformer_consistency_yaml_generator(
                 target=target_cfg.name,
                 model_name=source_model.model_name,
                 approach=meta_cfg.output_settings.approach,
-                result_type=meta_cfg.output_settings.base_dir_path,
+                output_folder=meta_cfg.output_settings.output_folder,
                 base_seg_folder=meta_cfg.output_settings.base_dir_path,
             )
             augs_cfg = generate_aug_config(meta_cfg.input_augs)
@@ -868,7 +868,7 @@ def transformer_consistency_yaml_generator(
                     filter_patches=None,
                     output_path=str(Path(pred_dir_path).parent),
                     # output_path=pred_dir_path,
-                    eval_key=None,
+                    eval_key=meta_cfg.summary_results.eval_key,
                     consis_key=consis_cfg.consistency_metric.save_key,
                     overwrite_scores=meta_cfg.summary_results.overwrite_scores,
                     save_name_postfix=meta_cfg.summary_results.save_name_postfix,
