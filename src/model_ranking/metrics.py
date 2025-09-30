@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Optional, Any, Tuple, Union, Literal
+from typing import List, Optional, Any, Tuple, Union, Literal
 import numpy as np
 from numpy.typing import NDArray
 from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
@@ -99,7 +99,7 @@ class AdaptedRandErrorEval:
         self.num_erosions = num_erosions
 
     def __call__(
-        self, pred: NDArray[Any], gt: NDArray[Any]
+        self, pred: NDArray[Any], gt: NDArray[Any], bckg: bool = False
     ) -> Tuple[NDArray[Any], NDArray[Any]]:
         pred_converted = avoid_int_overflow(pred.astype(np.uint16), np.max(pred))
         gt_converted = avoid_int_overflow(gt.astype(np.uint16), np.max(gt))
@@ -111,6 +111,7 @@ class AdaptedRandErrorEval:
             self.incomplete_gt,
             num_dilations=self.num_dilations,
             num_erosions=self.num_erosions,
+            bckg=bckg,
         )
         return (metric_result, mask)
         # return (
@@ -366,6 +367,7 @@ def adaRandError_eval(
     incomplete_gt: bool,
     num_dilations: Optional[int] = 1,
     num_erosions: Optional[int] = 1,
+    bckg: bool = False,
     # border_params: Optional[Dict[str, int]] = {"num_dilations": 1, "num_erosions": 1},
 ) -> Tuple[NDArray[Any], NDArray[Any]]:
     # check that either both or neither num_dilations and num_erosions are provided
@@ -381,8 +383,12 @@ def adaRandError_eval(
     ), f"pred and gt have different shapes: {pred.shape} {gt.shape}"
     batch_scores = np.zeros((pred.shape[0], 3), dtype=np.float32)
     consis_mask = np.zeros_like(pred)
+    if bckg == True:
+        assert (
+            num_dilations is None and num_erosions is None
+        ), "num_dilations and num_erosions must be None when bckg is True"
     for j in range(len(pred)):
-        if gt[j].sum() == 0:
+        if (gt[j].sum() == 0) and (bckg == False):
             # Prevent warning from empty GT patches
             are = float("nan")
             prec = float("nan")
@@ -393,7 +399,13 @@ def adaRandError_eval(
             if incomplete_gt:
                 mask = get_mask_incomplete_gt(gt[j], pred[j])
             else:
-                mask = get_mask(gt[j], pred[j], 0)
+                if bckg == True:
+                    mask = get_mask(
+                        -gt[j].astype(np.int16), -pred[j].astype(np.int16), -1
+                    )
+                else:
+                    mask = get_mask(gt[j], pred[j], 0)
+
             if (num_dilations is not None) and (num_erosions is not None):
                 # border_mask = get_border_mask(img=gt[j], **border_params)
                 border_mask = get_border_mask(
@@ -406,13 +418,33 @@ def adaRandError_eval(
                 prec = float("nan")
                 rec = float("nan")
             else:
-                are, prec, rec = (  # pyright: ignore[reportUnknownVariableType]
-                    adapted_rand_error(
-                        assign_unique_ids_to_value(gt[j][mask]),
-                        assign_unique_ids_to_value(pred[j][mask]),
-                        ignore_labels=None,
+
+                if bckg == True:
+                    gt_img = gt[j][mask]
+                    pred_img = pred[j][mask]
+                    assert is_ndarray(gt_img), f"Data is not a numpy array: {gt_img}"
+                    assert is_ndarray(
+                        pred_img
+                    ), f"Data is not a numpy array: {pred_img}"
+                    are, prec, rec = (  # pyright: ignore[reportUnknownVariableType]
+                        adapted_rand_error(
+                            assign_unique_ids_to_value(
+                                gt_img, list(np.unique(gt_img)[1:])
+                            ),
+                            assign_unique_ids_to_value(
+                                pred_img, list(np.unique(pred_img)[1:])
+                            ),
+                            ignore_labels=None,
+                        )
                     )
-                )
+                else:
+                    are, prec, rec = (  # pyright: ignore[reportUnknownVariableType]
+                        adapted_rand_error(
+                            assign_unique_ids_to_value(gt[j][mask]),
+                            assign_unique_ids_to_value(pred[j][mask]),
+                            ignore_labels=None,
+                        )
+                    )
                 assert isinstance(are, float), f"are is not a float: {are}"
                 assert isinstance(prec, float), f"prec is not a float: {prec}"
                 assert isinstance(rec, float), f"rec is not a float: {rec}"
@@ -469,13 +501,15 @@ def get_border_mask(
     return (dilated - eroded) > 0
 
 
-def assign_unique_ids_to_value(data: NDArray[Any], value: int = 0):
+def assign_unique_ids_to_value(data: NDArray[Any], value: List[int] = [0]):
     data = data.copy()
-    max_val = np.max(data)
-    max_id_assigned = max_val + np.sum(data == value) + 1
-    # check for overflow error
-    data = avoid_int_overflow(data, max_id_assigned)
-    data[data == value] = np.arange(max_val + 1, max_id_assigned)
+    for v in value:
+        max_val = np.max(data)
+        max_id_assigned = max_val + np.sum(data == v) + 1
+        # check for overflow error
+        data = avoid_int_overflow(data, max_id_assigned)
+        data[data == v] = np.arange(max_val + 1, max_id_assigned)
+
     return data
 
 

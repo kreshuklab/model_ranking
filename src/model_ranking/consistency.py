@@ -102,7 +102,9 @@ def calc_consistency_score(
             assert is_ndarray(perturbed_pred), "perturbed_pred is not a numpy array"
             assert is_ndarray(unperturbed_pred), "unperturbed_pred is not a numpy array"
         if isinstance(metric, AdaptedRandErrorEval):
-            batch_scores, batch_consis_mask = metric(perturbed_pred, unperturbed_pred)
+            batch_scores, batch_consis_mask = metric(
+                perturbed_pred, unperturbed_pred, bckg=metric_cfg.bckg_consistency
+            )
 
         else:
             if metric_cfg.bckg_consistency:
