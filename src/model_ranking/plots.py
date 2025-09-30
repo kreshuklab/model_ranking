@@ -2,11 +2,15 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
 import numpy as np
+from pathlib import Path
 import random
 from numpy.typing import NDArray
 from scipy.special import logit  # pyright: ignore[reportMissingTypeStubs]
 import seaborn as sns
 from typing import Any, Dict, List, Sequence, Tuple, Mapping, Optional, Union
+
+from model_ranking.results import load_transfer_metric_results
+from model_ranking.utils import aug_name_to_sigma_tuple
 
 MODEL_TO_DATASET = {
     "BC": "BBBC039",
@@ -750,3 +754,159 @@ def plot_model_performance_separate_figures(
             print(f"Plot saved to {save_dir}/model_performance_{target}.png")
 
         plt.show()
+
+
+import matplotlib.pyplot as plt
+from typing import Optional, Tuple
+
+
+def plot_single_consistency_vs_performance(
+    augmentation_strength: str,
+    target_dataset: str,
+    performance_scores: Dict[str, Dict[str, float]],
+    base_consistency_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/consistency",
+    custom_legend_labels: Optional[Dict[str, str]] = None,
+    correlation_scores: Optional[Dict[str, float]] = None,
+    figsize: Tuple[int, int] = (10, 8),
+    alpha: float = 0.7,
+    marker_size: int = 200,
+    fontsize: int = 16,
+    cmap: str = "tab20",
+):
+    """
+    Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
+
+    Parameters:
+    -----------
+    augmentation_strength : str
+        The augmentation strength identifier (e.g., "a001-a003")
+    target_dataset : str
+        The target dataset name (e.g., "EPFL", "Hmito", "Rmito", "VNC")
+    performance_scores : Dict
+        Dictionary containing performance scores organized as {target: {model: score}}
+    base_consistency_path : str
+        Base path to the consistency scores JSON files
+    custom_legend_labels : Optional[Dict[str, str]]
+        Optional mapping from model names to custom legend labels
+    correlation_scores : Optional[Dict[str, float]]
+        Optional dictionary with correlation scores, e.g., {"kt": 0.95, "sp": 0.12, "p": 0.67}
+        where "kt" is Kendall tau, "sp" is Spearman's ρ, and "p" is Pearson r
+    figsize : tuple
+        Figure size (width, height)
+    alpha : float
+        Transparency of the markers
+    marker_size : int
+        Size of the scatter plot markers
+
+    Returns:
+    --------
+    fig, ax : matplotlib figure and axis objects
+    """
+
+    # Load consistency scores for the specified augmentation
+    file_name = f"transfer_Gauss_{augmentation_strength}_CMB_05f_05b_EI_scores.json"
+    consistency_path = Path(base_consistency_path) / file_name
+    results = load_transfer_metric_results(consistency_path)
+    consistency_scores = results["transfer_scores"]
+
+    # Extract scores for the target dataset
+    if target_dataset not in performance_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in performance scores"
+        )
+    if target_dataset not in consistency_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in consistency scores"
+        )
+
+    target_performance = performance_scores[target_dataset]
+    target_consistency = consistency_scores[target_dataset]
+
+    # Find common models between performance and consistency scores
+    common_models: set[str] = set(target_performance.keys()) & set(
+        target_consistency.keys()
+    )
+    if not common_models:
+        raise ValueError(
+            f"No common models found between performance and consistency scores for target '{target_dataset}'"
+        )
+
+    # Prepare data for plotting
+    x_values: List[float] = []  # consistency scores
+    y_values: List[float] = []  # performance scores
+    labels: List[str] = []
+
+    for model in sorted(common_models):
+        x_values.append(target_consistency[model])
+        y_values.append(target_performance[model])
+
+        # Use custom label if provided, otherwise use model name
+        if custom_legend_labels and model in custom_legend_labels:
+            labels.append(custom_legend_labels[model])
+        else:
+            labels.append(model)
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Get the colormap
+    colormap = plt.cm.get_cmap(cmap)
+
+    # Create scatter plot with different colors for each model
+    _ = ax.scatter(
+        x_values, y_values, s=marker_size, alpha=alpha, c=range(len(labels)), cmap=cmap
+    )
+
+    sigmas = aug_name_to_sigma_tuple(augmentation_strength)
+    # Add labels and title
+    _ = ax.set_xlabel(f"Consistency Score", fontsize=fontsize)
+    _ = ax.set_ylabel("Performance Score (F1)", fontsize=fontsize)
+    _ = ax.set_title(
+        f"Consistency vs Performance for {target_dataset}\n(Augmentation:  Gauss [{sigmas[0]}, {sigmas[1]}])",
+        fontsize=fontsize,
+    )
+
+    # Add legend with matching colors
+    for i, label in enumerate(labels):
+        # Use the same colormap normalization as the scatter plot
+        color = colormap(i / (len(labels) - 1) if len(labels) > 1 else 0)
+        _ = ax.scatter([], [], c=[color], s=marker_size, alpha=alpha, label=label)
+    legend = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+
+    # Add correlation scores text if provided
+    if correlation_scores:
+        # Format correlation scores text
+        corr_text = "Correlation Scores:\n"
+        if "kt" in correlation_scores:
+            corr_text += f"Kendall τ: {correlation_scores['kt']:.2f}\n"
+        if "sp" in correlation_scores:
+            corr_text += f"Spearman ρ: {correlation_scores['sp']:.2f}\n"
+        if "p" in correlation_scores:
+            corr_text += f"Pearson r: {correlation_scores['p']:.2f}"
+
+        # Position the text below the legend
+        legend_bbox = legend.get_window_extent(
+            fig.canvas.get_renderer()  # pyright: ignore
+        )
+        # Convert to figure coordinates
+        legend_bottom = legend_bbox.y0 / fig.bbox.height
+
+        # Add text box below the legend
+        _ = ax.text(
+            1.05,
+            legend_bottom - 0.05,
+            corr_text,
+            transform=ax.transAxes,
+            fontsize=fontsize - 2,
+            verticalalignment="top",
+            horizontalalignment="left",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+        )
+
+    # Add grid for better readability
+    _ = ax.grid(True, alpha=0.8)
+
+    # Tight layout to prevent legend cutoff
+    plt.tight_layout()
+
+    return fig, ax

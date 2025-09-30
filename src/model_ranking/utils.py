@@ -574,3 +574,55 @@ def load_predictions_transformers(
             preds.append(ds[...])  # pyright: ignore[reportUnknownArgumentType]
     pred_cmb = np.stack(preds, axis=0)
     return pred_cmb, pred_paths
+
+
+def aug_name_to_sigma_tuple(aug_name: str) -> tuple[float, float]:
+    """
+    Convert augmentation name to sigma values tuple.
+
+    Parameters:
+    -----------
+    aug_name : str
+        Augmentation name in format "aXXX-XXX" or "aXXX-aXXX"
+        (e.g., "a001-003" or "a001-a003")
+
+    Returns:
+    --------
+    tuple[float, float]
+        Tuple of (min_sigma, max_sigma) values
+
+    Examples:
+    ---------
+    >>> aug_name_to_sigma_tuple("a001-003")
+    (0.01, 0.03)
+    >>> aug_name_to_sigma_tuple("a001-a003")
+    (0.01, 0.03)
+    >>> aug_name_to_sigma_tuple("a005-007")
+    (0.05, 0.07)
+    >>> aug_name_to_sigma_tuple("a01-02")
+    (0.1, 0.2)
+    """
+    # Remove the 'a' prefix
+    sigma_part = aug_name[1:]
+
+    # Split by dash to get the two values
+    min_val, max_val = sigma_part.split("-")
+
+    # Remove 'a' prefix from max_val if present
+    if max_val.startswith("a"):
+        max_val = max_val[1:]
+
+    # Add decimal point after first zero for each value
+    def add_decimal(val_str: str) -> float:
+        if len(val_str) >= 2 and val_str[0] == "0":
+            # Insert decimal point after first zero
+            decimal_str = val_str[0] + "." + val_str[1:]
+            return float(decimal_str)
+        else:
+            # For values like "1", "2", etc., treat as is
+            return float(val_str)
+
+    min_sigma = add_decimal(min_val)
+    max_sigma = add_decimal(max_val)
+
+    return (min_sigma, max_sigma)
