@@ -570,6 +570,23 @@ def cmb_consistency_score_weighted_average(
     return per_target_cmb_consistency
 
 
+def cmb_consis_scores(
+    foreground_consis: Dict[str, Dict[str, NDArray[Any]]],
+    background_consis: Dict[str, Dict[str, NDArray[Any]]],
+    w_fg: float = 0.5,
+    w_bg: float = 0.5,
+):
+    combined_consis: Dict[str, Dict[str, NDArray[Any]]] = {}
+    for model_name in foreground_consis.keys():
+        combined_consis[model_name] = {}
+        for aug_name in foreground_consis[model_name].keys():
+            fg_scores = foreground_consis[model_name][aug_name]
+            bg_scores = background_consis[model_name][aug_name]
+            combined_scores = (w_fg * fg_scores + w_bg * bg_scores) / (w_fg + w_bg)
+            combined_consis[model_name][aug_name] = combined_scores
+    return combined_consis
+
+
 def get_NA_performance_score(
     model_name: str,
     target: str,
