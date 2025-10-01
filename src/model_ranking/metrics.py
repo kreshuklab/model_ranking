@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import List, Optional, Any, Tuple, Union, Literal
+from typing import Dict, List, Optional, Any, Tuple, Union, Literal
 import numpy as np
 from numpy.typing import NDArray
 from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
@@ -640,3 +640,229 @@ def ensure_binary(
             raise ValueError(f"Threshold must be in [0, 1], got {threshold}.")
         input = (input > threshold).float()
     return input
+
+
+def _boundary_mask_2d(labels: NDArray[Any], connectivity: int = 4) -> NDArray[Any]:
+    """
+    Compute a 2D boolean mask of boundary pixels in a label image.
+    A pixel is marked as boundary if any neighbor (according to connectivity)
+    has a different label. Marks both sides of the boundary.
+
+    Parameters
+    ----------
+    labels : np.ndarray
+        2D array of integer labels.
+    connectivity : int
+        4 or 8 for 4-neighborhood or 8-neighborhood.
+
+    Returns
+    -------
+    np.ndarray
+        Boolean mask of the same shape as labels, True where boundary.
+    """
+    if labels.ndim != 2:
+        raise ValueError("Only 2D arrays are supported for boundary computation.")
+    if connectivity not in (4, 8):
+        raise ValueError("connectivity must be 4 or 8.")
+
+    h, w = labels.shape
+    b = np.zeros((h, w), dtype=bool)
+
+    # Vertical neighbors (up/down)
+    diff = labels[1:, :] != labels[:-1, :]
+    b[1:, :] |= diff
+    b[:-1, :] |= diff
+
+    # Horizontal neighbors (left/right)
+    diff = labels[:, 1:] != labels[:, :-1]
+    b[:, 1:] |= diff
+    b[:, :-1] |= diff
+
+    if connectivity == 8:
+        # Diagonal neighbors
+        diff = labels[1:, 1:] != labels[:-1, :-1]
+        b[1:, 1:] |= diff
+        b[:-1, :-1] |= diff
+
+        diff = labels[1:, :-1] != labels[:-1, 1:]
+        b[1:, :-1] |= diff
+        b[:-1, 1:] |= diff
+
+    return b
+
+
+def _dilate_mask_2d(
+    mask: NDArray[Any], iterations: int = 1, connectivity: int = 8
+) -> NDArray[Any]:
+    """
+    Dilate a boolean mask by the given number of iterations using 4- or 8-neighborhood.
+    NumPy-only implementation (no scipy).
+
+    Parameters
+    ----------
+    mask : np.ndarray
+        2D boolean mask.
+    iterations : int
+        Number of dilation iterations (>= 0).
+    connectivity : int
+        4 or 8 neighborhood.
+
+    Returns
+    -------
+    np.ndarray
+        Dilated mask.
+    """
+    if mask.ndim != 2:
+        raise ValueError("Only 2D arrays are supported for dilation.")
+    if iterations <= 0:
+        return mask.copy()
+    if connectivity not in (4, 8):
+        raise ValueError("connectivity must be 4 or 8.")
+
+    m = mask.copy()
+    for _ in range(iterations):
+        grown = m.copy()
+
+        # 4-neighbor expansion
+        # up
+        grown[1:, :] |= m[:-1, :]
+        # down
+        grown[:-1, :] |= m[1:, :]
+        # left
+        grown[:, 1:] |= m[:, :-1]
+        # right
+        grown[:, :-1] |= m[:, 1:]
+
+        if connectivity == 8:
+            # diagonals
+            grown[1:, 1:] |= m[:-1, :-1]
+            grown[:-1, :-1] |= m[1:, 1:]
+            grown[1:, :-1] |= m[:-1, 1:]
+            grown[:-1, 1:] |= m[1:, :-1]
+
+        m = grown
+
+    return m
+
+
+def background_vrand_scores(
+    gt: NDArray[Any],
+    pred: NDArray[Any],
+    *,
+    alpha: float = 0.5,
+    bg_label: int = 0,
+    restrict_to_union_bg: bool = True,
+    exclude_gt_border: bool = True,
+    border_connectivity: int = 4,
+    border_dilation: int = 0,
+    counts_only: bool = False,
+) -> Dict[str, Optional[float]]:
+    """
+    Compute background-restricted V_Rand scores using O(1) formulas based on counts.
+
+    Within the evaluation mask (by default, the union of background pixels from GT and prediction),
+    we count:
+      - a = # pixels where GT == bg and Pred == bg
+      - b = # pixels where Pred == bg and GT != bg  (background false positives)
+      - c = # pixels where GT == bg and Pred != bg  (background false negatives)
+
+    The adapted background-restricted scores are:
+      V_Rand_merge_bg = (a^2 + b + c) / ((a + b)^2 + c)
+      V_Rand_split_bg = (a^2 + b + c) / ((a + c)^2 + b)
+      V_Rand_alpha_bg = (a^2 + b + c) / [ alpha * ((a + b)^2 + c) + (1 - alpha) * ((a + c)^2 + b) ]
+
+    To improve robustness to GT boundary width, GT border pixels can be excluded
+    (optionally dilated to a thicker band).
+
+    Parameters
+    ----------
+    gt : np.ndarray
+        2D integer-labeled ground truth array. Background is bg_label.
+    pred : np.ndarray
+        2D integer-labeled prediction array. Background is bg_label.
+    alpha : float
+        Weight for harmonic mean (default 0.5).
+    bg_label : int
+        Background label value (default 0).
+    restrict_to_union_bg : bool
+        If True, evaluate only on pixels where (gt==bg) OR (pred==bg).
+        If False, evaluate on the entire image after excluding GT borders.
+    exclude_gt_border : bool
+        If True, exclude GT border pixels before counting.
+    border_connectivity : int
+        Neighborhood for GT border detection (4 or 8).
+    border_dilation : int
+        Number of dilation iterations to widen the excluded GT border band (>= 0).
+    counts_only : bool
+        If True, return only the counts a, b, c and N. Scores are omitted.
+
+    Returns
+    -------
+    Dict[str, Optional[float]]
+        Dictionary with keys:
+          - a, b, c, N
+          - vrand_merge_bg, vrand_split_bg, vrand_alpha_bg
+        If N == 0, score fields are None.
+    """
+    if gt.shape != pred.shape:
+        raise ValueError("gt and pred must have the same shape.")
+    if gt.ndim != 2 or pred.ndim != 2:
+        raise ValueError("This implementation supports only 2D arrays.")
+
+    gt_bg = gt == bg_label
+    pred_bg = pred == bg_label
+
+    # Base evaluation mask: union of background pixels or whole image
+    if restrict_to_union_bg:
+        eval_mask = gt_bg | pred_bg
+    else:
+        eval_mask = np.ones_like(gt_bg, dtype=bool)
+
+    # Exclude GT border pixels (optionally dilated)
+    if exclude_gt_border:
+        gt_border = _boundary_mask_2d(gt, connectivity=border_connectivity)
+        if border_dilation > 0:
+            gt_border = _dilate_mask_2d(
+                gt_border, iterations=border_dilation, connectivity=8
+            )
+        eval_mask = eval_mask & (~gt_border)
+
+    # Counts within the final evaluation mask
+    a = int(np.count_nonzero(eval_mask & gt_bg & pred_bg))
+    b = int(np.count_nonzero(eval_mask & (~gt_bg) & pred_bg))
+    c = int(np.count_nonzero(eval_mask & gt_bg & (~pred_bg)))
+    N = a + b + c
+
+    result: Dict[str, Optional[float]] = {
+        "a": float(a),
+        "b": float(b),
+        "c": float(c),
+        "N": float(N),
+        "vrand_merge_bg": None,
+        "vrand_split_bg": None,
+        "vrand_alpha_bg": None,
+    }
+
+    if counts_only:
+        return result
+
+    if N == 0:
+        # No pixels to evaluate (e.g., union-of-bg is empty after border exclusion)
+        return result
+
+    numerator = a * a + b + c
+    denom_merge = (a + b) * (a + b) + c
+    denom_split = (a + c) * (a + c) + b
+
+    # Denominators are guaranteed > 0 if N > 0
+    vrand_merge = numerator / denom_merge
+    vrand_split = numerator / denom_split
+    denom_alpha = alpha * denom_merge + (1.0 - alpha) * denom_split
+    vrand_alpha = numerator / denom_alpha
+
+    result.update(
+        vrand_merge_bg=float(vrand_merge),
+        vrand_split_bg=float(vrand_split),
+        vrand_alpha_bg=float(vrand_alpha),
+    )
+    return result
