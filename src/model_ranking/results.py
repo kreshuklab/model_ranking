@@ -187,8 +187,10 @@ def save_summary_metrics(
                 consis_scores.append(consis_score_PP)
 
     if len(perf_scores) > 0:
-        if (perf_scores[0].ndim == 0) or (
-            (perf_scores[0].ndim == 1) and (len(np.array(perf_scores[0])) == 1)
+        if (
+            (perf_scores[0].ndim == 0)
+            or ((perf_scores[0].ndim == 1) and (len(np.array(perf_scores[0])) == 1))
+            or ((perf_scores[0].ndim == 1) and (len(perf_scores[0].shape) == 1))
         ):
             performance_scores = np.hstack(perf_scores).squeeze()
         else:
