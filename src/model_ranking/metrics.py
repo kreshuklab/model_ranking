@@ -677,7 +677,7 @@ def per_class_iou_consistency(
         mask_pred = prediction == cls
         mask_target = target == cls
         iou = jaccard_index(mask_pred, mask_target)
-        iou_scores[cls] = iou
+        iou_scores[int(cls)] = iou
     return iou_scores
 
 
