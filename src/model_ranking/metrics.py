@@ -15,6 +15,7 @@ from skimage.morphology import (
 from skimage.metrics import (
     adapted_rand_error,  # pyright: ignore[reportUnknownVariableType]
 )
+from tqdm import tqdm
 from torch_em.loss.dice import (
     dice_score,
 )
@@ -486,6 +487,22 @@ def get_mask(
     return combined_mask
 
 
+def get_segmentation_mask(
+    pred_none: NDArray[Any],
+    pred_aug: NDArray[Any],
+    id: int,
+) -> NDArray[Any]:
+    masks = np.zeros((2, *pred_none.shape))
+
+    masks[0] = pred_none == id
+    masks[1] = pred_aug == id
+
+    # Combine masks across augmentations (Union)
+    combined_mask = np.logical_or.reduce(masks, axis=0)
+    assert is_ndarray(combined_mask), f"Data is not a numpy array: {combined_mask}"
+    return combined_mask
+
+
 def get_border_mask(
     img: NDArray[Any], num_dilations: int = 1, num_erosions: int = 1
 ) -> NDArray[Any]:
@@ -640,6 +657,64 @@ def ensure_binary(
             raise ValueError(f"Threshold must be in [0, 1], got {threshold}.")
         input = (input > threshold).float()
     return input
+
+
+def jaccard_index(prediction: NDArray[Any], target: NDArray[Any]) -> float:
+    """
+    Computes IoU for a given target and prediction numpy arrays
+    """
+    intersection = np.sum(prediction & target)
+    union = np.sum(prediction | target)
+    return intersection / np.maximum(union, 1e-8)
+
+
+def per_class_iou_consistency(
+    prediction: NDArray[Any], target: NDArray[Any]
+) -> Dict[Any, float]:
+    classes = np.unique(target)
+    iou_scores: Dict[int, float] = {}
+    for cls in tqdm(classes):
+        mask_pred = prediction == cls
+        mask_target = target == cls
+        iou = jaccard_index(mask_pred, mask_target)
+        iou_scores[cls] = iou
+    return iou_scores
+
+
+def per_class_NHD_consistency(
+    prediction: NDArray[Any], target: NDArray[Any]
+) -> Dict[Any, float]:
+    classes = np.unique(target)
+    nhd_scores: Dict[int, float] = {}
+    for cls in tqdm(classes):
+        mask = get_segmentation_mask(target, prediction, id=cls)
+        HD_score = hamming(target[mask], prediction[mask])
+        nhd_scores[cls] = 1 - HD_score  # pyright: ignore[reportArgumentType]
+    return nhd_scores
+
+
+def ForegroundRestrictedAdaRandError_consistency(
+    prediction: NDArray[Any],
+    target: NDArray[Any],
+    num_dilations: Optional[int] = None,
+    num_erosions: Optional[int] = None,
+) -> Tuple[float, float, float]:
+    instance_mask = get_mask(target, prediction, threshold=0)
+
+    if num_dilations is not None and num_erosions is not None:
+        border_mask = get_border_mask(
+            img=target, num_dilations=num_dilations, num_erosions=num_erosions
+        )
+        instance_mask = np.logical_and(instance_mask, ~border_mask)
+
+    are, prec, rec = adapted_rand_error(  # pyright: ignore[reportUnknownVariableType]
+        assign_unique_ids_to_value(target[instance_mask], value=[0]),
+        assign_unique_ids_to_value(prediction[instance_mask], value=[0]),
+    )
+    assert isinstance(are, float), f"are is not a float: {are}"
+    assert isinstance(prec, float), f"prec is not a float: {prec}"
+    assert isinstance(rec, float), f"rec is not a float: {rec}"
+    return are, prec, rec
 
 
 def _boundary_mask_2d(labels: NDArray[Any], connectivity: int = 4) -> NDArray[Any]:
