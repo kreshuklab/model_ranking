@@ -1,10 +1,12 @@
-from typing import List, Any, Union, Tuple
+from typing import Annotated, Dict, List, Any, Literal, Optional, Union, Tuple
 from natsort import natsorted
 from numpy.typing import NDArray
 from pathlib import Path
+from pydantic import BaseModel, Discriminator
 from tqdm import tqdm
+import imageio.v3 as imageio
+import json
 import numpy as np
-
 import torch
 from torch.utils.data import DataLoader
 
@@ -21,6 +23,8 @@ from model_ranking.datasets import StandardEvalDataset
 from model_ranking.metrics import (
     AdaptedRandErrorEval,
     get_mask,
+    per_class_iou_consistency,
+    foreground_restricted_AdaRandError_consistency,
 )
 from model_ranking.utils import (
     save_h5,
@@ -285,3 +289,83 @@ def run_patched_transformer_consistency(
                 consis_masks,
                 overwrite=metric_cfg.overwrite_score,
             )
+
+
+class IOUConsisMetric(BaseModel):
+    name: Literal["IoU"] = "IoU"
+
+
+class AdaRandErrorConsisMetric(BaseModel):
+    name: Literal["AdaRandError"] = "AdaRandError"
+    num_dilations: Optional[int] = None
+    num_erosions: Optional[int] = None
+
+
+ConsisMetric = Annotated[
+    Union[IOUConsisMetric, AdaRandErrorConsisMetric], Discriminator("name")
+]
+
+
+class ToothfairyConsistencyConfig(BaseModel):
+    unperturbed_dir_path: Union[str, Path]
+    perturbed_dir_path: Union[str, Path]
+    consistency_metric: ConsisMetric
+    save_path: Optional[Union[str, Path]] = None
+
+
+def run_toothfairy_consistency(
+    consis_config: ToothfairyConsistencyConfig,
+):
+    unperturbed_paths = natsorted(
+        Path(consis_config.unperturbed_dir_path).glob("*.mha")
+    )
+    perturbed_paths = natsorted(Path(consis_config.perturbed_dir_path).glob("*.mha"))
+    assert len(unperturbed_paths) == len(perturbed_paths), (
+        f"Number of unperturbed files ({len(unperturbed_paths)}) does not match "
+        f"number of perturbed files ({len(perturbed_paths)})"
+    )
+    consistencies: Dict[str, Union[Tuple[float, float, float], Dict[int, float]]] = {}
+    for unperturbed_path, perturbed_path in zip(unperturbed_paths, perturbed_paths):
+        assert unperturbed_path.stem == perturbed_path.stem, (
+            f"Unperturbed file {unperturbed_path.stem} does not match perturbed file "
+            f"{perturbed_path.stem}"
+        )
+
+        unperturbed_pred = imageio.imread(  # pyright: ignore[reportUnknownVariableType]
+            unperturbed_path
+        )
+        perturbed_pred = imageio.imread(  # pyright: ignore[reportUnknownVariableType]
+            perturbed_path
+        )
+
+        assert is_ndarray(
+            unperturbed_pred
+        ), f"Unperturbed prediction from {unperturbed_path} is not a numpy array"
+        assert is_ndarray(
+            perturbed_pred
+        ), f"Perturbed prediction from {perturbed_path} is not a numpy array"
+
+        if consis_config.consistency_metric.name == "IoU":
+            consistency = per_class_iou_consistency(perturbed_pred, unperturbed_pred)
+
+        elif consis_config.consistency_metric.name == "AdaRandError":
+            consistency = foreground_restricted_AdaRandError_consistency(
+                perturbed_pred, unperturbed_pred, num_dilations=2
+            )
+        else:
+            raise ValueError(
+                f"Unknown consistency metric {consis_config.consistency_metric.name}"
+            )
+
+        consistencies[unperturbed_path.stem] = consistency
+
+    if consis_config.save_path is not None:
+        save_path = (
+            Path(consis_config.save_path)
+            / f"{consis_config.consistency_metric.name}_consistency.json"
+        )
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(save_path, "w") as f:
+            json.dump(consistencies, f, indent=2)
+
+    return consistencies
