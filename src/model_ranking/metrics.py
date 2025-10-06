@@ -670,7 +670,7 @@ def jaccard_index(prediction: NDArray[Any], target: NDArray[Any]) -> float:
 
 def per_class_iou_consistency(
     prediction: NDArray[Any], target: NDArray[Any]
-) -> Dict[Any, float]:
+) -> Dict[int, float]:
     classes = np.unique(target)
     iou_scores: Dict[int, float] = {}
     for cls in tqdm(classes):
@@ -693,7 +693,7 @@ def per_class_NHD_consistency(
     return nhd_scores
 
 
-def ForegroundRestrictedAdaRandError_consistency(
+def foreground_restricted_AdaRandError_consistency(
     prediction: NDArray[Any],
     target: NDArray[Any],
     num_dilations: Optional[int] = None,
