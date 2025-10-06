@@ -2674,6 +2674,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     predictor_semantic: None = None
@@ -2761,6 +2762,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     predictor_semantic: None = None
@@ -2835,7 +2837,11 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         label_internal_path="label",
         global_normalization=True,
         global_percentiles=(5, 95),
-        file_paths=("/PNAS/test/12hrs_plant1_trim-acylYFP.h5",),
+        file_paths=(
+            # "/PNAS/test/12hrs_plant18_trim-acylYFP.h5",
+            "/PNAS/test/24hrs_plant18_trim-acylYFP.h5",
+            "/PNAS/test/36hrs_plant18_trim-acylYFP.h5",
+        ),
         roi=None,
         transformer={
             "raw": [
@@ -2848,6 +2854,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     predictor_semantic: None = None
@@ -2864,7 +2871,11 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
     eval_dataloader_semantic: None = None
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
-        gt_path=("/PNAS/test/12hrs_plant1_trim-acylYFP.h5",),
+        gt_path=(
+            # "/PNAS/test/12hrs_plant18_trim-acylYFP.h5",
+            "/PNAS/test/24hrs_plant18_trim-acylYFP.h5",
+            "/PNAS/test/36hrs_plant18_trim-acylYFP.h5",
+        ),
         pred_key="segmentation",
         gt_key="label",
         patch_key="patch_index",
