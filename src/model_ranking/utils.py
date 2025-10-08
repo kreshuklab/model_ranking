@@ -2,6 +2,7 @@ import os
 import fnmatch
 from typing import Optional, List, Sequence, Any, Tuple, TypeGuard, Union, Dict
 from pathlib import Path
+from matplotlib import colors
 from natsort import natsorted
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -48,11 +49,11 @@ def load_h5(
     # Load data
     assert os.path.exists(path), f"File {path} does not exist"
     # check that both roi and select_index are not provided
-    assert not (roi and select_index), "Both roi and select_index cannot be provided"
+    # assert not (roi and select_index), "Both roi and select_index cannot be provided"
     with h5py.File(path, "r") as f:
         ds = f[key]
         assert isinstance(ds, h5py.Dataset)
-        if roi:
+        if roi is not None:
             data = ds[get_roi_slice(roi)]  # pyright: ignore[reportUnknownVariableType]
         elif select_index:
             data = ds[select_index]  # pyright: ignore[reportUnknownVariableType]
@@ -195,6 +196,23 @@ def get_unique_colourmap(data: NDArray[Any]) -> ListedColormap:
     colors[0] = (0, 0, 0, 1)  # Set the background color to black
     # Create a custom colormap
     return ListedColormap(colors)
+
+
+def get_random_colors(labels: NDArray[Any]) -> colors.ListedColormap:
+    """Generate a random color map for a label image.
+
+    Args:
+        labels: The labels.
+
+    Returns:
+        The color map.
+    """
+    unique_labels = np.unique(labels)
+    have_zero = 0 in unique_labels
+    cmap = [[0, 0, 0]] if have_zero else []
+    cmap += np.random.rand(len(unique_labels), 3).tolist()
+    cmap = colors.ListedColormap(cmap)
+    return cmap
 
 
 def find_transfer_from_pred_path(pred_path: str) -> str:
