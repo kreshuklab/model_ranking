@@ -610,8 +610,11 @@ class Pytorch3DUnetPredictorMetaConfig(BaseModel):
     save_segmentation: bool
     min_size: Optional[int]
     layer_id: Optional[int]
+    beta: float = 0.5
     zero_largest_instance: bool
-    no_adjust_background: bool
+    remove_large_instances: bool
+    large_instance_multiplier: int = 4
+    max_obj_size: Optional[float] = None
 
 
 class Pytorch3DUnetPredictorConfig(Pytorch3DUnetPredictorMetaConfig):
@@ -2122,8 +2125,11 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
@@ -2132,8 +2138,11 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=1,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=True,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
@@ -2253,8 +2262,11 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
@@ -2263,8 +2275,11 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=1,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=True,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     eval_dataloader_semantic: EvalSB1410DataloaderMetaConfig = (
@@ -2549,8 +2564,11 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
@@ -2559,8 +2577,11 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=True,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
 
@@ -2658,7 +2679,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         batch_size=32,
         num_workers=8,
         raw_internal_path="volumes/raw",
-        label_internal_path="volumes/labels/cells_with_ignore",
+        label_internal_path="volumes/labels/expanded_cells_with_ignore",
         global_normalization=True,
         global_percentiles=(5, 95),
         file_paths=("/FlyWing/GT/test/per03.h5",),
@@ -2684,8 +2705,11 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
+            beta=0.8,
             zero_largest_instance=False,
-            no_adjust_background=True,
+            remove_large_instances=True,
+            large_instance_multiplier=2,
+            max_obj_size=3303,
         )
     )
     eval_dataloader_semantic: None = None
@@ -2693,7 +2717,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="StandardEvalDataset",
         gt_path=("/FlyWing/GT/test/per03.h5",),
         pred_key="segmentation",
-        gt_key="volumes/labels/cells_with_ignore",
+        gt_key="volumes/labels/expanded_cells_with_ignore",
         patch_key="patch_index",
         roi=None,
         ignore_index=-1,
@@ -2704,7 +2728,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=50,
         relabel_background=False,
         instance_zero_background=False,
-        zero_largest_instance=True,
+        zero_largest_instance=False,
         batch_size=32,
         num_workers=8,
     )
@@ -2724,7 +2748,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=50,
         relabel_background=False,
         instance_zero_background=False,
-        zero_largest_instance=True,
+        zero_largest_instance=False,
         batch_size=32,
         num_workers=8,
     )
@@ -2772,8 +2796,11 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
+            beta=0.8,
             zero_largest_instance=False,
-            no_adjust_background=True,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     eval_dataloader_semantic: None = None
@@ -2864,8 +2891,11 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
-            zero_largest_instance=True,
-            no_adjust_background=False,
+            beta=0.8,
+            zero_largest_instance=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     eval_dataloader_semantic: None = None
@@ -3017,8 +3047,11 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: None = None
@@ -3164,8 +3197,11 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: None = None
@@ -3311,8 +3347,11 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: None = None
@@ -3472,8 +3511,11 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=False,
             min_size=None,
             layer_id=None,
+            beta=0.5,
             zero_largest_instance=False,
-            no_adjust_background=False,
+            remove_large_instances=False,
+            large_instance_multiplier=4,
+            max_obj_size=None,
         )
     )
     predictor_instance: None = None
@@ -3782,8 +3824,10 @@ class SemanticSegmentationConfig(BaseModel):
 class InstanceSegmentationConfig(BaseModel):
     name: Literal["instance"] = "instance"
     min_size: int = 50
+    beta: float = 0.5
     zero_largest_instance: bool = False
-    no_adjust_background: bool = False
+    remove_large_instances: bool = False
+    large_instance_multiplier: int = 4
 
 
 segmentation_type = Annotated[

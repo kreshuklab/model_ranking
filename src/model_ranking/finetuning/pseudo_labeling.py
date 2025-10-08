@@ -134,8 +134,10 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                     pmaps_to_IN_seg(
                         pseudo_labels[i].detach().cpu().numpy().squeeze(),
                         min_size=self.seg_params.min_size,
+                        beta=self.seg_params.beta,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
-                        no_adjust_background=self.seg_params.no_adjust_background,
+                        remove_large_instances=self.seg_params.remove_large_instances,
+                        large_instance_multiplier=self.seg_params.large_instance_multiplier,
                     )
                 )
                 .to(pseudo_labels.dtype)
@@ -147,7 +149,9 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                         pseudo_labels_perturbed[i].detach().cpu().numpy().squeeze(),
                         min_size=self.seg_params.min_size,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
-                        no_adjust_background=self.seg_params.no_adjust_background,
+                        beta=self.seg_params.beta,
+                        remove_large_instances=self.seg_params.remove_large_instances,
+                        large_instance_multiplier=self.seg_params.large_instance_multiplier,
                     )
                 )
                 .to(ps_labels_perturbed.dtype)

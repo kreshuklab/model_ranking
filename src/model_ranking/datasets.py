@@ -257,9 +257,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
             gt = np.expand_dims(gt, axis=0)
         if self.instance_zero_background == True:
-            pred = remove_background_seg(  # pyright: ignore[reportUnknownVariableType]
-                pred
-            )
+            pred = remove_background_seg(pred)
             assert is_ndarray(pred), f"Data is not a numpy array: {pred}"
         if self.zero_largest_instance == True:
             pred = (  # pyright: ignore[reportUnknownVariableType]
