@@ -371,7 +371,7 @@ def plot_alpha_sweep_specific_norm(
                 if norm is None:
                     norm_name = "norm_Normalize"
                 else:
-                    norm_name = f"norm_{norm[0]}_{str(norm[1]).replace('.', '')}"
+                    norm_name = f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
                 if per_aug_perf:
                     per_aug_scores = perf_scores[transfer][norm_name]
                     assert isinstance(
