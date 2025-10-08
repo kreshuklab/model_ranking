@@ -534,6 +534,9 @@ def per_source_model_results(
         "Hm": "Hmito",
         "Rm": "Rmito",
         "V": "VNC",
+        "fw": "FlyWing",
+        "ov": "Ovules",
+        "p": "PNAS",
     },
 ) -> Mapping[str, Union[Mapping[str, Dict[str, NDArray[Any]]], Mapping[str, float]]]:
     model_results: Mapping[
