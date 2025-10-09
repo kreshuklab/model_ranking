@@ -136,7 +136,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                         min_size=self.seg_params.min_size,
                         beta=self.seg_params.beta,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
-                        remove_large_instances=self.seg_params.remove_large_instances,
+                        zero_large_instances=self.seg_params.zero_large_instances,
                         large_instance_multiplier=self.seg_params.large_instance_multiplier,
                     )
                 )
@@ -150,7 +150,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                         min_size=self.seg_params.min_size,
                         zero_largest_instance=self.seg_params.zero_largest_instance,
                         beta=self.seg_params.beta,
-                        remove_large_instances=self.seg_params.remove_large_instances,
+                        zero_large_instances=self.seg_params.zero_large_instances,
                         large_instance_multiplier=self.seg_params.large_instance_multiplier,
                     )
                 )
