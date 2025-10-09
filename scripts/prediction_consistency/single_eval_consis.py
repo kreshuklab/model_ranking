@@ -27,7 +27,7 @@ def main(
     eval_config = EvaluateConfig.model_validate(cfg["evaluation"])
     _ = run_performance_evaluation(eval_config)
 
-    if "none" in str(Path(config).name):
+    if "none" in str(Path(config)):
         print(f"Skipping consistency evaluation for {Path(config).stem}")
     else:
         consis_config = ConsistencyConfig.model_validate(cfg["consistency"])
