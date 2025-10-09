@@ -44,19 +44,20 @@ if __name__ == "__main__":
 
     h5_napari(
         [
-            "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_FlyWing_gap/consistency/P_full2/fw_model_Unet2/norm_50_950/none/predictions/per03_predictions.h5",
-            "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_FlyWing_gap/consistency/P_full_max_obj_4/fw_model_Unet2/norm_50_950/none/predictions/per03_predictions.h5",
-            "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_FlyWing_gap/consistency/P_full_max_obj_2/fw_model_Unet2/norm_50_950/none/predictions/per03_predictions.h5",
+            "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_Ovules_gap/consistency/P1/fw_model8/norm_5_95/none/predictions/N_294_final_crop_ds2_none.h5",
+            # "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_Ovules_gap/consistency/P1/fw_model8/norm_5_95/gauss_a005-01/predictions/N_294_final_crop_ds2_gauss_a005-01.h5",
+            "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells/FlyWing_to_Ovules_gap/consistency/P1/fw_model8/norm_5_95/gauss_a01-02/predictions/N_294_final_crop_ds2_gauss_a01-02.h5",
         ]
-        + ["/scratch/talks/data/FlyWing/GT/test/per03_patched.h5"] * 2,
-        keys=["segmentation"] * 3 + ["raw", "label"],
+        + ["/scratch/talks/data/Ovules/GT2x/test/N_294_final_crop_ds2_patchwise.h5"]
+        * 2,
+        keys=["segmentation"] * 2 + ["raw", "label"],
         names=[
-            "seg_zero_largest",
-            "seg_max_obj_4",
-            "seg_zero_obj_2",
-            "raw_per03",
-            "labels_per03",
+            "seg_none",
+            # "seg_gauss_a005-01",
+            "seg_gauss_a01-02",
+            "raw",
+            "labels",
         ],
-        are_labels=[True] * 3 + [False, True],
+        are_labels=[True] * 2 + [False, True],
         rois=None,
     )
