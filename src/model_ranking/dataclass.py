@@ -99,10 +99,13 @@ class EvalDatasetConfig(BaseModel):
     ignore_key: Optional[str]
     convert_to_binary_label: bool
     convert_to_boundary_label: bool
-    relabel_background: bool
+    gt_zero_largest_instance: bool
+    gt_zero_large_instances: bool
     min_object_size: Optional[int]
-    instance_zero_background: bool
+    zero_large_instances: bool
     zero_largest_instance: bool
+    largest_obj_multiplier: Optional[float]
+    max_obj_size: Optional[int]
 
 
 class Pytorch3DUnetSliceBuilderConfig(BaseModel):
@@ -148,7 +151,7 @@ class TIFEvalDatasetConfig(BaseModel):
     image_key: Optional[str]
     mask_key: Optional[str]
     min_object_size: Optional[int]
-    instance_zero_background: bool
+    zero_large_instances: bool
 
 
 class SBIAD1410PhaseConfig(BaseModel):
@@ -182,7 +185,7 @@ class SBIAD1410EvalDatasetConfig(BaseModel):
     global_percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
     mask_key: Optional[str]
-    instance_zero_background: bool = True
+    zero_large_instances: bool = True
 
 
 class EvalDataloaderConfig(BaseModel):
@@ -207,9 +210,12 @@ class EvalDataloaderMetaConfig(BaseModel):
     convert_to_boundary_label: bool
     convert_to_binary_label: bool
     min_object_size: Optional[int]
-    relabel_background: bool
-    instance_zero_background: bool
+    gt_zero_largest_instance: bool
+    gt_zero_large_instances: bool
+    zero_large_instances: bool
     zero_largest_instance: bool
+    largest_obj_multiplier: Optional[float]
+    max_obj_size: Optional[int]
     batch_size: int
     num_workers: int
 
@@ -240,9 +246,12 @@ class EvalDataloaderMetaConfig(BaseModel):
                 convert_to_boundary_label=self.convert_to_boundary_label,
                 convert_to_binary_label=self.convert_to_binary_label,
                 min_object_size=self.min_object_size,
-                relabel_background=self.relabel_background,
-                instance_zero_background=self.instance_zero_background,
+                gt_zero_largest_instance=self.gt_zero_largest_instance,
+                gt_zero_large_instances=self.gt_zero_large_instances,
+                zero_large_instances=self.zero_large_instances,
                 zero_largest_instance=self.zero_largest_instance,
+                largest_obj_multiplier=self.largest_obj_multiplier,
+                max_obj_size=self.max_obj_size,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -275,9 +284,12 @@ class EvalDataloaderMetaConfig(BaseModel):
                 convert_to_boundary_label=self.convert_to_boundary_label,
                 convert_to_binary_label=self.convert_to_binary_label,
                 min_object_size=self.min_object_size,
-                relabel_background=self.relabel_background,
-                instance_zero_background=self.instance_zero_background,
+                gt_zero_largest_instance=self.gt_zero_largest_instance,
+                gt_zero_large_instances=self.gt_zero_large_instances,
+                zero_large_instances=self.zero_large_instances,
                 zero_largest_instance=self.zero_largest_instance,
+                largest_obj_multiplier=self.largest_obj_multiplier,
+                max_obj_size=self.max_obj_size,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -291,7 +303,7 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
     global_percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
     mask_key: Optional[str]
-    instance_zero_background: bool
+    zero_large_instances: bool
     batch_size: int
     num_workers: int
 
@@ -314,7 +326,7 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
                 global_percentiles=self.global_percentiles,
                 image_key=self.image_key,
                 mask_key=self.mask_key,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -339,7 +351,7 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
                 global_percentiles=self.global_percentiles,
                 image_key=self.image_key,
                 mask_key=self.mask_key,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -612,8 +624,8 @@ class Pytorch3DUnetPredictorMetaConfig(BaseModel):
     layer_id: Optional[int]
     beta: float = 0.5
     zero_largest_instance: bool
-    remove_large_instances: bool
-    large_instance_multiplier: int = 4
+    zero_large_instances: bool
+    large_instance_multiplier: float = 4
     max_obj_size: Optional[float] = None
 
 
@@ -1025,7 +1037,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
     percentiles: Optional[Sequence[Union[float, int]]]
     image_key: Optional[str]
     min_object_size: Optional[int]
-    instance_zero_background: bool
+    zero_large_instances: bool
     mask_dir: Optional[Sequence[str]]
     mask_key: Optional[str]
     filenames_path: str
@@ -1053,7 +1065,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
                 image_key=self.image_key,
                 mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -1080,7 +1092,7 @@ class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
                 image_key=self.image_key,
                 mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -1094,7 +1106,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
     percentiles: Optional[Sequence[float]]
     image_key: Optional[str]
     min_object_size: Optional[int]
-    instance_zero_background: bool
+    zero_large_instances: bool
     mask_dir: Optional[Sequence[str]]
     mask_key: Optional[str]
     batch_size: int
@@ -1120,7 +1132,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
                 image_key=self.image_key,
                 mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -1145,7 +1157,7 @@ class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
                 image_key=self.image_key,
                 mask_key=self.mask_key,
                 min_object_size=self.min_object_size,
-                instance_zero_background=self.instance_zero_background,
+                zero_large_instances=self.zero_large_instances,
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
@@ -1501,7 +1513,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/BBBC039/instance_annotations/instance_labels",),
             mask_key=None,
             filenames_path="/BBBC039/test.txt",
@@ -1528,7 +1540,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/BBBC039/instance_annotations/instance_labels",),
             mask_key=None,
             filenames_path="/BBBC039/test.txt",
@@ -1553,7 +1565,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             filenames_path="/BBBC039/test.txt",
@@ -1577,7 +1589,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             filenames_path="/BBBC039/test.txt",
@@ -1634,7 +1646,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
             mask_key=None,
             batch_size=1,
@@ -1653,7 +1665,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
             mask_key=None,
             batch_size=1,
@@ -1676,7 +1688,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             batch_size=1,
@@ -1699,7 +1711,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             batch_size=1,
@@ -1756,7 +1768,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/Hoechst/test_nuclei/annotations",),
             mask_key=None,
             batch_size=1,
@@ -1779,7 +1791,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=80,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/Hoechst/test_nuclei/annotations",),
             mask_key=None,
             batch_size=1,
@@ -1801,7 +1813,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             batch_size=1,
@@ -1824,7 +1836,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=80,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             batch_size=1,
@@ -1884,7 +1896,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/S-BIAD634/dataset/groundtruth",),
             mask_key=None,
             filenames_path="/S-BIAD634/dataset/test.txt",
@@ -1908,7 +1920,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=1,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/S-BIAD634/dataset/groundtruth",),
             mask_key=None,
             filenames_path="/S-BIAD634/dataset/test.txt",
@@ -1930,7 +1942,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             filenames_path="/S-BIAD634/dataset/test.txt",
@@ -1954,7 +1966,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=1,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             filenames_path="/S-BIAD634/dataset/test.txt",
@@ -2013,7 +2025,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
             mask_key=None,
             transformer={
@@ -2036,7 +2048,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
             mask_key=None,
             transformer={
@@ -2055,7 +2067,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             transformer={
@@ -2078,7 +2090,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             transformer={
@@ -2127,7 +2139,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2140,7 +2152,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=True,
+            zero_large_instances=True,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2158,9 +2170,12 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2177,9 +2192,12 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=1,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2196,9 +2214,12 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2215,9 +2236,12 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=1,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2264,7 +2288,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2277,7 +2301,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=True,
+            zero_large_instances=True,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2307,7 +2331,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_percentiles=None,
             image_key="predictions",
             mask_key=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             batch_size=1,
             num_workers=8,
         )
@@ -2333,7 +2357,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_percentiles=None,
             image_key="segmentation",
             mask_key=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             batch_size=1,
             num_workers=8,
         )
@@ -2363,7 +2387,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_percentiles=None,
             image_key="predictions",
             mask_key=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             batch_size=1,
             num_workers=8,
         )
@@ -2389,7 +2413,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
             global_percentiles=None,
             image_key="segmentation",
             mask_key=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             batch_size=1,
             num_workers=8,
         )
@@ -2446,7 +2470,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/dsb2018_fluorescence/test/masks",),
             mask_key=None,
             transformer={
@@ -2471,7 +2495,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/dsb2018_fluorescence/test/masks",),
             mask_key=None,
             transformer={
@@ -2494,7 +2518,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="predictions",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="predictions",
             transformer={
@@ -2517,7 +2541,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="segmentation",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="segmentation",
             transformer={
@@ -2566,7 +2590,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2579,7 +2603,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=True,
+            zero_large_instances=True,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2598,9 +2622,12 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=True,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2617,9 +2644,12 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2636,9 +2666,12 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2655,9 +2688,12 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=1,
         num_workers=8,
     )
@@ -2705,9 +2741,11 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
-            beta=0.8,
+            # beta=0.8,
+            beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=True,
+            zero_large_instances=True,
+            # zero_large_instances=False,
             large_instance_multiplier=2,
             max_obj_size=3303,
         )
@@ -2726,9 +2764,12 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=1.5,
+        max_obj_size=3303,
         batch_size=32,
         num_workers=8,
     )
@@ -2746,9 +2787,12 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=1.5,
+        max_obj_size=3303,
         batch_size=32,
         num_workers=8,
     )
@@ -2794,13 +2838,13 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         Pytorch3DUnetPredictorMetaConfig(
             name="PatchWisePredictor",
             save_segmentation=True,
-            min_size=50,
+            min_size=1,
             layer_id=None,
-            beta=0.8,
+            beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
-            large_instance_multiplier=4,
-            max_obj_size=None,
+            zero_large_instances=True,
+            large_instance_multiplier=1.5,
+            max_obj_size=5867,
         )
     )
     eval_dataloader_semantic: None = None
@@ -2816,10 +2860,13 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         ignore_key=None,
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
-        min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
-        zero_largest_instance=True,
+        min_object_size=1,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
+        zero_largest_instance=False,
+        largest_obj_multiplier=1.5,
+        max_obj_size=5867,
         batch_size=32,
         num_workers=8,
     )
@@ -2836,10 +2883,13 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         ignore_key="ignore_mask",
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
-        min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
-        zero_largest_instance=True,
+        min_object_size=1,
+        gt_zero_large_instances=True,
+        gt_zero_largest_instance=False,
+        zero_large_instances=True,
+        zero_largest_instance=False,
+        largest_obj_multiplier=1.5,
+        max_obj_size=5867,
         batch_size=32,
         num_workers=8,
     )
@@ -2891,9 +2941,9 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
-            beta=0.8,
+            beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -2916,9 +2966,12 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=True,
-        instance_zero_background=False,
+        gt_zero_largest_instance=True,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -2936,9 +2989,12 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3049,7 +3105,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -3068,9 +3124,12 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3088,9 +3147,12 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3199,7 +3261,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -3218,9 +3280,12 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3238,9 +3303,12 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3349,7 +3417,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -3368,9 +3436,12 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3388,9 +3459,12 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3513,7 +3587,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            remove_large_instances=False,
+            zero_large_instances=False,
             large_instance_multiplier=4,
             max_obj_size=None,
         )
@@ -3536,9 +3610,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=True,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3556,9 +3633,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
-        relabel_background=False,
-        instance_zero_background=False,
+        gt_zero_largest_instance=False,
+        gt_zero_large_instances=False,
+        zero_large_instances=False,
         zero_largest_instance=False,
+        largest_obj_multiplier=4,
+        max_obj_size=None,
         batch_size=32,
         num_workers=8,
     )
@@ -3616,7 +3696,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="prediction",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/g/kreshuk/talks/data/covid_if",),
             mask_key="labels/cells/s0",
             transformer={
@@ -3639,7 +3719,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="prediction",
             min_object_size=50,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=("/g/kreshuk/talks/data/covid_if",),
             mask_key="labels/cells/s0",
             transformer={
@@ -3658,7 +3738,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="prediction",
             min_object_size=None,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="prediction",
             transformer={
@@ -3681,7 +3761,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             percentiles=None,
             image_key="prediction",
             min_object_size=0,
-            instance_zero_background=False,
+            zero_large_instances=False,
             mask_dir=None,
             mask_key="prediction",
             transformer={
@@ -3826,7 +3906,7 @@ class InstanceSegmentationConfig(BaseModel):
     min_size: int = 50
     beta: float = 0.5
     zero_largest_instance: bool = False
-    remove_large_instances: bool = False
+    zero_large_instances: bool = False
     large_instance_multiplier: int = 4
 
 
