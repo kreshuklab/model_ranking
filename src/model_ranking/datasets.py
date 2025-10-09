@@ -28,10 +28,10 @@ from pytorch3dunet.datasets.utils import (
 )
 
 from plantseg.functionals.dataprocessing import (  # pyright: ignore[reportMissingTypeStubs]
-    set_background_to_value,  # pyright: ignore[reportUnknownVariableType]
+    set_biggest_instance_to_zero,  # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.unet3d.utils import (
-    remove_background_seg,  # pyright: ignore[reportUnknownVariableType]
+    zero_large_instances,  # pyright: ignore[reportUnknownVariableType]
 )
 
 from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
@@ -131,9 +131,12 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         ignore_key: Optional[str] = None,
         convert_to_binary_label: bool = False,
         convert_to_boundary_label: bool = False,
-        relabel_background: bool = False,
+        gt_zero_largest_instance: bool = False,
+        gt_zero_large_instances: bool = False,
+        largest_obj_multiplier: Optional[float] = 1.5,
+        max_obj_size: Optional[int] = None,
         min_object_size: Optional[int] = None,
-        instance_zero_background: bool = False,
+        zero_large_instances: bool = False,
         zero_largest_instance: bool = False,
     ):
         super().__init__()
@@ -143,8 +146,11 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         self.gt_key = gt_key
         self.convert_to_binary_label = convert_to_binary_label
         self.convert_to_boundary_label = convert_to_boundary_label
-        self.relabel_background = relabel_background
-        self.instance_zero_background = instance_zero_background
+        self.largest_obj_multiplier = largest_obj_multiplier
+        self.max_obj_size = max_obj_size
+        self.gt_zero_largest_instance = gt_zero_largest_instance
+        self.gt_zero_large_instances = gt_zero_large_instances
+        self.zero_large_instances = zero_large_instances
         self.zero_largest_instance = zero_largest_instance
         self.min_obj_size = min_object_size
         if roi is not None:
@@ -222,16 +228,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             gt = self.get_gt_from_patchwise(index)
         else:
             gt = self.get_gt_patch(patch_slice)
-        if self._ignore is not None:
-            # zero out ignore_index
-            mask = self._ignore[patch_slice] == 1
-            pred[mask] = 0
-            gt[mask] = 0
-        elif self.ignore_index is not None:
-            # zero out ignore_index
-            mask = gt == self.ignore_index
-            pred[mask] = 0
-            gt[mask] = 0
+
         if self.min_obj_size is not None:
             gt = skimage.morphology.remove_small_objects(  # pyright: ignore[reportUnknownVariableType]
                 gt, min_size=self.min_obj_size
@@ -249,25 +246,53 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
         if self.convert_to_binary_label == True:
             gt = (gt > 0).astype("uint8")
-        if self.relabel_background == True:
-            gt = set_background_to_value(  # pyright: ignore[reportUnknownVariableType]
-                gt, 0
+        if self.gt_zero_largest_instance == True:
+            gt = set_biggest_instance_to_zero(  # pyright: ignore[reportUnknownVariableType]
+                gt, instance_could_be_zero=True
             )
             gt = Relabel()(gt[0])  # pyright: ignore[reportUnknownVariableType]
             assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
             gt = np.expand_dims(gt, axis=0)
-        if self.instance_zero_background == True:
-            pred = remove_background_seg(pred)
+        if self.gt_zero_large_instances == True:
+            assert (
+                self.largest_obj_multiplier is not None
+            ), "largest_obj_multiplier must be set when gt_zero_large_instances is True"
+            gt = zero_large_instances(
+                gt,
+                threshold_multiplier=self.largest_obj_multiplier,
+                max_obj_size=self.max_obj_size,
+            )
+            assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
+        if self.zero_large_instances == True:
+            assert (
+                self.largest_obj_multiplier is not None
+            ), "largest_obj_multiplier must be set when zero_large_instances is True"
+            pred = zero_large_instances(
+                pred,
+                threshold_multiplier=self.largest_obj_multiplier,
+                max_obj_size=self.max_obj_size,
+            )
             assert is_ndarray(pred), f"Data is not a numpy array: {pred}"
         if self.zero_largest_instance == True:
-            pred = (  # pyright: ignore[reportUnknownVariableType]
-                set_background_to_value(pred, 0)
+            pred = set_biggest_instance_to_zero(  # pyright: ignore[reportUnknownVariableType]
+                pred, instance_could_be_zero=True
             )
             pred = Relabel()(pred[0])  # pyright: ignore[reportUnknownVariableType]
             assert is_ndarray(pred), f"Data is not a numpy array: {pred}"
             pred = np.expand_dims(pred, axis=0)
             assert is_ndarray(pred), f"Data is not a numpy array: {pred}"
-
+        if self._ignore is not None:
+            # zero out ignore_index
+            mask = self._ignore[patch_slice] == 1
+            while mask.ndim < pred.ndim:
+                mask = np.expand_dims(mask, axis=0)
+            pred[mask] = 0
+            gt[mask] = 0
+        elif self.ignore_index is not None:
+            # zero out ignore_index
+            mask = gt == self.ignore_index
+            pred[mask] = 0
+            gt[mask] = 0
         return pred, gt
 
     def __len__(self):
@@ -308,6 +333,8 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
                 gt_key=dataset_config.gt_key,
                 roi=getattr(dataset_config, "roi", None),
                 patch_key=getattr(dataset_config, "patch_key", "patch_index"),
+                ignore_path=getattr(dataset_config, "ignore_path", None),
+                ignore_key=getattr(dataset_config, "ignore_key", None),
                 ignore_index=getattr(dataset_config, "ignore_index", None),
                 convert_to_binary_label=getattr(
                     dataset_config, "convert_to_binary_label", False
@@ -315,11 +342,23 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
                 convert_to_boundary_label=getattr(
                     dataset_config, "convert_to_boundary_label", False
                 ),
-                relabel_background=getattr(dataset_config, "relabel_background", False),
-                min_object_size=getattr(dataset_config, "min_object_size", None),
-                instance_zero_background=getattr(
-                    dataset_config, "instance_zero_background", False
+                gt_zero_largest_instance=getattr(
+                    dataset_config, "gt_zero_largest_instance", False
                 ),
+                gt_zero_large_instances=getattr(
+                    dataset_config, "gt_zero_large_instances", False
+                ),
+                min_object_size=getattr(dataset_config, "min_object_size", None),
+                zero_large_instances=getattr(
+                    dataset_config, "zero_large_instances", False
+                ),
+                zero_largest_instance=getattr(
+                    dataset_config, "zero_largest_instance", False
+                ),
+                largest_obj_multiplier=getattr(
+                    dataset_config, "largest_obj_multiplier", 1.5
+                ),
+                max_obj_size=getattr(dataset_config, "max_obj_size", None),
             )
             datasets.append(dataset)
         return datasets
