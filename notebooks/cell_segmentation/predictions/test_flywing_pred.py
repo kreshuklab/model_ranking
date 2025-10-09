@@ -16,6 +16,6 @@ patch_index = load_h5(path, "patch_index", select_index=[id])[0]
 
 
 IN_seg = pmaps_to_IN_seg(
-    pred, min_size=50, max_obj_size=3303, remove_large_instances=True
+    pred, min_size=50, max_obj_size=3303, zero_large_instances=True
 )
 print(np.unique(IN_seg))
