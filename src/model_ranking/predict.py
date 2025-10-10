@@ -1,4 +1,9 @@
-from typing import List, Dict, Any
+import numpy as np
+from numpy.typing import NDArray
+from tqdm import tqdm
+from typing import List, Dict, Any, Union
+from pathlib import Path
+from pydantic import BaseModel
 
 from model_ranking.dataclass import (
     MetaConfig,
@@ -18,6 +23,9 @@ from pytorch3dunet.unet3d.config import (
 )
 from pytorch3dunet.predict import (
     predict,  # pyright: ignore[reportUnknownVariableType]
+)
+from pytorch3dunet.unet3d.predictor import (
+    pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
 
 
@@ -53,3 +61,48 @@ def predict_eval(
     if isinstance(summary_config.filter_patches, ForegroundFilterConfig):
         _ = run_foreground_patch_selection(summary_config)
     save_summary_metrics(summary_config)
+
+
+def get_pred_paths(base_path: Union[str, Path], models: List[str]) -> List[Path]:
+    pred_paths: List[Path] = []
+    for model in models:
+        pred_paths.extend(list(Path(base_path).rglob(f"{model}/**/*predictions.h5")))
+    return pred_paths
+
+
+def calculate_segmentation(
+    preds: NDArray[Any],
+    min_size: int = 50,
+    zero_largest_instance: bool = False,
+    zero_large_instances: bool = True,
+    large_instance_multiplier: float = 1.7,
+    beta: float = 0.5,
+    max_obj_size: int = 5867,
+) -> NDArray[Any]:
+    segs = np.zeros(preds.squeeze().shape, dtype=np.uint16)
+    for i, pred in enumerate(tqdm(preds)):
+        seg = pmaps_to_IN_seg(  # pyright: ignore[reportUnknownVariableType]
+            pred.squeeze(),
+            min_size=min_size,
+            zero_largest_instance=zero_largest_instance,
+            zero_large_instances=zero_large_instances,
+            large_instance_multiplier=large_instance_multiplier,
+            beta=beta,
+            max_obj_size=max_obj_size,
+        )
+        segs[i] = seg
+    return segs
+
+
+class CalculateSegmentationConfig(BaseModel):
+    pred_base_path: str
+    pred_key: str = "predictions"
+    models: List[str]
+    output_key: str = "segmentations"
+    overwrite_output: bool = False
+    min_size: int = 50
+    zero_largest_instance: bool = False
+    zero_large_instances: bool = True
+    large_instance_multiplier: float = 1.7
+    beta: float = 0.5
+    max_obj_size: int = 5867
