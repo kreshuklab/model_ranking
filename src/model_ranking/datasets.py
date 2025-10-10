@@ -31,7 +31,7 @@ from plantseg.functionals.dataprocessing import (  # pyright: ignore[reportMissi
     set_biggest_instance_to_zero,  # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.unet3d.utils import (
-    zero_large_instances,  # pyright: ignore[reportUnknownVariableType]
+    set_large_instances_to_zero,  # pyright: ignore[reportUnknownVariableType]
 )
 
 from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
@@ -257,7 +257,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             assert (
                 self.largest_obj_multiplier is not None
             ), "largest_obj_multiplier must be set when gt_zero_large_instances is True"
-            gt = zero_large_instances(
+            gt = set_large_instances_to_zero(
                 gt,
                 threshold_multiplier=self.largest_obj_multiplier,
                 max_obj_size=self.max_obj_size,
@@ -267,7 +267,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             assert (
                 self.largest_obj_multiplier is not None
             ), "largest_obj_multiplier must be set when zero_large_instances is True"
-            pred = zero_large_instances(
+            pred = set_large_instances_to_zero(
                 pred,
                 threshold_multiplier=self.largest_obj_multiplier,
                 max_obj_size=self.max_obj_size,
@@ -286,6 +286,8 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
             mask = self._ignore[patch_slice] == 1
             while mask.ndim < pred.ndim:
                 mask = np.expand_dims(mask, axis=0)
+            while mask.ndim > pred.ndim:
+                mask = mask[0]
             pred[mask] = 0
             gt[mask] = 0
         elif self.ignore_index is not None:
