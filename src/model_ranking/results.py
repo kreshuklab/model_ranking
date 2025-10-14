@@ -318,8 +318,8 @@ def get_summary_results(
     approach: Optional[str] = "consistency",
     per_transfer_norms: bool = False,
     per_target_norms: bool = True,
-    consis_postfix: str = "mean",
-    perf_postfix: str = "mean",
+    consis_postfix: Optional[str] = "mean",
+    perf_postfix: Optional[str] = "mean",
     summary_results_postfix: str = "",
     base_seg_dir: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
 ):
@@ -435,10 +435,14 @@ def get_summary_results(
 
 
 def load_summary_metric(
-    filepath: Union[Path, str], metric_key: str, metric_postfix: str
+    filepath: Union[Path, str], metric_key: str, metric_postfix: Optional[str]
 ):
     with h5py.File(filepath, "r") as f:
-        ds = f[f"{metric_key}_{metric_postfix}"]
+        if metric_postfix is None:
+            key = metric_key
+        else:
+            key = f"{metric_key}_{metric_postfix}"
+        ds = f[key]
         assert isinstance(
             ds, h5py.Dataset
         ), f"{metric_key}_{metric_postfix} must be a h5py.Dataset"
