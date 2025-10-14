@@ -829,7 +829,7 @@ def per_object_adaRandError_eval(
         )
         perturbed_scores[instance_id] = (are, prec, rec)
 
-    return unperturbed_scores, perturbed_scores
+    return unperturbed_scores, perturbed_scores  # pyright: ignore
 
 
 def _calculate_per_object_consistency(
@@ -884,14 +884,14 @@ def _calculate_per_object_consistency(
     comp_region_processed = assign_unique_ids_to_value(comp_region, value=[0])
 
     try:
-        are, prec, rec = adapted_rand_error(
+        are, prec, rec = adapted_rand_error(  # pyright: ignore
             ref_region_processed,
             comp_region_processed,
             ignore_labels=None,
         )
 
         # Ensure return types are floats
-        return float(are), float(prec), float(rec)
+        return float(are), float(prec), float(rec)  # pyright: ignore
 
     except Exception as e:
         print(f"Error calculating adapted rand error for instance {instance_id}: {e}")
@@ -937,8 +937,12 @@ def adapted_rand_error_object(
     pred_labels = pred_seg[mask]
 
     # Relabel for sequential labels (start from 1, avoid 0 confusion)
-    true_unique, true_labels = np.unique(true_labels, return_inverse=True)
-    pred_unique, pred_labels = np.unique(pred_labels, return_inverse=True)
+    true_unique, true_labels = np.unique(  # pyright: ignore
+        true_labels, return_inverse=True
+    )
+    pred_unique, pred_labels = np.unique(  # pyright: ignore
+        pred_labels, return_inverse=True
+    )
 
     n = len(true_labels)
     if n < 2:
@@ -952,7 +956,7 @@ def adapted_rand_error_object(
     pred_counter = Counter(pred_labels)
 
     # Number of pairs
-    total_pairs = n * (n - 1) // 2
+    total_pairs = n * (n - 1) // 2  # pyright: ignore
 
     # Sums for precision and recall
     sum_nij = sum(v * (v - 1) // 2 for v in pair_counter.values())
