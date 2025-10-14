@@ -22,6 +22,7 @@ from model_ranking.dataclass import (
     SelfTrainingModelConfig,
     TransformerConsistencyMetaConfig,
     UnetrModelConfig,
+    UnetrWithDropOutModelConfig,
     SBIAD1410LoaderMetaConfig,
     SummaryResultsConfig,
     WandbConfig,
@@ -217,7 +218,12 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
         img_size: int = 256
 
         feat_pert_cfg = meta_cfg.feature_perturbations
-        model_cfgs: Dict[str, Union[Pytorch3DUnetModelConfig, UnetrModelConfig]] = {}
+        model_cfgs: Dict[
+            str,
+            Union[
+                Pytorch3DUnetModelConfig, UnetrModelConfig, UnetrWithDropOutModelConfig
+            ],
+        ] = {}
         if feat_pert_cfg is not None:
             for feature_perturbation in feat_pert_cfg.perturbation_types:
                 feature_abbrev = FEATURE_PERTURBATION_ABBREVIATIONS[
@@ -240,7 +246,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                 spatial_dropout=feat_pert_cfg.spatial_dropout,
                             )
                             feature_str = f"_a{str(dropOut_rate).replace('.','')}"
-                            if source_model.model_type == "UnetrWrapper":
+                            if source_model.model_type in [
+                                "UnetrWrapper",
+                                "UnetrWithDropOut",
+                            ]:
                                 model_cfg = source_model.create_unetr_config(
                                     feature_perturbation=feature_perturbation_config,
                                     img_size=img_size,
@@ -264,7 +273,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                 upper_th=featureDrop_th[1],
                             )
                             feature_str = f"_a{str(featureDrop_th[0]).replace('.','')}-{str(featureDrop_th[1]).replace('.','')}"
-                            if source_model.model_type == "UnetrWrapper":
+                            if source_model.model_type in [
+                                "UnetrWrapper",
+                                "UnetrWithDropOut",
+                            ]:
                                 model_cfg = source_model.create_unetr_config(
                                     feature_perturbation=feature_perturbation_config,
                                     img_size=img_size,
@@ -290,7 +302,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             )
 
                             feature_str = f"_a{str(featureNoise_range).replace('.','')}"
-                            if source_model.model_type == "UnetrWrapper":
+                            if source_model.model_type in [
+                                "UnetrWrapper",
+                                "UnetrWithDropOut",
+                            ]:
                                 model_cfg = source_model.create_unetr_config(
                                     feature_perturbation=feature_perturbation_config,
                                     img_size=img_size,
@@ -305,7 +320,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         assert_never(feature_perturbation)
                 else:
                     feature_name = feature_abbrev
-                    if source_model.model_type == "UnetrWrapper":
+                    if source_model.model_type in [
+                        "UnetrWrapper",
+                        "UnetrWithDropOut",
+                    ]:
                         model_cfg = source_model.create_unetr_config(
                             feature_perturbation=None,
                             img_size=img_size,
@@ -317,7 +335,10 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     model_cfgs[feature_name] = model_cfg
         else:
             feature_name = "none"
-            if source_model.model_type == "UnetrWrapper":
+            if source_model.model_type in [
+                "UnetrWrapper",
+                "UnetrWithDropOut",
+            ]:
                 model_cfg = source_model.create_unetr_config(
                     feature_perturbation=None,
                     img_size=img_size,

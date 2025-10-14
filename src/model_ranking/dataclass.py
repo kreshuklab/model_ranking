@@ -888,7 +888,31 @@ class UnetrModelMetaConfig(BaseModel, frozen=True):
     final_sigmoid: bool
 
 
+class UnetrWithDropOutModelMetaConfig(BaseModel, frozen=True):
+    name: Literal["UnetrWithDropOut"]
+    in_channels: int
+    out_channels: int
+    img_size: Union[Sequence[int], int]
+    feature_size: int
+    hidden_size: int
+    mlp_dim: int
+    num_heads: int
+    proj_type: str
+    norm_name: Union[Tuple[str, ...], str]
+    conv_block: bool
+    res_block: bool
+    spatial_dims: int
+    qkv_bias: bool
+    save_attn: bool
+    is_segmentation: bool
+    final_sigmoid: bool
+
+
 class UnetrModelConfig(UnetrModelMetaConfig, frozen=True):
+    feature_perturbation: Annotated[feature_perturbation_type, Discriminator("name")]
+
+
+class UnetrWithDropOutModelConfig(UnetrWithDropOutModelMetaConfig, frozen=True):
     feature_perturbation: Annotated[feature_perturbation_type, Discriminator("name")]
 
 
@@ -1179,6 +1203,7 @@ class SourceModelConfigBase(BaseModel):
         "UNet2D",
         "ResidualUNet2D",
         "UnetrWrapper",
+        "UnetrWithDropOut",
         "UNet2d_as3d",
         "ResidualUNet2D_as_3D",
         "Cellpose_SAM",
@@ -1236,6 +1261,26 @@ UNETR_DEFAULT_ARCHITECTURE = UnetrModelMetaConfig(
     conv_block=True,
     res_block=True,
     dropout_rate=0.0,
+    spatial_dims=2,
+    qkv_bias=False,
+    save_attn=False,
+    is_segmentation=True,
+    final_sigmoid=True,
+)
+
+UNETR_WITH_DROPOUT_ARCHITECTURE = UnetrWithDropOutModelMetaConfig(
+    name="UnetrWithDropOut",
+    in_channels=1,
+    out_channels=1,
+    img_size=256,  ### Place holder size will be overwritten on creation of UnetrModelConfig
+    feature_size=16,
+    hidden_size=768,
+    mlp_dim=3072,
+    num_heads=12,
+    proj_type="conv",
+    norm_name="batch",
+    conv_block=True,
+    res_block=True,
     spatial_dims=2,
     qkv_bias=False,
     save_attn=False,
@@ -1325,31 +1370,55 @@ class ModelSourceConfig(SourceModelConfigBase):
         feature_perturbation: feature_perturbation_type,
         img_size: Union[Sequence[int], int],
     ):
-        assert (
-            self.model_type == "UnetrWrapper"
-        ), f"Invalid model type for UnetrConfig: {self.model_type}"
-        model = UNETR_DEFAULT_ARCHITECTURE
-        return UnetrModelConfig(
-            name=model.name,
-            in_channels=model.in_channels,
-            out_channels=model.out_channels,
-            img_size=img_size,
-            feature_size=model.feature_size,
-            hidden_size=model.hidden_size,
-            mlp_dim=model.mlp_dim,
-            num_heads=model.num_heads,
-            proj_type=model.proj_type,
-            norm_name=model.norm_name,
-            conv_block=model.conv_block,
-            res_block=model.res_block,
-            dropout_rate=model.dropout_rate,
-            spatial_dims=model.spatial_dims,
-            qkv_bias=model.qkv_bias,
-            save_attn=model.save_attn,
-            is_segmentation=model.is_segmentation,
-            final_sigmoid=model.final_sigmoid,
-            feature_perturbation=feature_perturbation,
-        )
+        assert self.model_type in [
+            "UnetrWrapper",
+            "UnetrWithDropOut",
+        ], f"Invalid model type for UnetrConfig: {self.model_type}"
+        if self.model_type == "UnetrWrapper":
+            model = UNETR_DEFAULT_ARCHITECTURE
+            return UnetrModelConfig(
+                name=model.name,
+                in_channels=model.in_channels,
+                out_channels=model.out_channels,
+                img_size=img_size,
+                feature_size=model.feature_size,
+                hidden_size=model.hidden_size,
+                mlp_dim=model.mlp_dim,
+                num_heads=model.num_heads,
+                proj_type=model.proj_type,
+                norm_name=model.norm_name,
+                conv_block=model.conv_block,
+                res_block=model.res_block,
+                dropout_rate=model.dropout_rate,
+                spatial_dims=model.spatial_dims,
+                qkv_bias=model.qkv_bias,
+                save_attn=model.save_attn,
+                is_segmentation=model.is_segmentation,
+                final_sigmoid=model.final_sigmoid,
+                feature_perturbation=feature_perturbation,
+            )
+        else:
+            model = UNETR_WITH_DROPOUT_ARCHITECTURE
+            return UnetrWithDropOutModelConfig(
+                name=model.name,
+                in_channels=model.in_channels,
+                out_channels=model.out_channels,
+                img_size=img_size,
+                feature_size=model.feature_size,
+                hidden_size=model.hidden_size,
+                mlp_dim=model.mlp_dim,
+                num_heads=model.num_heads,
+                proj_type=model.proj_type,
+                norm_name=model.norm_name,
+                conv_block=model.conv_block,
+                res_block=model.res_block,
+                spatial_dims=model.spatial_dims,
+                qkv_bias=model.qkv_bias,
+                save_attn=model.save_attn,
+                is_segmentation=model.is_segmentation,
+                final_sigmoid=model.final_sigmoid,
+                feature_perturbation=feature_perturbation,
+            )
 
 
 class ForegroundFilterConfig(BaseModel):
@@ -2712,8 +2781,8 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["FlyWing"] = "FlyWing"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        # batch_size=5,
-        batch_size=32,
+        batch_size=5,
+        # batch_size=32,
         num_workers=8,
         raw_internal_path="volumes/raw",
         label_internal_path="volumes/labels/expanded_cells_with_ignore",
@@ -2729,12 +2798,12 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            # patch_shape=(1, 639, 765),
-            # stride_shape=(1, 639, 765),
-            # halo_shape=(0, 96, 96),
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 639, 765),
+            stride_shape=(1, 639, 765),
+            halo_shape=(0, 96, 96),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -2815,8 +2884,8 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["Ovules"] = "Ovules"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        # batch_size=5,
-        batch_size=32,
+        batch_size=5,
+        # batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="label_with_ignore",
@@ -2832,12 +2901,12 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            # patch_shape=(1, 960, 1000),
-            # stride_shape=(1, 960, 1000),
-            # halo_shape=(0, 96, 96),
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 960, 1000),
+            stride_shape=(1, 960, 1000),
+            halo_shape=(0, 96, 96),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -3040,8 +3109,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3199,8 +3268,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3355,8 +3424,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -4002,7 +4071,8 @@ class SelfTrainingDataConfig(BaseModel):
 
 class SelfTrainingModelConfig(BaseModel):
     model: Annotated[
-        Union[Pytorch3DUnetModelConfig, UnetrModelConfig], Discriminator("name")
+        Union[Pytorch3DUnetModelConfig, UnetrModelConfig, UnetrWithDropOutModelConfig],
+        Discriminator("name"),
     ]
     source_checkpoint: Optional[Union[str, Path]]
 
