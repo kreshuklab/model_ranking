@@ -370,6 +370,8 @@ def plot_alpha_sweep_specific_norm(
                     norm = select_norms[target][0]
                 if norm is None:
                     norm_name = "norm_Normalize"
+                elif norm == "Normalize":
+                    norm_name = "norm_Normalize"
                 else:
                     norm_name = f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
                 if per_aug_perf:
