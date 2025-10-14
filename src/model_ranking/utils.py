@@ -27,6 +27,9 @@ MODEL_ABBREVIATIONS_TO_DATASET = {
     "V": "VNC",
     "H": "Hmito",
     "R": "Rmito",
+    "fw": "FlyWing",
+    "ov": "Ovules",
+    "p": "PNAS",
 }
 
 
@@ -263,6 +266,24 @@ def _relabel(input: NDArray[Any]) -> NDArray[Any]:
     return unique_labels.reshape(input.shape)
 
 
+def calculate_foreground_ratio(pred: NDArray[Any]) -> NDArray[Any]:
+    return np.array(
+        [
+            np.sum(pred[i] > 0) / np.prod(pred[i].shape)
+            for i in range(pred.shape[0])  # pyright: ignore
+        ]
+    )
+
+
+def average_foreground_ratios(
+    p_foreground_ratios: NDArray[Any], unp_foreground_ratios: NDArray[Any]
+) -> NDArray[Any]:
+    assert p_foreground_ratios.shape == unp_foreground_ratios.shape
+    cmb_foreground_ratios = np.stack((p_foreground_ratios, unp_foreground_ratios))
+    mean_f_ratio = np.mean(cmb_foreground_ratios, axis=0)
+    return mean_f_ratio
+
+
 def extract_filename(
     pred_path: Union[Path, str],
     suffix_names: List[str] = [
@@ -429,6 +450,24 @@ def get_output_paths(
                     assert len(out_path) == 1, f"num paths found == {len(out_path)}"
                     paths.append(str(out_path[0]))
     return paths
+
+
+def get_output_pred_paths(
+    target: str,
+    model_name: str,
+    run_id: str,
+    approach: str = "consistency",
+    base_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells",
+):
+    source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
+
+    output_paths = list(
+        (
+            Path(base_path)
+            / f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}"
+        ).rglob("**/*predictions.h5")
+    )
+    return output_paths
 
 
 def add_device_to_config(config: Dict[str, Any]) -> Dict[str, Any]:
