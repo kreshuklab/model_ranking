@@ -19,6 +19,7 @@ from tqdm import tqdm
 from torch_em.loss.dice import (
     dice_score,
 )
+from collections import Counter
 
 from pytorch3dunet.unet3d.metrics import (
     DiceCoefficient,
@@ -769,6 +770,211 @@ def calculate_instance_rand_indices(
         results[instance_id] = rand_index
 
     return results
+
+
+def per_object_adaRandError_eval(
+    pred_unperturbed: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
+    pred_perturbed: NDArray[Union[np.uint8, np.uint16, np.uint32, np.uint64]],
+    num_dilations: Optional[int] = 1,
+    num_erosions: Optional[int] = 1,
+) -> Tuple[
+    Dict[int, Tuple[float, float, float]], Dict[int, Tuple[float, float, float]]
+]:
+    """
+    Calculate per-object foreground restricted Adapted Rand Error between
+    unperturbed and perturbed instance segmentation predictions.
+
+    For each instance in both images, calculates the consistency by treating
+    that instance as the "ground truth" and the corresponding region in the
+    other image as the "prediction".
+
+    Args:
+        pred_unperturbed: Unperturbed instance segmentation prediction
+        pred_perturbed: Perturbed instance segmentation prediction
+        num_dilations: Number of dilations for border mask (optional)
+        num_erosions: Number of erosions for border mask (optional)
+
+    Returns:
+        Tuple of two dictionaries:
+        - First dict: Per-object scores using unperturbed instances as reference
+        - Second dict: Per-object scores using perturbed instances as reference
+        Each dict maps instance_id -> (are, precision, recall)
+    """
+    assert (
+        pred_unperturbed.shape == pred_perturbed.shape
+    ), f"Predictions have different shapes: {pred_unperturbed.shape} vs {pred_perturbed.shape}"
+
+    # Handle 2D case
+    unperturbed_scores = {}
+    perturbed_scores = {}
+
+    # Get unique instance IDs (excluding background=0)
+    unp_instances = np.unique(pred_unperturbed)
+    unp_instances = unp_instances[unp_instances != 0]
+
+    pert_instances = np.unique(pred_perturbed)
+    pert_instances = pert_instances[pert_instances != 0]
+
+    # Calculate scores using unperturbed instances as reference
+    for instance_id in unp_instances:
+        are, prec, rec = _calculate_per_object_consistency(
+            pred_unperturbed, pred_perturbed, instance_id, num_dilations, num_erosions
+        )
+        unperturbed_scores[instance_id] = (are, prec, rec)
+
+    # Calculate scores using perturbed instances as reference
+    for instance_id in pert_instances:
+        are, prec, rec = _calculate_per_object_consistency(
+            pred_perturbed, pred_unperturbed, instance_id, num_dilations, num_erosions
+        )
+        perturbed_scores[instance_id] = (are, prec, rec)
+
+    return unperturbed_scores, perturbed_scores
+
+
+def _calculate_per_object_consistency(
+    reference_img: NDArray[Any],
+    comparison_img: NDArray[Any],
+    instance_id: int,
+    num_dilations: Optional[int] = 1,
+    num_erosions: Optional[int] = 1,
+) -> Tuple[float, float, float]:
+    """
+    Helper function to calculate consistency for a single object instance.
+
+    Args:
+        reference_img: Image containing the reference instance
+        comparison_img: Image to compare against
+        instance_id: ID of the instance to analyze
+        num_dilations: Number of dilations for border mask
+        num_erosions: Number of erosions for border mask
+
+    Returns:
+        Tuple of (adapted_rand_error, precision, recall)
+    """
+    # Create mask for the specific instance
+    instance_mask = reference_img == instance_id
+
+    if not np.any(instance_mask):
+        return float("nan"), float("nan"), float("nan")
+
+    # Create foreground mask (union of instance regions in both images)
+    # foreground_mask = get_mask(reference_img, comparison_img, threshold=0)
+
+    # Combine instance mask with foreground mask
+    # eval_mask = np.logical_and(instance_mask, foreground_mask)
+
+    # Apply border mask if specified
+    if num_dilations is not None and num_erosions is not None:
+        border_mask = get_border_mask(
+            img=reference_img, num_dilations=num_dilations, num_erosions=num_erosions
+        )
+        instance_mask = np.logical_and(instance_mask, ~border_mask)
+
+    if not np.any(instance_mask):
+        return float("nan"), float("nan"), float("nan")
+
+    # Extract regions within evaluation mask
+    ref_region = reference_img[instance_mask]
+    comp_region = comparison_img[instance_mask]
+
+    # For foreground restricted evaluation, assign unique IDs to background pixels
+    # in the comparison region that fall within our evaluation mask
+    ref_region_processed = assign_unique_ids_to_value(ref_region, value=[0])
+    comp_region_processed = assign_unique_ids_to_value(comp_region, value=[0])
+
+    try:
+        are, prec, rec = adapted_rand_error(
+            ref_region_processed,
+            comp_region_processed,
+            ignore_labels=None,
+        )
+
+        # Ensure return types are floats
+        return float(are), float(prec), float(rec)
+
+    except Exception as e:
+        print(f"Error calculating adapted rand error for instance {instance_id}: {e}")
+        return float("nan"), float("nan"), float("nan")
+
+
+def adapted_rand_error_object(
+    true_seg: NDArray[Any], pred_seg: NDArray[Any], object_id: int, alpha: float = 0.5
+) -> Tuple[float, float, float]:
+    """
+    Calculate adapted Rand error for a single object instance, considering only
+    pairs of pixels within the object mask in the ground truth.
+
+    Parameters
+    ----------
+    true_seg : ndarray
+        Ground truth segmentation. Shape (H, W) or (N,).
+    pred_seg : ndarray
+        Predicted segmentation, same shape as true_seg.
+    object_id : int
+        The label of the object in the ground truth to evaluate.
+    alpha : float
+        Weight between precision and recall in the F-score (default 0.5).
+
+    Returns
+    -------
+    are : float
+        The adapted Rand error for the object.
+    precision : float
+        Precision score for the object.
+    recall : float
+        Recall score for the object.
+    """
+
+    # Mask for the object in the ground truth
+    mask = true_seg == object_id
+    if np.sum(mask) < 2:
+        # Not enough pixels for evaluation
+        return np.nan, np.nan, np.nan
+
+    # Extract pixels within the object mask
+    true_labels = true_seg[mask]
+    pred_labels = pred_seg[mask]
+
+    # Relabel for sequential labels (start from 1, avoid 0 confusion)
+    true_unique, true_labels = np.unique(true_labels, return_inverse=True)
+    pred_unique, pred_labels = np.unique(pred_labels, return_inverse=True)
+
+    n = len(true_labels)
+    if n < 2:
+        return np.nan, np.nan, np.nan
+
+    # Build contingency table
+    # Count occurrences of (true_label, pred_label) pairs
+    pair_counter = Counter(zip(true_labels, pred_labels))
+    # Count occurrences for marginal sums
+    true_counter = Counter(true_labels)
+    pred_counter = Counter(pred_labels)
+
+    # Number of pairs
+    total_pairs = n * (n - 1) // 2
+
+    # Sums for precision and recall
+    sum_nij = sum(v * (v - 1) // 2 for v in pair_counter.values())
+    sum_ai = sum(v * (v - 1) // 2 for v in true_counter.values())
+    sum_bj = sum(v * (v - 1) // 2 for v in pred_counter.values())
+
+    # Precision and recall
+    if sum_bj == 0 or sum_ai == 0:
+        return np.nan, np.nan, np.nan
+
+    precision = sum_nij / sum_bj
+    recall = sum_nij / sum_ai
+
+    # F-score
+    if precision + recall == 0:
+        fscore = 0.0
+    else:
+        fscore = (precision * recall) / (alpha * precision + (1 - alpha) * recall)
+
+    adapted_rand_error = 1 - fscore
+
+    return adapted_rand_error, precision, recall
 
 
 def foreground_restricted_AdaRandError_consistency(
