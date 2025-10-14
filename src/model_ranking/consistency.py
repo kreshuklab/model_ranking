@@ -28,9 +28,13 @@ from model_ranking.metrics import (
 )
 from model_ranking.utils import (
     save_h5,
+    load_h5,
+    calculate_foreground_ratio,
+    average_foreground_ratios,
     loader_classes,
     is_ndarray,
     load_predictions_transformers,
+    get_output_pred_paths,
 )
 
 
@@ -400,3 +404,90 @@ def run_toothfairy_consistency(
     #         json.dump(consistencies, f, indent=2)
 
     return consistencies
+
+
+def weighted_average_consistency(
+    consis_scores: NDArray[Any], weights: NDArray[Any]
+) -> float:
+    valid_mask = ~np.isnan(consis_scores[:, 0])
+    valid_consis_scores = consis_scores[valid_mask, 0]
+    valid_weights = weights[valid_mask]
+    return np.average(  # pyright: ignore
+        valid_consis_scores,
+        weights=valid_weights,
+    )
+
+
+class ForegroundRatioConfig(BaseModel):
+    targets: List[str]
+    model_names: List[str]
+    run_id: str
+    seg_key: str
+    approach: Literal["consistency", "feature_perturbation_consistency"]
+    base_path: str
+    save_foreground_ratio: bool = True
+    overwrite_ratios: bool = False
+
+
+class ScaleConsistencyConfig(BaseModel):
+    foreground_ratio_cfg: ForegroundRatioConfig
+    consis_key: str
+    summary_postfix: str = "_full"
+    overwrite_scaled_consistency: bool = False
+
+
+def batch_scale_consis_by_foreground_ratio(config: ScaleConsistencyConfig):
+    fg_config = config.foreground_ratio_cfg
+    for target in fg_config.targets:
+        for model_name in fg_config.model_names:
+            output_paths = get_output_pred_paths(
+                target=target,
+                model_name=model_name,
+                run_id=fg_config.run_id,
+                approach=fg_config.approach,
+                base_path=fg_config.base_path,
+            )
+            no_p_path = [p for p in output_paths if "none" in str(p)]
+            assert (
+                len(no_p_path) == 1
+            ), f"Expected exactly one path with 'none' in it, got {no_p_path}"
+            output_paths.remove(no_p_path[0])
+            unp_f_ratio = calculate_foreground_ratio(
+                load_h5(no_p_path[0], fg_config.seg_key)
+            )
+            for output_path in tqdm(output_paths):
+                p_f_ratio = calculate_foreground_ratio(
+                    load_h5(output_path, fg_config.seg_key)
+                )
+                avg_f_ratio = average_foreground_ratios(
+                    unp_foreground_ratios=unp_f_ratio,
+                    p_foreground_ratios=p_f_ratio,
+                )
+                assert is_ndarray(avg_f_ratio)
+
+                if fg_config.save_foreground_ratio:
+                    save_h5(
+                        output_path,
+                        "avg_foreground_ratio",
+                        avg_f_ratio,
+                        overwrite=fg_config.overwrite_ratios,
+                    )
+                print(f"Saved average foreground ratio to {output_path}")
+
+                consis_score = load_h5(output_path, config.consis_key)
+                weighted_consistency = weighted_average_consistency(
+                    consis_scores=consis_score, weights=avg_f_ratio
+                )
+
+                metric_summary_path = (
+                    output_path.parent / f"metric_summary{config.summary_postfix}.h5"
+                )
+                if metric_summary_path.exists():
+                    save_h5(
+                        metric_summary_path,
+                        f"weighted_{config.consis_key}",
+                        np.array(weighted_consistency),
+                        overwrite=config.overwrite_scaled_consistency,
+                    )
+                else:
+                    print(f"metric_summary_path {metric_summary_path} does not exist")
