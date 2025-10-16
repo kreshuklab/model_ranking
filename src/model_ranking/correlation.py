@@ -10,7 +10,7 @@ from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
 from typing import Any, Dict, Sequence, Tuple
 
 from model_ranking.utils import is_ndarray
-from model_ranking.results import transfer_results_to_arrays
+from model_ranking.results import transfer_results_to_arrays, results_to_arrays
 
 
 def scores_to_rank(scores: NDArray[Any], ascending: bool = True, tolerance: float = 0):
@@ -188,6 +188,35 @@ def to_target_transfer_correlations(
         transfer_scores, NA_perf_scores = transfer_results_to_arrays(
             transfer_metric_per_target[target],
             performance_per_target[target],
+        )
+
+        (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
+            calculate_correlation_statistics(
+                transfer_scores,
+                NA_perf_scores,
+            )
+        )
+    return per_target_KT, per_target_SP, per_target_PE
+
+
+def to_target_transfer_correlations_with_norm(
+    targets: Sequence[str],
+    transfer_metric_per_target: Dict[
+        str, Dict[str, Dict[str, Dict[str, NDArray[Any]]]]
+    ],
+    performance_per_target: Dict[str, Dict[str, Dict[str, float]]],
+    num_aug_alphas: int,
+    perturbation_key: str = "gauss",
+):
+    per_target_KT = np.zeros((len(targets), num_aug_alphas, 2))
+    per_target_SP = np.zeros((len(targets), num_aug_alphas, 2))
+    per_target_PE = np.zeros((len(targets), num_aug_alphas, 2))
+    for i, target in enumerate(targets):
+        transfer_scores, NA_perf_scores = results_to_arrays(
+            transfer_metric_per_target[target],
+            performance_per_target[target],
+            perturbation_key=perturbation_key,
+            num_alphas=num_aug_alphas,
         )
 
         (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
