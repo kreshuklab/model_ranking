@@ -3109,8 +3109,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3268,8 +3268,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -3424,8 +3424,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
-            halo_shape=(0, 0, 0),
+            halo_shape=(0, 32, 32),
+            # halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
