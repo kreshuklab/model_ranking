@@ -180,6 +180,8 @@ def to_target_transfer_correlations(
     targets: Sequence[str],
     transfer_metric_per_target: Dict[str, Dict[str, float]],
     performance_per_target: Dict[str, Dict[str, float]],
+    invert_transfer_metric: bool = False,
+    invert_perf_metric: bool = False,
 ):
     per_target_KT = np.zeros((len(targets), 1, 2))
     per_target_SP = np.zeros((len(targets), 1, 2))
@@ -189,6 +191,10 @@ def to_target_transfer_correlations(
             transfer_metric_per_target[target],
             performance_per_target[target],
         )
+        if invert_transfer_metric:
+            transfer_scores = 1 - transfer_scores
+        if invert_perf_metric:
+            NA_perf_scores = 1 - NA_perf_scores
 
         (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
             calculate_correlation_statistics(
@@ -207,6 +213,7 @@ def to_target_transfer_correlations_with_norm(
     performance_per_target: Dict[str, Dict[str, Dict[str, float]]],
     num_aug_alphas: int,
     perturbation_key: str = "gauss",
+    invert_consis_score: bool = False,
 ):
     per_target_KT = np.zeros((len(targets), num_aug_alphas, 2))
     per_target_SP = np.zeros((len(targets), num_aug_alphas, 2))
@@ -218,6 +225,8 @@ def to_target_transfer_correlations_with_norm(
             perturbation_key=perturbation_key,
             num_alphas=num_aug_alphas,
         )
+        if invert_consis_score:
+            transfer_scores = 1 - transfer_scores
 
         (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
             calculate_correlation_statistics(

@@ -576,6 +576,8 @@ def plot_performance_vs_transfer_metric_multi_target(
     figsize: Tuple[int, int] = (16, 12),
     finetuned: bool = False,
     source_model_only: bool = False,
+    invert_transfer_metric: bool = False,
+    invert_perf_metric: bool = False,
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
@@ -610,6 +612,11 @@ def plot_performance_vs_transfer_metric_multi_target(
                 x.append(scores_per_model[model])
                 y.append(performance_scores[target][model])
                 labels.append(model)
+
+        if invert_transfer_metric:
+            x = [1 - val for val in x]
+        if invert_perf_metric:
+            y = [1 - val for val in y]
 
         # Plot on the specific subplot
         colors = plt.get_cmap("tab20", len(labels))
