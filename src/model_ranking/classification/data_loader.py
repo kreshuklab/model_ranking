@@ -135,7 +135,10 @@ def get_classification_TTA_loaders(
             applied_raw_transforms = []
             for raw_transform_param in config.aug_config.raw_transform_params:
                 aug_type = AUGMENTATION_ABBREVIATIONS[raw_transform_param["name"]]
-                alpha_range = raw_transform_param["params"]["alpha"]
+                if aug_type == "Gauss":
+                    alpha_range = raw_transform_param["params"]["scale"]
+                else:
+                    alpha_range = raw_transform_param["params"]["alpha"]
                 aug_key = (
                     f"{aug_type}_a{str(alpha_range[0]).replace('.', '')}-"
                     f"{str(alpha_range[1]).replace('.', '')}"
