@@ -578,6 +578,7 @@ def plot_performance_vs_transfer_metric_multi_target(
     source_model_only: bool = False,
     invert_transfer_metric: bool = False,
     invert_perf_metric: bool = False,
+    legend_bbox_anchor: Tuple[float, float] = (1.05, 1),
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
@@ -627,7 +628,9 @@ def plot_performance_vs_transfer_metric_multi_target(
         axes[i].set_ylabel("F1 Score")
         axes[i].set_title(f"{target}: Performance vs {transfer_metric}")
         if (source_model_only == True) or (finetuned == True):
-            axes[i].legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
+            axes[i].legend(
+                title="Model", bbox_to_anchor=legend_bbox_anchor, loc="upper left"
+            )
         axes[i].grid()
 
     # Hide any unused subplots
