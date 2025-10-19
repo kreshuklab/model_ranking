@@ -200,13 +200,15 @@ def get_classification_pred_path(
     target: str,
     base_path: Union[str, Path],
     aug: augmentation_type = "None",
+    aug_str: Optional[str] = None,
 ):
     if isinstance(base_path, str):
         base_path = Path(base_path)
     source = get_source_from_classification_model_name(model_name)
-    paths = list(
-        base_path.rglob(f"{source}_to_{target}/{model_name}/{aug}/predictions.h5")
-    )
+    search_path = base_path / f"{source}_to_{target}/{model_name}/{aug}"
+    if aug_str is not None:
+        search_path = search_path / aug_str
+    paths = list(search_path.rglob("predictions.h5"))
     assert (
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"
