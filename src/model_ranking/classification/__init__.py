@@ -5,6 +5,7 @@ from .datasets import *
 from .model import *
 from .plots import *
 from .predict import *
+from .results import *
 from .train import *
 from .transfer_metrics import *
 from .utils import *
