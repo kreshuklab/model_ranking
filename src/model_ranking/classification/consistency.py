@@ -29,12 +29,15 @@ class ClassificationSummaryResultsConfig(BaseModel):
     save_name_postfix: str = ""
 
 
-class ClassificationConsistencyConfig(BaseModel):
+class ClassificationPredicitonLoadConfig(BaseModel):
     source: Sequence[str]
     target: Sequence[str]
     perturbations: Mapping[augmentation_type, Sequence[str]]
-    consistency_metric: ClassificationConsistencyMetric
     base_path: str
+
+
+class ClassificationConsistencyConfig(ClassificationPredicitonLoadConfig):
+    consistency_metric: ClassificationConsistencyMetric
     # summary_results: ClassificationSummaryResultsConfig
 
 
