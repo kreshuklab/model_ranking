@@ -2,10 +2,12 @@ from pydantic import BaseModel
 from typing import Sequence, Mapping, Literal, Optional
 import numpy as np
 from scipy.spatial.distance import hamming
+from tqdm import tqdm
 
 from model_ranking.utils import load_h5, save_h5
-from model_ranking.results import save_summary_metrics
-from model_ranking.dataclass import SummaryResultsConfig
+
+# from model_ranking.results import save_summary_metrics
+# from model_ranking.dataclass import SummaryResultsConfig
 from model_ranking.metrics import calculate_EI_binary
 
 from .utils import (
@@ -33,7 +35,7 @@ class ClassificationConsistencyConfig(BaseModel):
     perturbations: Mapping[augmentation_type, Sequence[str]]
     consistency_metric: ClassificationConsistencyMetric
     base_path: str
-    summary_results: ClassificationSummaryResultsConfig
+    # summary_results: ClassificationSummaryResultsConfig
 
 
 def run_classification_consistency(config: ClassificationConsistencyConfig):
@@ -48,7 +50,7 @@ def run_classification_consistency(config: ClassificationConsistencyConfig):
             )
             unp_preds = load_h5(unp_pred_path, "predictions")
             for pert_type, pert_levels in config.perturbations.items():
-                for pert_level in pert_levels:
+                for pert_level in tqdm(pert_levels):
                     p_pred_path = get_classification_pred_path(
                         model_name=src_model,
                         target=tgt,
@@ -89,12 +91,12 @@ def run_classification_consistency(config: ClassificationConsistencyConfig):
                         data=consis_score,
                         overwrite=consis_cfg.overwrite_scores,
                     )
-                    summary_cfg = SummaryResultsConfig(
-                        filter_patches=None,
-                        output_path=str(p_pred_path.parent),
-                        eval_key=config.summary_results.eval_key,
-                        consis_key=consis_cfg.save_key,
-                        overwrite_scores=config.summary_results.overwrite_scores,
-                        save_name_postfix=config.summary_results.save_name_postfix,
-                    )
-                    save_summary_metrics(summary_cfg)
+                    # summary_cfg = SummaryResultsConfig(
+                    #     filter_patches=None,
+                    #     output_path=str(p_pred_path.parent),
+                    #     eval_key=config.summary_results.eval_key,
+                    #     consis_key=consis_cfg.save_key,
+                    #     overwrite_scores=config.summary_results.overwrite_scores,
+                    #     save_name_postfix=config.summary_results.save_name_postfix,
+                    # )
+                    # save_summary_metrics(summary_cfg)
