@@ -51,8 +51,13 @@ def get_classification_consistency_results(
                         aug_str=pert_level,
                     )
                     consis_scores = load_h5(p_pred_path, consis_metric_key)
-                    median_score = np.median(consis_scores, axis=1)[0]
-                    per_model_consis[src_model] = median_score
+                    if (consis_metric_key == "Hamming-Distance") or (
+                        "HD" in consis_metric_key
+                    ):
+                        score = float(consis_scores)
+                    else:
+                        score = np.median(consis_scores, axis=1)[0]
+                    per_model_consis[src_model] = score
                 per_target_consis[tgt] = per_model_consis
             per_strength_consis[pert_level] = per_target_consis
         per_perturbation_consis[pert_type] = per_strength_consis
