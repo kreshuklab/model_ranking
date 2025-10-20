@@ -60,6 +60,7 @@ class ConsistencyMetricConfig(BaseModel):
         "Rand-Index",
         "Adapted-Rand-Error",
         "AdaRand-Error",
+        "MeanAvgPrecision",
     ]
     threshold: List[float]
     pred_key: str
@@ -386,7 +387,7 @@ class AdaptedRandErrorEvalConfig(AdaptedRandErrorConfig, EvalMetricConfig, froze
     pass
 
 
-class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
+class MeanAvgPrecisionConfig(BaseModel, frozen=True):
     name: Literal["MeanAvgPrecision"] = "MeanAvgPrecision"
     iou_range: Optional[List[Union[float, int]]] = [0.5, 0.95, 10]
     min_instance_size: Optional[int] = None
@@ -399,6 +400,13 @@ class MeanAvgPrecisionConfig(EvalMetricConfig, frozen=True):
 
     def initialise_score(self, num_samples: int) -> torch.Tensor:
         return torch.zeros(num_samples, dtype=torch.float32)
+
+    def initialise_score_array(self, num_samples: int) -> NDArray[Any]:
+        return np.zeros(num_samples, dtype=np.float32)
+
+
+class MeanAvgPrecisionEvalConfig(MeanAvgPrecisionConfig, EvalMetricConfig, frozen=True):
+    pass
 
 
 class MultiClassF1Config(EvalMetricConfig, frozen=True):
@@ -439,6 +447,12 @@ class SoftF1Config(EvalMetricConfig, frozen=True):
 
 class AdaptedRandErrorConsisConfig(
     AdaptedRandErrorConfig, ConsistencyMetaConfig, frozen=True
+):
+    pass
+
+
+class MeanAvgPrecisionConsisConfig(
+    MeanAvgPrecisionConfig, ConsistencyMetaConfig, frozen=True
 ):
     pass
 
@@ -540,6 +554,7 @@ class HammingDistanceConfig(ConsistencyMetaConfig, frozen=True):
 consistency_metric_type = Annotated[
     Union[
         AdaptedRandErrorConsisConfig,
+        MeanAvgPrecisionConsisConfig,
         CrossEntropyConfig,
         DifferenceImageConfig,
         EffectiveInvarianceConfig,
@@ -554,7 +569,7 @@ eval_metric_type = Annotated[
     Union[
         AdaptedRandErrorEvalConfig,
         BinaryF1Config,
-        MeanAvgPrecisionConfig,
+        MeanAvgPrecisionEvalConfig,
         MultiClassF1Config,
         SoftF1Config,
     ],
@@ -627,6 +642,7 @@ class Pytorch3DUnetPredictorMetaConfig(BaseModel):
     zero_large_instances: bool
     large_instance_multiplier: float = 4
     max_obj_size: Optional[float] = None
+    threshold: float = 0.5
 
 
 class Pytorch3DUnetPredictorConfig(Pytorch3DUnetPredictorMetaConfig):
@@ -2781,8 +2797,8 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["FlyWing"] = "FlyWing"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=5,
-        # batch_size=32,
+        # batch_size=5,
+        batch_size=32,
         num_workers=8,
         raw_internal_path="volumes/raw",
         label_internal_path="volumes/labels/expanded_cells_with_ignore",
@@ -2814,13 +2830,12 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
             save_segmentation=True,
             min_size=50,
             layer_id=None,
-            # beta=0.8,
             beta=0.5,
             zero_largest_instance=False,
             zero_large_instances=True,
-            # zero_large_instances=False,
             large_instance_multiplier=1.5,
             max_obj_size=3387,
+            threshold=0.5,
         )
     )
     eval_dataloader_semantic: None = None
@@ -2855,8 +2870,10 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
-        ignore_path="/FlyWing/GT/test/per03.h5",
-        ignore_key="volumes/labels/ignore",
+        ignore_path=None,
+        ignore_key=None,
+        # ignore_path="/FlyWing/GT/test/per03.h5",
+        # ignore_key="volumes/labels/ignore",
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=None,
@@ -2922,6 +2939,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
             zero_large_instances=True,
             large_instance_multiplier=1.7,
             max_obj_size=5867,
+            threshold=0.5,
         )
     )
     eval_dataloader_semantic: None = None
@@ -2994,7 +3012,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         file_paths=(
             # "/PNAS/test/12hrs_plant18_trim-acylYFP.h5",
             "/PNAS/test/24hrs_plant18_trim-acylYFP.h5",
-            "/PNAS/test/36hrs_plant18_trim-acylYFP.h5",
+            # "/PNAS/test/36hrs_plant18_trim-acylYFP.h5",
         ),
         roi=None,
         transformer={

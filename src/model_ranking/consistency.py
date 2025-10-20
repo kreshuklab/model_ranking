@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from pytorch3dunet.datasets.dsb import S_BIAD1410_Dataset
 from pytorch3dunet.datasets.hdf5 import StandardHDF5Dataset
+from pytorch3dunet.unet3d.metrics import InstanceAveragePrecision
 
 from model_ranking.dataclass import (
     ConsistencyConfig,
@@ -78,6 +79,10 @@ def calc_consistency_score(
             scores = metric_cfg.initialise_score(
                 dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
             )
+        elif metric_cfg.name == "MeanAvgPrecision":
+            scores = metric_cfg.initialise_score_array(
+                dataloader.dataset.__len__()  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
+            )
         else:
             scores = metric_cfg.initialise_score(
                 dataloader.dataset.__len__(),  # pyright: ignore[reportUnknownArgumentType, reportAttributeAccessIssue]
@@ -113,6 +118,13 @@ def calc_consistency_score(
             batch_scores, batch_consis_mask = metric(
                 perturbed_pred, unperturbed_pred, bckg=metric_cfg.bckg_consistency
             )
+
+        elif isinstance(metric, InstanceAveragePrecision):
+            batch_scores = metric(  # pyright: ignore
+                torch.tensor(perturbed_pred), torch.tensor(unperturbed_pred)
+            ).numpy()
+            # convert Tensor to numpy
+            batch_consis_mask = np.ones_like(perturbed_pred, dtype=bool)
 
         else:
             if metric_cfg.bckg_consistency:
