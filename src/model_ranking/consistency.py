@@ -238,6 +238,7 @@ def calculate_per_patch_consistency(consis_score: NDArray[Any], consis_name: str
         or ("AdaptedRandError" in consis_name)
         or ("HD" in consis_name)
         or ("AdaRand" in consis_name)
+        or ("ARE" in consis_name)
     ):
         consis_score_PP = consis_score
 
