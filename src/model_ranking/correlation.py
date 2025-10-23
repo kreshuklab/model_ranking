@@ -214,6 +214,7 @@ def to_target_transfer_correlations_with_norm(
     num_aug_alphas: int,
     perturbation_key: str = "gauss",
     invert_consis_score: bool = False,
+    invert_perf_score: bool = False,
 ):
     per_target_KT = np.zeros((len(targets), num_aug_alphas, 2))
     per_target_SP = np.zeros((len(targets), num_aug_alphas, 2))
@@ -227,6 +228,8 @@ def to_target_transfer_correlations_with_norm(
         )
         if invert_consis_score:
             transfer_scores = 1 - transfer_scores
+        if invert_perf_score:
+            NA_perf_scores = 1 - NA_perf_scores
 
         (per_target_KT[i], per_target_SP[i], per_target_PE[i]) = (
             calculate_correlation_statistics(
