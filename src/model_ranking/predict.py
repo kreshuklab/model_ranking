@@ -79,7 +79,7 @@ def calculate_segmentation(
     beta: float = 0.5,
     max_obj_size: int = 5867,
 ) -> NDArray[Any]:
-    segs = np.zeros(preds.squeeze().shape, dtype=np.uint16)
+    segs = np.zeros(preds.shape, dtype=np.uint16)
     for i, pred in enumerate(tqdm(preds)):
         seg = pmaps_to_IN_seg(  # pyright: ignore[reportUnknownVariableType]
             pred.squeeze(),
@@ -90,6 +90,10 @@ def calculate_segmentation(
             beta=beta,
             max_obj_size=max_obj_size,
         )
+        if seg.ndim == 2:
+            seg = np.expand_dims(
+                seg, axis=(0, 1)  # pyright: ignore[reportUnknownArgumentType]
+            )
         segs[i] = seg
     return segs
 
