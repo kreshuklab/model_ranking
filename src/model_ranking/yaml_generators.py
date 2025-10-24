@@ -12,6 +12,8 @@ from typing import (
     assert_never,
 )
 from model_ranking.dataclass import (
+    CCFVConfig,
+    CCFVRunMetaConfig,
     ConsistencyConfig,
     Eval_TIF_DataloaderMetaConfig,
     EvalDataloaderMetaConfig,
@@ -19,8 +21,11 @@ from model_ranking.dataclass import (
     EvaluateConfig,
     # Pytorch3DUnetLoaderConfig,
     Pytorch3DUnetModelConfig,
+    ResUNet_Layers_CCFVConfig,
     SelfTrainingModelConfig,
     TransformerConsistencyMetaConfig,
+    UNet_4Layers_CCFVConfig,
+    Unetr_Layers_CCFVConfig,
     UnetrModelConfig,
     UnetrWithDropOutModelConfig,
     SBIAD1410LoaderMetaConfig,
@@ -912,4 +917,75 @@ def transformer_consistency_yaml_generator(
                     yaml_path=yaml_save_path,
                     overwrite=meta_cfg.overwrite_yaml,
                 )
+    return yaml_paths
+
+
+def generate_ccfv_yaml(config_path: Union[str, Path]):
+    config = load_config_direct(config_path)
+    meta_cfg = CCFVRunMetaConfig.model_validate(config)
+    yaml_paths: Dict[str, Path] = {}
+    for source_model in meta_cfg.source_models:
+        source_model_path = get_model_path(
+            source_data=source_model.source_name,
+            model_name=source_model.model_name,
+            base_dir_path=meta_cfg.model_dir_path,
+            checkpoint_name=source_model.checkpoint_name,
+        )
+        if source_model.model_type in [
+            "UnetrWrapper",
+            "UnetrWithDropOut",
+        ]:
+            model_cfg = source_model.create_unetr_config(
+                feature_perturbation=None,
+                img_size=256,
+            )
+            ccfv_layer_cfg = Unetr_Layers_CCFVConfig
+        else:
+            model_cfg = source_model.create_config(feature_perturbation=None)
+
+        if "Residual" in model_cfg.name:
+            ccfv_layer_cfg = ResUNet_Layers_CCFVConfig
+        if "UNet2" in model_cfg.name:
+            ccfv_layer_cfg = UNet_4Layers_CCFVConfig
+
+        else:
+            raise ValueError(
+                f"CCFV not implemented for model type {source_model.model_type} with model name {model_cfg.name}"
+            )
+
+        for target_cfg in meta_cfg.target_datasets:
+            dataset_transfer_title = f"{source_model.source_name}_to_{target_cfg.name}"
+            transfer_title = f"{source_model.model_name}_to_{target_cfg.name}"
+            target_dataloader_cfg = target_cfg.feature_loader.create_config(
+                output_dir=None,
+                data_base_path=meta_cfg.data_base_path,
+                phase="val",
+            )
+            output_path = (
+                Path(meta_cfg.output_base_path)
+                / dataset_transfer_title
+                / source_model.model_name
+                / "ccfv_score.npy"
+            )
+
+            ccfv_config = CCFVConfig(
+                **ccfv_layer_cfg.model_dump(),
+                overwrite=meta_cfg.overwrite_scores,
+                save_path=str(output_path),
+            )
+            yaml_dict_order = [
+                {"ccfv_config": ccfv_config.model_dump()},
+                {"model_path": source_model_path},
+                {"model_key": meta_cfg.model_key},
+                {"model": model_cfg.model_dump()},
+                {"eval_dataloader": target_dataloader_cfg.model_dump()},
+            ]
+            yaml_save_path = output_path.parent / "ccfv_config.yaml"
+            yaml_paths[transfer_title] = yaml_save_path
+
+            save_yaml(
+                yaml_order=yaml_dict_order,
+                yaml_path=yaml_save_path,
+                overwrite=meta_cfg.overwrite_yaml,
+            )
     return yaml_paths
