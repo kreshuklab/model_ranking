@@ -679,6 +679,10 @@ class Pytorch3DUnetTrainLoaderConfig(Pytorch3DUnetLoaderConfig, frozen=True):
     train: Pytorch3DUnetDatasetConfig
 
 
+class Pytorch3DUnetValLoaderConfig(Pytorch3DUnetLoaderConfig, frozen=True):
+    val: Pytorch3DUnetDatasetConfig
+
+
 class SBIAD1410LoaderConfig(BaseModel, frozen=True):
     dataset: Literal["S_BIAD1410_Dataset"]
     batch_size: int
@@ -782,7 +786,7 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
         self,
         output_dir: Optional[str],
         data_base_path: str,
-        phase: Literal["train", "test"] = "test",
+        phase: Literal["train", "test", "val"] = "test",
     ):
         file_paths: List[str] = []
         for i in range(len(self.file_paths)):
@@ -819,6 +823,26 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
                 global_normalization=self.global_normalization,
                 global_percentiles=self.global_percentiles,
                 train=Pytorch3DUnetDatasetConfig(
+                    file_paths=file_paths,
+                    slice_builder=self.slice_builder,
+                    transformer=self.transformer,
+                    roi=self.roi,
+                ),
+            )
+            return loader
+
+        elif phase == "val":
+            # for i in range(len(file_paths)):
+            #    file_paths[i] = file_paths[i].replace("test", "train")
+            loader = Pytorch3DUnetValLoaderConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                raw_internal_path=self.raw_internal_path,
+                label_internal_path=self.label_internal_path,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                val=Pytorch3DUnetDatasetConfig(
                     file_paths=file_paths,
                     slice_builder=self.slice_builder,
                     transformer=self.transformer,
@@ -2843,6 +2867,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="StandardEvalDataset",
         gt_path=("/FlyWing/GT/test/per03.h5",),
         pred_key="segmentation",
+        # pred_key="seg_04th_05b",
         gt_key="volumes/labels/expanded_cells_with_ignore",
         patch_key="patch_index",
         roi=None,
@@ -2867,6 +2892,8 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_path=None,
         pred_key="segmentation",
         gt_key="segmentation",
+        # pred_key="seg_04th_05b",
+        # gt_key="seg_04th_05b",
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
@@ -2947,6 +2974,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         name="StandardEvalDataset",
         gt_path=("/Ovules/GT2x/test/N_294_final_crop_ds2.h5",),
         pred_key="segmentation",
+        # pred_key="seg_04th_05b",
         gt_key="label_with_ignore",
         patch_key="patch_index",
         roi=None,
@@ -2971,6 +2999,8 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_path=None,
         pred_key="segmentation",
         gt_key="segmentation",
+        # pred_key="seg_04th_05b",
+        # gt_key="seg_04th_05b",
         patch_key="patch_index",
         roi=None,
         ignore_index=None,
@@ -3108,7 +3138,8 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["EPFL"] = "EPFL"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        # batch_size=32,
+        batch_size=5,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3125,9 +3156,12 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 480, 640),
+            stride_shape=(1, 480, 640),
+            halo_shape=(0, 64, 64),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -3178,11 +3212,20 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        slice_builder=Pytorch3DUnetSliceBuilderConfig(
-            name="SliceBuilder",
+        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
+        #     name="SliceBuilder",
+        #     patch_shape=(1, 256, 256),
+        #     stride_shape=(1, 256, 256),
+        #     halo_shape=(0, 0, 0),
+        # ),
+        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+            name="FilterSliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 0, 0),
+            threshold=0.02,
+            slack_acceptance=0,
+            ignore_index=None,
         ),
     )
     # feature_indices_path: Optional[str] = (
@@ -3267,7 +3310,8 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["Hmito"] = "Hmito"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        # batch_size=32,
+        batch_size=2,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3284,9 +3328,12 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 1280, 1280),
+            stride_shape=(1, 1280, 1280),
+            halo_shape=(0, 96, 96),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -3337,11 +3384,20 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        slice_builder=Pytorch3DUnetSliceBuilderConfig(
-            name="SliceBuilder",
+        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
+        #     name="SliceBuilder",
+        #     patch_shape=(1, 256, 256),
+        #     stride_shape=(1, 256, 256),
+        #     halo_shape=(0, 0, 0),
+        # ),
+        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+            name="FilterSliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 0, 0),
+            threshold=0.1,
+            slack_acceptance=0,
+            ignore_index=None,
         ),
     )
     # feature_indices_path: Optional[str] = (
@@ -3423,7 +3479,8 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["Rmito"] = "Rmito"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        # batch_size=32,
+        batch_size=2,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3440,9 +3497,12 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 1280, 1280),
+            stride_shape=(1, 1280, 1280),
+            halo_shape=(0, 96, 96),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -3493,11 +3553,20 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        slice_builder=Pytorch3DUnetSliceBuilderConfig(
-            name="SliceBuilder",
+        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
+        #     name="SliceBuilder",
+        #     patch_shape=(1, 256, 256),
+        #     stride_shape=(1, 256, 256),
+        #     halo_shape=(0, 0, 0),
+        # ),
+        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+            name="FilterSliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 0, 0),
+            threshold=0.1,
+            slack_acceptance=0,
+            ignore_index=None,
         ),
     )
     # feature_indices_path: Optional[str] = (
@@ -3579,7 +3648,8 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["VNC"] = "VNC"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        # batch_size=32,
+        batch_size=5,
         num_workers=8,
         # raw_internal_path="raw",
         # label_internal_path="label",
@@ -3602,9 +3672,12 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 589, 589),
+            stride_shape=(1, 589, 589),
+            halo_shape=(0, 64, 64),
+            # patch_shape=(1, 256, 256),
+            # stride_shape=(1, 256, 256),
+            # # halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
@@ -4240,3 +4313,76 @@ class ConsistencyPatchedTransformerConfig(BaseModel):
     predictions_unperturbed: LoadTransformerPredictionsConfig
     metric_config: AdaptedRandErrorConsisConfig
     summary: SummaryResultsConfig
+
+
+class CCFVFeatureConfig(BaseModel):
+    layers: List[str]
+    sample_num: Dict[str, int]
+    num_classes: int
+
+
+UNet_4Layers_CCFVConfig = CCFVFeatureConfig(
+    layers=[
+        "encoders.3",
+        "decoders.0",
+        "decoders.1",
+        "decoders.2",
+    ],
+    sample_num={
+        "encoders.3": 100,
+        "decoders.0": 200,
+        "decoders.1": 400,
+        "decoders.2": 800,
+    },
+    num_classes=1,
+)
+
+ResUNet_Layers_CCFVConfig = CCFVFeatureConfig(
+    layers=[
+        "encoders.4",
+        "decoders.0",
+        "decoders.1",
+        "decoders.2",
+        "decoders.3",
+    ],
+    sample_num={
+        "encoders.4": 100,
+        "decoders.0": 200,
+        "decoders.1": 400,
+        "decoders.2": 800,
+        "decoders.3": 1600,
+    },
+    num_classes=1,
+)
+
+Unetr_Layers_CCFVConfig = CCFVFeatureConfig(
+    layers=[
+        "decoder5",
+        "decoder4",
+        "decoder3",
+        "decoder2",
+    ],
+    sample_num={
+        "decoder5": 100,
+        "decoder4": 200,
+        "decoder3": 400,
+        "decoder2": 800,
+    },
+    num_classes=1,
+)
+
+
+class CCFVConfig(CCFVFeatureConfig):
+    overwrite: bool
+    save_path: str
+
+
+class CCFVRunMetaConfig(BaseModel):
+    target_datasets: Sequence[mito_dataset_type]
+    source_models: Sequence[ModelSourceConfig]
+    overwrite_yaml: bool
+    overwrite_scores: bool
+    data_base_path: str
+    model_dir_path: str
+    model_key: str
+    output_base_path: str
