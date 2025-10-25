@@ -921,7 +921,7 @@ def transformer_consistency_yaml_generator(
 
 
 def generate_ccfv_yaml(config_path: Union[str, Path]):
-    config = load_config_direct(config_path)
+    config, _ = load_config_direct(config_path)
     meta_cfg = CCFVRunMetaConfig.model_validate(config)
     yaml_paths: Dict[str, Path] = {}
     for source_model in meta_cfg.source_models:
@@ -939,15 +939,15 @@ def generate_ccfv_yaml(config_path: Union[str, Path]):
                 feature_perturbation=None,
                 img_size=256,
             )
-            ccfv_layer_cfg = Unetr_Layers_CCFVConfig
         else:
             model_cfg = source_model.create_config(feature_perturbation=None)
 
         if "Residual" in model_cfg.name:
             ccfv_layer_cfg = ResUNet_Layers_CCFVConfig
-        if "UNet2" in model_cfg.name:
+        elif "UNet" in model_cfg.name:
             ccfv_layer_cfg = UNet_4Layers_CCFVConfig
-
+        elif "Unetr" in model_cfg.name:
+            ccfv_layer_cfg = Unetr_Layers_CCFVConfig
         else:
             raise ValueError(
                 f"CCFV not implemented for model type {source_model.model_type} with model name {model_cfg.name}"
