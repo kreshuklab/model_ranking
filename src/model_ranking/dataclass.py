@@ -3194,7 +3194,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3366,7 +3366,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3535,7 +3535,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="labels",
@@ -3716,7 +3716,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="resized_raw",
         label_internal_path="resized_labels",
@@ -3735,11 +3735,20 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        slice_builder=Pytorch3DUnetSliceBuilderConfig(
-            name="SliceBuilder",
+        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
+        #     name="SliceBuilder",
+        #     patch_shape=(1, 256, 256),
+        #     stride_shape=(1, 256, 256),
+        #     halo_shape=(0, 0, 0),
+        # ),
+        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+            name="FilterSliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
             halo_shape=(0, 0, 0),
+            threshold=0.02,
+            slack_acceptance=0,
+            ignore_index=None,
         ),
     )
     # feature_indices_path: Optional[str] = (
@@ -4350,7 +4359,7 @@ ResUNet_Layers_CCFVConfig = CCFVFeatureConfig(
         "decoders.0": 200,
         "decoders.1": 400,
         "decoders.2": 800,
-        "decoders.3": 1600,
+        "decoders.3": 800,
     },
     num_classes=1,
 )
