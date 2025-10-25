@@ -34,10 +34,12 @@ def run_ccfv_evaluation(config: Dict[str, Any]):
             model=model,
         )
         # check if save file exists already
-        if os.path.exists(config["ccfv"]["save_path"]):
-            if config["ccfv"]["overwrite"]:
-                np.save(config["ccfv"]["save_path"], ccfv_score)
+        if os.path.exists(config["ccfv_config"]["save_path"]):
+            if config["ccfv_config"]["overwrite"]:
+                np.save(config["ccfv_config"]["save_path"], ccfv_score)
             else:
-                print(f"File {config['ccfv']['save_path']} already exists, skipping")
+                print(
+                    f"File {config['ccfv_config']['save_path']} already exists, skipping"
+                )
         else:
-            np.save(config["ccfv"]["save_path"], ccfv_score)
+            np.save(config["ccfv_config"]["save_path"], ccfv_score)
