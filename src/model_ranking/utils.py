@@ -371,7 +371,7 @@ def get_output_dir(
             / result_type
         )
 
-    elif "SAM" in source:
+    elif ("SAM" in source) or ("BioImageIO" in source):
         assert approach is not None, "approach cannot be None"
         if output_folder is not None:
             output_path = str(
@@ -441,7 +441,7 @@ def get_output_paths(
             )
             assert len(path) == 1, f"num paths found == {len(path)}"
             if aug == "none":
-                out_path = list((path[0] / f"{aug}").glob(output))
+                out_path = list((path[0] / f"{aug}").rglob(output))
                 assert len(out_path) == 1, f"num paths found == {len(out_path)}"
                 paths.append(str(out_path[0]))
             else:

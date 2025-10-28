@@ -1249,6 +1249,7 @@ class SourceModelConfigBase(BaseModel):
         "Cellpose_SAM",
         "Micro_SAM",
         "SAM",
+        "BioImageIO",
     ] = "UNet2D"
     checkpoint_name: str = "best_checkpoint"
 
@@ -3894,7 +3895,8 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             expand_dims=True,
             global_norm=False,
             percentiles=None,
-            image_key="prediction",
+            # image_key="prediction",
+            image_key="segmentation",
             min_object_size=50,
             zero_large_instances=False,
             mask_dir=("/g/kreshuk/talks/data/covid_if",),
@@ -3936,11 +3938,13 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             expand_dims=True,
             global_norm=False,
             percentiles=None,
-            image_key="prediction",
+            # image_key="prediction",
+            image_key="segmentation",
             min_object_size=0,
             zero_large_instances=False,
             mask_dir=None,
-            mask_key="prediction",
+            # mask_key="prediction",
+            mask_key="segmentation",
             transformer={
                 "raw": [
                     {"name": "ToTensor", "expand_dims": True},
