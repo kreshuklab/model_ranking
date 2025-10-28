@@ -173,7 +173,7 @@ def calculate_correlation_statistics(
             ranked_perf, ranked_consis
         )
 
-    return pearson_scores, spearman_scores, kendall_tau_scores
+    return kendall_tau_scores, spearman_scores, pearson_scores
 
 
 def to_target_transfer_correlations(
