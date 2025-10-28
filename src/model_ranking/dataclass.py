@@ -45,7 +45,14 @@ transformer_type = Mapping[
 ]
 
 transferability_metric_names = Literal[
-    "GBC", "LEEP", "Gaussian_LEEP", "Hscore", "Regularized_Hscore", "LogME", "NCTI"
+    "GBC",
+    "LEEP",
+    "Gaussian_LEEP",
+    "Hscore",
+    "Regularized_Hscore",
+    "LogME",
+    "NCTI",
+    "CTE",
 ]
 
 
