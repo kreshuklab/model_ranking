@@ -339,3 +339,180 @@ def avg_correlation_to_latex(
     latex += r"\end{table}"
 
     return latex
+
+
+def avg_correlation_to_latex_transposed(
+    df_avg_list: Union[pd.DataFrame, List[pd.DataFrame]],
+    metric_name_list: Union[str, List[str]],
+    metric_spec_list: Optional[Union[str, List[str], List[None]]] = None,
+):
+    """
+    Generate a transposed LaTeX table from a list of average correlation dataframes.
+
+    In this transposed format:
+    - Rows represent tasks (with K𝜏, S𝜌, P𝑟 as multirow subcategories)
+    - Columns represent metrics (with Avg. and std. as subcolumns)
+
+    Parameters
+    ----------
+    df_avg_list : pd.DataFrame or list of pd.DataFrame
+        Single dataframe or list of average correlation dataframes with columns:
+        KT_avg, KT_std, SR_avg, SR_std, PR_avg, PR_std and index with task names.
+    metric_name_list : str or list of str
+        Single metric name or list of metric names (e.g., "CTE-EI")
+    metric_spec_list : str, list of str, or None, optional
+        Single spec, list of specifications, or None (e.g., "a01-a012")
+
+    Returns
+    -------
+    str
+        LaTeX table string with transposed format
+    """
+    # Normalize inputs to lists
+    if not isinstance(df_avg_list, list):
+        df_avg_list = [df_avg_list]
+    if not isinstance(metric_name_list, list):
+        metric_name_list = [metric_name_list]
+    if metric_spec_list is None:
+        metric_spec_list = [None] * len(df_avg_list)
+    elif not isinstance(metric_spec_list, list):
+        metric_spec_list = [metric_spec_list]
+
+    # Build data structure: task -> metric_key -> values
+    data: Dict[str, Dict[str, Dict[str, float]]] = {}
+    metrics: List[str] = []
+
+    for df_avg, metric_name, metric_spec in zip(
+        df_avg_list, metric_name_list, metric_spec_list
+    ):
+        # Get task name
+        task = df_avg.index[0]
+        if task not in data:
+            data[task] = {}
+
+        # Create metric key
+        if metric_spec:
+            metric_key = f"{metric_name}|||{metric_spec}"
+        else:
+            metric_key = metric_name
+
+        if metric_key not in metrics:
+            metrics.append(metric_key)
+
+        # Store values
+        data[task][metric_key] = {
+            "kt_avg": df_avg["KT_avg"].iloc[0],
+            "kt_std": df_avg["KT_std"].iloc[0],
+            "sr_avg": df_avg["SR_avg"].iloc[0],
+            "sr_std": df_avg["SR_std"].iloc[0],
+            "pr_avg": df_avg["PR_avg"].iloc[0],
+            "pr_std": df_avg["PR_std"].iloc[0],
+        }
+
+    # Calculate table dimensions
+    num_metrics = len(metrics)
+    tasks = list(data.keys())
+
+    # Build column specification: first column for task label, second for correlation type, then 2 columns per metric
+    col_spec = "cc|" + "|".join(["cc"] * num_metrics)
+
+    # Build the LaTeX table
+    latex = (
+        r"""\begin{table*}[htbp]
+    \centering
+    \setlength{\tabcolsep}{1.5pt}
+    \begin{tabular}{"""
+        + col_spec
+        + r"""}
+    \hline
+    """
+    )
+
+    # Header row 1: "Task" label and Metric names spanning 2 columns each
+    header1 = r"\multirow{2}{*}{Task} & "
+    for i, metric_key in enumerate(metrics):
+        # Parse metric key
+        if "|||" in metric_key:
+            metric_name, metric_spec = metric_key.split("|||")
+            if metric_spec:
+                metric_display = f"\\begin{{tabular}}{{@{{}}c@{{}}}} {metric_name} \\\\ ({metric_spec})\\end{{tabular}}"
+            else:
+                metric_display = metric_name
+        else:
+            metric_display = metric_key
+
+        if i < num_metrics - 1:
+            header1 += f" & \\multicolumn{{2}}{{c|}}{{{metric_display}}}"
+        else:
+            header1 += f" & \\multicolumn{{2}}{{c}}{{{metric_display}}}"
+    header1 += " \\\\\n"
+    latex += header1
+
+    # Header row 2: Empty cell for Task row label, then Avg. and std. for each metric
+    header2 = " & "
+    for i in range(num_metrics):
+        header2 += " & \\textbf{Avg.} & \\textbf{std.}"
+    header2 += " \\\\\n"
+    latex += header2
+    latex += r"\hline" + "\n"
+
+    # Data rows: one set of 3 rows per task
+    for task in tasks:
+        # Row 1: K𝜏 values with rotated task name
+        kt_row = (
+            f"\\multirow{{3}}{{*}}{{\\rotatebox[origin=c]{{90}}{{{task}}}}} & K$\\tau$"
+        )
+        for metric_key in metrics:
+            if metric_key in data[task]:
+                vals = data[task][metric_key]
+                kt_row += f" & {vals['kt_avg']:.2f} & ±{vals['kt_std']:.1f}"
+            else:
+                kt_row += " & - & -"
+        kt_row += " \\\\\n"
+        latex += kt_row
+
+        # Row 2: S𝜌 values
+        sr_row = " & S$\\rho$"
+        for metric_key in metrics:
+            if metric_key in data[task]:
+                vals = data[task][metric_key]
+                sr_row += f" & {vals['sr_avg']:.2f} & ±{vals['sr_std']:.1f}"
+            else:
+                sr_row += " & - & -"
+        sr_row += " \\\\\n"
+        latex += sr_row
+
+        # Row 3: P𝑟 values
+        pr_row = " & P$r$"
+        for metric_key in metrics:
+            if metric_key in data[task]:
+                vals = data[task][metric_key]
+                pr_row += f" & {vals['pr_avg']:.2f} & ±{vals['pr_std']:.1f}"
+            else:
+                pr_row += " & - & -"
+        pr_row += " \\\\\n"
+        latex += pr_row
+
+        # Add horizontal line after each task
+        latex += r"\hline" + "\n"
+
+    # Caption and label
+    if num_metrics == 1 and len(metric_name_list) == 1:
+        # Single metric
+        if metric_spec_list[0]:
+            caption = f"Correlation scores and p-values for {metric_name_list[0]} ({metric_spec_list[0]})"
+            label = f"{metric_name_list[0].lower().replace('-', '_')}_{metric_spec_list[0].replace('-', '_')}_transposed"
+        else:
+            caption = f"Correlation scores and p-values for {metric_name_list[0]}"
+            label = f"{metric_name_list[0].lower().replace('-', '_')}_transposed"
+    else:
+        # Multiple metrics
+        caption = "Correlation scores for multiple metrics (transposed)"
+        label = "multiple_metrics_transposed"
+
+    latex += r"\end{tabular}" + "\n"
+    latex += f"\\caption{{{caption}}}\n"
+    latex += f"\\label{{tab:{label}}}\n"
+    latex += r"\end{table*}"
+
+    return latex
