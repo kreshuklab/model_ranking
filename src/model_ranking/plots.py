@@ -10,7 +10,9 @@ import seaborn as sns
 from typing import Any, Dict, List, Sequence, Tuple, Mapping, Optional, Union
 
 from model_ranking.results import load_transfer_metric_results
-from model_ranking.utils import aug_name_to_sigma_tuple
+from model_ranking.utils import aug_name_to_sigma_tuple, add_decimal
+from model_ranking.correlation import calculate_correlation_statistics
+from model_ranking.dataclass import transferability_metric_names
 
 MODEL_TO_DATASET = {
     "BC": "BBBC039",
@@ -579,6 +581,7 @@ def plot_performance_vs_transfer_metric_multi_target(
     invert_transfer_metric: bool = False,
     invert_perf_metric: bool = False,
     legend_bbox_anchor: Tuple[float, float] = (1.05, 1),
+    performance_metric_key: str = "F1",
 ):
     # Create a 2x2 subplot figure for this augmentation
     _, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
@@ -625,7 +628,7 @@ def plot_performance_vs_transfer_metric_multi_target(
             axes[i].scatter(x[j], y[j], color=colors(j), label=model, s=80)
 
         axes[i].set_xlabel(f"{transfer_metric}")
-        axes[i].set_ylabel("F1 Score")
+        axes[i].set_ylabel(f"{performance_metric_key} Score")
         axes[i].set_title(f"{target}: Performance vs {transfer_metric}")
         if (source_model_only == True) or (finetuned == True):
             axes[i].legend(
@@ -922,3 +925,471 @@ def plot_single_consistency_vs_performance(
     plt.tight_layout()
 
     return fig, ax
+
+
+def plot_single_consistency_vs_performance_CVPR(
+    augmentation_strength: str,
+    target_dataset: str,
+    performance_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/transfer_performance_scores.json",
+    base_consistency_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/consistency",
+    custom_legend_labels: Optional[Dict[str, str]] = None,
+    figsize: Tuple[int, int] = (10, 8),
+    alpha: float = 0.7,
+    marker_size: int = 200,
+    fontsize: int = 16,
+    invert_performance_score: bool = False,
+    invert_consistency_score: bool = False,
+    perturbation_type: str = "Gauss",
+    file_name_postfix: str = "CMB_05f_05b_EI_scores",
+    performance_score_key: str = "F1",
+    source_abbreviations: List[str] = ["E", "Hm", "Rm", "V"],
+):
+    """
+    Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
+
+    Parameters:
+    -----------
+    augmentation_strength : str
+        The augmentation strength identifier (e.g., "a001-a003")
+    target_dataset : str
+        The target dataset name (e.g., "EPFL", "Hmito", "Rmito", "VNC")
+    performance_scores : Dict
+        Dictionary containing performance scores organized as {target: {model: score}}
+    base_consistency_path : str
+        Base path to the consistency scores JSON files
+    custom_legend_labels : Optional[Dict[str, str]]
+        Optional mapping from model names to custom legend labels
+    correlation_scores : Optional[Dict[str, float]]
+        Optional dictionary with correlation scores, e.g., {"kt": 0.95, "sp": 0.12, "p": 0.67}
+        where "kt" is Kendall tau, "sp" is Spearman's ρ, and "p" is Pearson r
+    figsize : tuple
+        Figure size (width, height)
+    alpha : float
+        Transparency of the markers
+    marker_size : int
+        Size of the scatter plot markers
+
+    Returns:
+    --------
+    fig, ax : matplotlib figure and axis objects
+    """
+
+    # Load consistency scores for the specified augmentation
+    file_name = (
+        f"transfer_{perturbation_type}_{augmentation_strength}_{file_name_postfix}.json"
+    )
+    consistency_path = Path(base_consistency_path) / file_name
+    results = load_transfer_metric_results(consistency_path)
+    consistency_scores = results["transfer_scores"]
+
+    performance_results = load_transfer_metric_results(performance_path)
+    performance_scores = performance_results["performance_scores"]
+
+    # Extract scores for the target dataset
+    if target_dataset not in performance_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in performance scores"
+        )
+    if target_dataset not in consistency_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in consistency scores"
+        )
+
+    target_performance = performance_scores[target_dataset]
+    target_consistency = consistency_scores[target_dataset]
+
+    # Find common models between performance and consistency scores
+    common_models: set[str] = set(target_performance.keys()) & set(
+        target_consistency.keys()
+    )
+    if not common_models:
+        raise ValueError(
+            f"No common models found between performance and consistency scores for target '{target_dataset}'"
+        )
+
+    # Prepare data for plotting
+    x_values: List[float] = []  # consistency scores
+    y_values: List[float] = []  # performance scores
+    labels: List[str] = []
+
+    for model in sorted(common_models):
+        x_values.append(target_consistency[model])
+        y_values.append(target_performance[model])
+
+        # Use custom label if provided, otherwise use model name
+        if custom_legend_labels and model in custom_legend_labels:
+            labels.append(custom_legend_labels[model])
+        else:
+            labels.append(model)
+
+    if invert_consistency_score:
+        x_values = [1 - val for val in x_values]
+    if invert_performance_score:
+        y_values = [1 - val for val in y_values]
+
+    consis_array = np.array(x_values).reshape(-1, 1)  # Shape (n_models, 1)
+    kt_scores, sp_scores, pearson_scores = calculate_correlation_statistics(
+        consis_array, np.array(y_values)
+    )
+    pr = pearson_scores[0, 0]  # Pearson r
+    sp = sp_scores[0, 0]  # Spearman rho
+    kt = kt_scores[0, 0]  # Kendall tau
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Group models by source abbreviation and assign color families
+    source_color_maps: Dict[str, Any] = {}
+    color_maps = [  # pyright: ignore
+        plt.cm.Blues,  # pyright: ignore
+        plt.cm.Greens,  # pyright: ignore
+        plt.cm.Oranges,  # pyright: ignore
+        plt.cm.Purples,  # pyright: ignore
+    ]
+    for i, source_abbr in enumerate(source_abbreviations):
+        source_color_maps[source_abbr] = color_maps[i]
+
+    # Group models by their source abbreviation
+    model_groups: Dict[str, List[int]] = {abbr: [] for abbr in source_abbreviations}
+    for i, model in enumerate(sorted(common_models)):
+        # Find which source abbreviation this model belongs to
+        for abbr in source_abbreviations:
+            if model.startswith(abbr + "_"):
+                model_groups[abbr].append(i)
+                break
+
+    # Assign colors to each model based on their source group
+    colors = []
+    for i, model in enumerate(sorted(common_models)):
+        # Find the source abbreviation for this model
+        model_source = None
+        for abbr in source_abbreviations:
+            if model.startswith(abbr + "_"):
+                model_source = abbr
+                break
+
+        if model_source and model_source in model_groups:
+            # Get the index within the source group
+            group_indices = model_groups[model_source]
+            idx_in_group = group_indices.index(i)
+            n_in_group = len(group_indices)
+
+            # Generate color from the appropriate colormap
+            # Use a range from 0.4 to 0.9 to avoid too light or too dark colors
+            color_val = 0.4 + (0.5 * idx_in_group / max(n_in_group - 1, 1))
+            colors.append(source_color_maps[model_source](color_val))
+        else:
+            # Fallback color if no source abbreviation matches
+            colors.append("gray")
+
+    # Create scatter plot with source-grouped colors
+    _ = ax.scatter(
+        x_values, y_values, s=marker_size, alpha=alpha, c=colors  # pyright: ignore
+    )
+
+    if perturbation_type == "DO":
+        if augmentation_strength.startswith("a"):
+            val = augmentation_strength[1:]
+            pert_str: Union[float, Tuple[float, float]] = add_decimal(val)
+        else:
+            pert_str = add_decimal(augmentation_strength)
+
+    else:
+        pert_str = aug_name_to_sigma_tuple(augmentation_strength)
+    # Add labels and title
+    _ = ax.set_xlabel(f"CTE", fontsize=fontsize)
+    _ = ax.set_ylabel(f"Performance Score ({performance_score_key})", fontsize=fontsize)
+    _ = ax.set_title(
+        f"Consistency vs Performance for {target_dataset}\n"
+        + f"{perturbation_type} {pert_str}",
+        fontsize=fontsize,
+    )
+
+    # Add legend with matching colors
+    for i, label in enumerate(labels):
+        # Use the color assigned to this model
+        _ = ax.scatter(
+            [],
+            [],
+            c=[colors[i]],  # pyright: ignore
+            s=marker_size,
+            alpha=alpha,
+            label=label,
+        )
+    legend = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+
+    # Add correlation scores text if provided
+    # Format correlation scores text
+    corr_text = "Correlation Scores:\n"
+
+    corr_text += f"Kendall τ: {kt:.2f}\n"
+
+    corr_text += f"Spearman ρ: {sp:.2f}\n"
+
+    corr_text += f"Pearson r: {pr:.2f}"
+
+    # Position the text below the legend
+    legend_bbox = legend.get_window_extent(fig.canvas.get_renderer())  # pyright: ignore
+    # Convert to figure coordinates
+    legend_bottom = legend_bbox.y0 / fig.bbox.height
+
+    # Add text box below the legend
+    _ = ax.text(
+        1.05,
+        legend_bottom - 0.05,
+        corr_text,
+        transform=ax.transAxes,
+        fontsize=fontsize - 2,
+        verticalalignment="top",
+        horizontalalignment="left",
+        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+    )
+
+    # Add grid for better readability
+    _ = ax.grid(True, alpha=0.8)
+
+    # Tight layout to prevent legend cutoff
+    plt.tight_layout()
+
+    plt.show()
+
+
+def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
+    classification_results_path: Path,
+    segmentation_results_path: Path,
+    transfer_metrics: Sequence[transferability_metric_names],
+    nrows: int = 2,
+    ncols: int = 4,
+    classification_color: str = "blue",
+    segmentation_color: str = "red",
+    figsize: Tuple[int, int] = (20, 10),
+    save_path: Optional[Path] = None,
+    point_size: int = 100,
+    consistency_seg_results_path: Optional[Path] = None,
+    consistency_class_results_path: Optional[Path] = None,
+    consis_class_aug_str: Optional[str] = None,
+    consis_seg_aug_str: Optional[str] = None,
+    CTE_metric_key: Optional[str] = "EI",
+):
+    """
+    Create combined classification and segmentation correlation plots per target dataset.
+
+    Parameters:
+    -----------
+    classification_results_path : Path
+        Base path to classification transfer metric results
+    segmentation_results_path : Path
+        Base path to segmentation transfer metric results
+    transfer_metrics : list, optional
+        List of transfer metrics to plot. If None, defaults to all standard metrics.
+    nrows : int
+        Number of rows in subplot grid
+    ncols : int
+        Number of columns in subplot grid
+    classification_color : str
+        Color for classification points
+    segmentation_color : str
+        Color for segmentation points
+    figsize : Tuple[int, int]
+        Figure size (width, height)
+    save_path : Path, optional
+        Path to save figures. If None, figures are displayed but not saved.
+
+    Returns:
+    --------
+    None (creates and saves/displays figures)
+    """
+
+    # Sort transfer metrics alphabetically
+    transfer_metrics = sorted(transfer_metrics)
+
+    # Load all results
+    classification_data: Dict[str, Dict[str, Dict[str, Dict[str, float]]]] = {}
+    segmentation_data: Dict[str, Dict[str, Dict[str, Dict[str, float]]]] = {}
+
+    for metric in transfer_metrics:
+        if "CTE" in metric:
+            assert (
+                consistency_class_results_path is not None
+            ), "path to consistency classification results must be provided"
+            assert (
+                consistency_seg_results_path is not None
+            ), "path to consistency segmentation results must be provided"
+            assert (
+                consis_class_aug_str is not None
+            ), "selected classification aug strength must be provided"
+            assert (
+                consis_seg_aug_str is not None
+            ), "selected seg aug strength must be provided"
+            # Load classification results
+            class_perf_path = (
+                consistency_class_results_path / "transfer_performance_F1_scores.json"
+            )
+            class_perf_scores = load_transfer_metric_results(class_perf_path)
+            class_consis_path = (
+                consistency_class_results_path
+                / f"transfer_Gauss_{consis_class_aug_str}_{CTE_metric_key}_scores.json"
+            )
+            class_consis_scores = load_transfer_metric_results(class_consis_path)
+            classification_data[metric] = {**class_perf_scores, **class_consis_scores}
+
+            # Load segmentation results
+            seg_perf_path = (
+                consistency_seg_results_path / "transfer_performance_F1_scores.json"
+            )
+            seg_perf_scores = load_transfer_metric_results(seg_perf_path)
+            seg_consis_path = (
+                consistency_seg_results_path
+                / f"transfer_Gauss_{consis_seg_aug_str}_CMB_05f_05b_{CTE_metric_key}_scores.json"
+            )
+            seg_consis_scores = load_transfer_metric_results(seg_consis_path)
+            segmentation_data[metric] = {**seg_perf_scores, **seg_consis_scores}
+
+        else:
+            # Load classification results
+            class_path = classification_results_path / f"{metric}.json"
+            classification_data[metric] = load_transfer_metric_results(class_path)
+
+            # Load segmentation results
+            seg_path = segmentation_results_path / f"mitochondria_{metric}.json"
+            segmentation_data[metric] = load_transfer_metric_results(seg_path)
+
+    # Get list of targets (assuming same targets for both tasks)
+    targets: Sequence[str] = classification_data[  # pyright: ignore
+        transfer_metrics[1]
+    ]["metadata"]["targets"]
+
+    # Create one figure per target
+    for target in targets:
+        fig, axes = plt.subplots(  # pyright: ignore
+            nrows=nrows, ncols=ncols, figsize=figsize
+        )
+        axes = axes.flatten() if nrows * ncols > 1 else [axes]  # pyright: ignore
+
+        # Plot each transfer metric in a subplot
+        for idx, metric in enumerate(transfer_metrics):
+            if idx >= len(axes):  # pyright: ignore
+                break
+
+            ax = axes[idx]  # pyright: ignore
+
+            # Get classification data for this target and metric
+            class_transfer_scores = classification_data[metric]["transfer_scores"][
+                target
+            ]
+            class_performance_scores = classification_data[metric][
+                "performance_scores"
+            ][target]
+
+            # Get segmentation data for this target and metric
+            seg_transfer_scores = segmentation_data[metric]["transfer_scores"][target]
+            seg_performance_scores = segmentation_data[metric]["performance_scores"][
+                target
+            ]
+
+            # Convert to arrays for plotting
+            class_x = np.array(list(class_transfer_scores.values()))
+            class_y = np.array(list(class_performance_scores.values()))
+
+            seg_x = np.array(list(seg_transfer_scores.values()))
+            seg_y = np.array(list(seg_performance_scores.values()))
+
+            # Plot classification points
+            _ = ax.scatter(  # pyright: ignore
+                class_x,
+                class_y,
+                marker="x",
+                color=classification_color,
+                s=point_size,
+                linewidths=2,
+                alpha=0.7,
+                label="Classification" if idx == 0 else "",
+            )
+
+            # Plot segmentation points
+            _ = ax.scatter(  # pyright: ignore
+                seg_x,
+                seg_y,
+                marker="o",
+                color=segmentation_color,
+                s=point_size,
+                alpha=0.7,
+                label="Segmentation" if idx == 0 else "",
+            )
+
+            # Calculate correlation statistics for classification using calculate_correlation_statistics
+            class_transfer_array = class_x.reshape(-1, 1)  # Shape (n_models, 1)
+            class_kt_scores, class_sp_scores, class_pearson_scores = (
+                calculate_correlation_statistics(class_transfer_array, class_y)
+            )
+            class_pr = class_pearson_scores[0, 0]  # Pearson r
+            class_sp = class_sp_scores[0, 0]  # Spearman rho
+            class_kt = class_kt_scores[0, 0]  # Kendall tau
+
+            # Calculate correlation statistics for segmentation using calculate_correlation_statistics
+            seg_transfer_array = seg_x.reshape(-1, 1)  # Shape (n_models, 1)
+            seg_kt_scores, seg_sp_scores, seg_pearson_scores = (
+                calculate_correlation_statistics(seg_transfer_array, seg_y)
+            )
+            seg_pr = seg_pearson_scores[0, 0]  # Pearson r
+            seg_sp = seg_sp_scores[0, 0]  # Spearman rho
+            seg_kt = seg_kt_scores[0, 0]  # Kendall tau
+
+            # Add correlation statistics box in bottom right
+            textstr = f"Classification:\n  Kτ: {class_kt:.2f}\n  ρ: {class_sp:.2f}\n  r: {class_pr:.2f}\n\n"
+            textstr += f"Segmentation:\n  Kτ: {seg_kt:.2f}\n  ρ: {seg_sp:.2f}\n  r: {seg_pr:.2f}"
+
+            props = dict(boxstyle="round", facecolor="white", alpha=0.5, linestyle="--")
+            _ = ax.text(  # pyright: ignore
+                0.95,
+                0.05,
+                textstr,
+                transform=ax.transAxes,  # pyright: ignore
+                fontsize=12,
+                verticalalignment="bottom",
+                horizontalalignment="right",
+                bbox=props,
+            )
+
+            # Set labels and title
+            _ = ax.set_xlabel(f"{metric} Score", fontsize=12)  # pyright: ignore
+            _ = ax.set_ylabel("Performance Score", fontsize=12)  # pyright: ignore
+            _ = ax.set_title(metric, fontsize=14, fontweight="bold")  # pyright: ignore
+            _ = ax.grid(True, alpha=0.5)  # pyright: ignore
+
+        # Hide unused subplots
+        for idx in range(len(transfer_metrics), len(axes)):  # pyright: ignore
+            axes[idx].set_visible(False)  # pyright: ignore
+
+        # Add a single shared legend
+        handles, labels = axes[0].get_legend_handles_labels()  # pyright: ignore
+        _ = fig.legend(
+            handles,  # pyright: ignore
+            labels,  # pyright: ignore
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.98),
+            ncol=2,
+            fontsize=14,
+            frameon=True,
+        )
+
+        # Add overall title
+        _ = fig.suptitle(
+            f"Transfer Metrics vs Performance - Target: {target}",
+            fontsize=16,
+            fontweight="bold",
+            y=0.995,
+        )
+
+        plt.tight_layout(rect=[0, 0, 1, 0.97])  # pyright: ignore
+
+        # Save or show figure
+        if save_path is not None:
+            save_path.mkdir(parents=True, exist_ok=True)
+            fig_path = save_path / f"combined_metrics_{target}.png"
+            plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+            print(f"Saved figure to: {fig_path}")
+
+        plt.show()
+
+    return None
