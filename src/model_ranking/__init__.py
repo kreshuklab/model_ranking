@@ -48,6 +48,8 @@ from .predict import *
 # Results processing
 from .results import *
 
+from .tables import *
+
 # Import all transferability metrics from the new subdirectory
 from .transferability_metrics import *
 
