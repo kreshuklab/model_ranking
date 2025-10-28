@@ -669,20 +669,21 @@ def aug_name_to_sigma_tuple(aug_name: str) -> tuple[float, float]:
     if max_val.startswith("a"):
         max_val = max_val[1:]
 
-    # Add decimal point after first zero for each value
-    def add_decimal(val_str: str) -> float:
-        if len(val_str) >= 2 and val_str[0] == "0":
-            # Insert decimal point after first zero
-            decimal_str = val_str[0] + "." + val_str[1:]
-            return float(decimal_str)
-        else:
-            # For values like "1", "2", etc., treat as is
-            return float(val_str)
-
     min_sigma = add_decimal(min_val)
     max_sigma = add_decimal(max_val)
 
     return (min_sigma, max_sigma)
+
+
+# Add decimal point after first zero for each value
+def add_decimal(val_str: str) -> float:
+    if len(val_str) >= 2 and val_str[0] == "0":
+        # Insert decimal point after first zero
+        decimal_str = val_str[0] + "." + val_str[1:]
+        return float(decimal_str)
+    else:
+        # For values like "1", "2", etc., treat as is
+        return float(val_str)
 
 
 def find_dataset_object_sizes(data: NDArray[Any]):
