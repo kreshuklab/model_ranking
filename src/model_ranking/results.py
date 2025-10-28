@@ -502,10 +502,10 @@ def transfer_results_to_arrays(
     transfer_score: Dict[str, float],
     performance_score: Dict[str, float],
 ):
-    transfer_array = np.zeros((len(transfer_score), 1))
+    transfer_array = np.zeros((len(performance_score), 1))
     performance_array = np.zeros(len(performance_score))
-    for i, (model_name, t_score) in enumerate(transfer_score.items()):
-        p_score = performance_score[model_name]
+    for i, (model_name, p_score) in enumerate(performance_score.items()):
+        t_score = transfer_score[model_name]
         performance_array[i] = p_score
         transfer_array[i, :] = t_score
     return transfer_array, performance_array
