@@ -245,6 +245,7 @@ def correlation_table(
     SP_per_target: NDArray[Any],
     PE_per_target: NDArray[Any],
     targets: Sequence[str],
+    task: str = "Mito",
     idx: int = 0,
 ):
     df = pd.DataFrame(
@@ -259,9 +260,52 @@ def correlation_table(
     )
     df["targets"] = targets
     df = df.set_index("targets")
-    df.index = pd.MultiIndex.from_product(
-        [["Mito"], df.index], names=["Task", "targets"]
-    )
+    df.index = pd.MultiIndex.from_product([[task], df.index], names=["Task", "targets"])
     # Round all float columns to 2 significant figures
     df = df.map(lambda x: round(x, 2) if isinstance(x, float) else x)  # pyright: ignore
     return df
+
+
+def avg_correlation_table(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate mean and standard deviation of correlation scores across target datasets.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame with targets as rows and correlation scores (kt, s rho, pr) as columns.
+        Expected to have a MultiIndex with 'Task' and 'targets' levels.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with one row containing KT_avg, KT_std, SR_avg, SR_std, PR_avg, PR_std
+        The Task index value is preserved from the input dataframe.
+    """
+    import pandas as pd
+
+    # Get the Task value from the first level of the MultiIndex
+    task_value = df.index.get_level_values("Task")[0]
+
+    # Calculate mean and standard deviation for kt, s rho, and pr columns
+    kt_avg = df["kt"].mean()
+    kt_std = df["kt"].std()
+    sr_avg = df["s rho"].mean()
+    sr_std = df["s rho"].std()
+    pr_avg = df["pr"].mean()
+    pr_std = df["pr"].std()
+
+    # Create result dataframe
+    result_df = pd.DataFrame(
+        {
+            "KT_avg": [kt_avg],
+            "KT_std": [kt_std],
+            "SR_avg": [sr_avg],
+            "SR_std": [sr_std],
+            "PR_avg": [pr_avg],
+            "PR_std": [pr_std],
+        },
+        index=pd.Index([task_value], name="Task"),
+    )
+
+    return result_df
