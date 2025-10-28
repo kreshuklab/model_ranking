@@ -943,6 +943,7 @@ def plot_single_consistency_vs_performance_CVPR(
     file_name_postfix: str = "CMB_05f_05b_EI_scores",
     performance_score_key: str = "F1",
     source_abbreviations: List[str] = ["E", "Hm", "Rm", "V"],
+    save_path: Optional[Union[str, Path]] = None,
 ):
     """
     Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
@@ -1150,6 +1151,11 @@ def plot_single_consistency_vs_performance_CVPR(
 
     # Tight layout to prevent legend cutoff
     plt.tight_layout()
+
+    if save_path is not None:
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        print(f"Saved figure to: {save_path}")
 
     plt.show()
 
