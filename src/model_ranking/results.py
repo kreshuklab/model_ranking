@@ -190,7 +190,11 @@ def save_summary_metrics(
         if (
             (perf_scores[0].ndim == 0)
             or ((perf_scores[0].ndim == 1) and (len(np.array(perf_scores[0])) == 1))
-            or ((perf_scores[0].ndim == 1) and (len(perf_scores[0].shape) == 1))
+            or (
+                (perf_scores[0].ndim == 1)
+                and (len(perf_scores[0].shape) == 1)
+                and (perf_scores[0].shape[0] == 1)
+            )
         ):
             performance_scores = np.hstack(perf_scores).squeeze()
         else:
