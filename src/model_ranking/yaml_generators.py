@@ -197,6 +197,14 @@ MODEL_ABBREVIATIONS_TO_DATASET = {
     "fw": "FlyWing",
     "ov": "Ovules",
     "p": "PNAS",
+    "BC": "BBBC039",
+    "HN": "HeLaNuc",
+    "DSB": "DSB2018",
+    "GN": "Go-Nuclear",
+    "Hst": "Hoechst",
+    "895": "S_BIAD895",
+    "1196": "S_BIAD1196",
+    "1410": "S_BIAD1410",
 }
 
 FEATURE_PERTURBATION_ABBREVIATIONS: Dict[str, str] = {
