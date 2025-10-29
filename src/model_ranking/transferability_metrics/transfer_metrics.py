@@ -95,6 +95,9 @@ def get_transfer_data_segmentation(
     model_identifier = model_name.split("_")[-1][:-1]
     if model_identifier in feature_ids:
         key = feature_config.layer_keys[model_identifier]
+    elif any(fid in model_name for fid in feature_ids):
+        matched_id = next(fid for fid in feature_ids if fid in model_name)
+        key = feature_config.layer_keys[matched_id]
     else:
         key = "decoders.2"
 
@@ -120,6 +123,7 @@ def get_transfer_data_segmentation(
             performance_config.base_path,
             approach=performance_config.approach,
             run_id=performance_config.run_id,
+            metric_summary=performance_config.metric_summary,
         )
     else:
         performance_path = get_finetuned_result_path(
@@ -130,9 +134,13 @@ def get_transfer_data_segmentation(
             result_type=performance_config.result_type,
         )
 
-    performance_score = load_h5(performance_path, performance_config.key)
-
-    performance_score = np.median(performance_score[:, 1])
+    if performance_config.metric_summary == True:
+        performance_score = load_h5(
+            performance_path, f"{performance_config.key}_median"
+        )[1]
+    else:
+        performance_score = load_h5(performance_path, performance_config.key)
+        performance_score = np.median(performance_score[:, 1])
 
     if performance_config.invert_score == True:
         performance_score = 1 - performance_score
@@ -189,6 +197,8 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                     source = get_source_from_model_name(model_name)
 
                 if (source == "VNC") and (target == "VNC"):
+                    continue
+                if (source == "S_BIAD895") and (target == "S_BIAD895"):
                     continue
                 else:
                     if performance_cfg.name == "classification_performance":
