@@ -1031,9 +1031,9 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
                 ),
             )
         elif phase == "train":
-            for i in range(len(image_dir)):
-                image_dir[i] = image_dir[i].replace("test", "train")
-                mask_dir[i] = mask_dir[i].replace("test", "train")
+            # for i in range(len(image_dir)):
+            #     image_dir[i] = image_dir[i].replace("test", "train")
+            #     mask_dir[i] = mask_dir[i].replace("test", "train")
             loader = TIFTrainLoadersConfig(
                 dataset=self.dataset,
                 batch_size=self.batch_size,
@@ -2741,9 +2741,11 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
+                {"name": "CropToFixed", "size": (256, 256), "centered": True},
                 {"name": "ToTensor", "expand_dims": True},
             ],
             "label": [
+                {"name": "CropToFixed", "size": (256, 256), "centered": True},
                 {"name": "Relabel"},
                 {"name": "BlobsToMask", "append_label": False},
                 {"name": "ToTensor", "expand_dims": True},
@@ -4223,6 +4225,35 @@ mito_dataset_type = Annotated[
     Discriminator("name"),
 ]
 
+semantic_dataset_type = Annotated[
+    Union[
+        BBBC039TargetConfig,
+        DSB2018TargetConfig,
+        GoNuclearTargetConfig,
+        HeLaNucTargetConfig,
+        HoechstTargetConfig,
+        SBIAD634TargetConfig,
+        SBIAD895TargetConfig,
+        SBIAD1196TargetConfig,
+        SBIAD1410TargetConfig,
+        EPFLTargetConfig,
+        HmitoTargetConfig,
+        RmitoTargetConfig,
+        VNCTargetConfig,
+    ],
+    Discriminator("name"),
+]
+
+
+semantic_loaders_type = Annotated[
+    Union[
+        Pytorch3DUnetTrainLoaderConfig,
+        TIFTrainLoadersConfig,
+        SBIAD1410LoaderTrainConfig,
+    ],
+    Discriminator("name"),
+]
+
 
 class MetaConfig(BaseModel):
     target_datasets: Sequence[target_dataset_type]
@@ -4457,7 +4488,7 @@ class FeatureSampleConfig(BaseModel):
 
 
 class TransferFeatureExtractionConfig(BaseModel):
-    target_datasets: Sequence[mito_dataset_type]
+    target_datasets: Sequence[semantic_dataset_type]
     source_models: Sequence[ModelSourceConfig]
     source_model_base_path: str
     data_base_path: str
@@ -4468,6 +4499,7 @@ class PrecomputedPerformanceConfig(BaseModel):
     base_path: str
     key: str
     invert_score: bool = False
+    metric_summary: bool = False
 
 
 class PrecomputedDirectPerformanceConfig(PrecomputedPerformanceConfig):

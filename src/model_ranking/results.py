@@ -638,15 +638,23 @@ def get_NA_prediction_path(
         "consistency", "feature_perturbation_consistency"
     ] = "consistency",
     run_id: str = "P_full",
+    metric_summary: bool = False,
 ):
     if isinstance(base_path, str):
         base_path = Path(base_path)
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
-    paths = list(
-        base_path.rglob(
-            f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}/*/none/predictions/*predictions.h5"
+    if metric_summary == True:
+        paths = list(
+            base_path.rglob(
+                f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}/*/none/**/*metric_summary*.h5"
+            )
         )
-    )
+    else:
+        paths = list(
+            base_path.rglob(
+                f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}/*/none/predictions/*predictions.h5"
+            )
+        )
     assert (
         len(paths) == 1
     ), f"Expected exactly one path for {model_name} to {target}, found {len(paths)}"

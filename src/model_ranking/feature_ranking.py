@@ -1,7 +1,16 @@
 import numpy as np
 from numpy.typing import NDArray
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Sequence, List, Union, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    List,
+    Union,
+    Tuple,
+)
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
@@ -20,7 +29,10 @@ from model_ranking.dataclass import (
     TransferFeatureExtractionConfig,
     ModelSourceConfig,
     Pytorch3DUnetTrainLoaderConfig,
-    mito_dataset_type,
+    TIFTrainLoadersConfig,
+    SBIAD1410LoaderTrainConfig,
+    semantic_dataset_type,
+    semantic_loaders_type,
 )
 from model_ranking.utils import (
     is_ndarray,
@@ -210,7 +222,9 @@ class TransferFeatureExtraction:
             config.target_datasets
         )
 
-    def initialise_feature_indices(self, target_configs: Sequence[mito_dataset_type]):
+    def initialise_feature_indices(
+        self, target_configs: Sequence[semantic_dataset_type]
+    ):
         feature_indices: Dict[str, Optional[Dict[str, Optional[NDArray[Any]]]]] = {}
         class_counts: Dict[str, Optional[Dict[int, int]]] = {}
         for target_cfg in target_configs:
@@ -281,7 +295,10 @@ class TransferFeatureExtraction:
 
         return model.eval()
 
-    def get_datasets(self, config: Pytorch3DUnetTrainLoaderConfig):
+    def get_datasets(
+        self,
+        config: semantic_loaders_type,
+    ):
         # get dataset class
         dataset_cls_str = config.dataset
         dataset_class = loader_classes(dataset_cls_str)
@@ -289,7 +306,7 @@ class TransferFeatureExtraction:
         return datasets
 
     def get_dataloaders(  # pyright: ignore[reportUnknownParameterType]
-        self, config: Pytorch3DUnetTrainLoaderConfig
+        self, config: semantic_loaders_type
     ):
         datasets = self.get_datasets(config)
 
@@ -307,7 +324,9 @@ class TransferFeatureExtraction:
             )
         ]
 
-    def initialise_target_datasets(self, target_configs: Sequence[mito_dataset_type]):
+    def initialise_target_datasets(
+        self, target_configs: Sequence[semantic_dataset_type]
+    ):
         target_datasets: Dict[str, ConcatDataset[Any]] = {}
         target_dataloaders: Dict[str, DataLoader[Any]] = {}
         for target_cfg in target_configs:
@@ -317,8 +336,13 @@ class TransferFeatureExtraction:
                 phase="train",
             )
             assert isinstance(
-                target_dataset_cfg, Pytorch3DUnetTrainLoaderConfig
-            ), "Expected Pytorch3DUnetTrainLoaderConfig for target dataset config."
+                target_dataset_cfg,
+                (
+                    Pytorch3DUnetTrainLoaderConfig,
+                    TIFTrainLoadersConfig,
+                    SBIAD1410LoaderTrainConfig,
+                ),
+            ), f"Expected semantic loader config type, got {type(target_dataset_cfg).__name__}"
             datasets = self.get_datasets(target_dataset_cfg)
             target_datasets[target_cfg.name] = ConcatDataset(datasets)
             target_dataloaders[target_cfg.name] = DataLoader(
@@ -569,7 +593,7 @@ class TransferFeatureExtraction:
                     per_image_labels[layer].append(sampled_PL_targets[layer])
                     per_image_indices[layer].append(sampled_PL_indices[layer])
 
-                    if layer in ["decoders.2", "decoders.3", "decoder2"]:
+                    if layer in ["decoders.2", "decoders.3", "decoder2", "decoders.1"]:
                         if layer not in per_image_predictions:
                             per_image_predictions[layer] = []
                         per_image_predictions[layer].append(
@@ -686,7 +710,12 @@ class TransferFeatureExtraction:
                         all_features[layer_name].append(sampled_features)
                         all_labels[layer_name].append(sampled_labels)
                         all_indices[layer_name].append(sampled_indices)
-                        if layer_name in ["decoders.2", "decoders.3", "decoder2"]:
+                        if layer_name in [
+                            "decoders.2",
+                            "decoders.3",
+                            "decoder2",
+                            "decoders.1",
+                        ]:
                             if layer_name not in all_predictions:
                                 all_predictions[layer_name] = []
                             # Sample predictions for this image and layer
