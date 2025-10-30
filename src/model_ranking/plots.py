@@ -1117,7 +1117,7 @@ def plot_single_consistency_vs_performance_CVPR(
             alpha=alpha,
             label=label,
         )
-    legend = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    legend = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=fontsize)
 
     # Add correlation scores text if provided
     # Format correlation scores text
