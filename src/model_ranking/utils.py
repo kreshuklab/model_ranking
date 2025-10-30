@@ -694,7 +694,7 @@ def add_decimal(val_str: str) -> float:
         return float(val_str)
 
 
-def find_dataset_object_sizes(data: NDArray[Any]):
+def find_dataset_object_sizes(data: NDArray[Any], ignore_indexes: List[int] = [-1, 0]):
     all_object_counts: List[int] = []
 
     for i in range(data.shape[0]):
@@ -703,14 +703,11 @@ def find_dataset_object_sizes(data: NDArray[Any]):
         )
         assert is_ndarray(unique)
         assert is_ndarray(counts)
-        if -1 in unique:
-            mask = unique != -1
-            unique = unique[mask]
-            counts = counts[mask]
-        if 0 in unique:
-            mask = unique != 0
-            unique = unique[mask]
-            counts = counts[mask]
+        for idx in ignore_indexes:
+            if idx in unique:
+                mask = unique != idx
+                unique = unique[mask]
+                counts = counts[mask]
         all_object_counts.extend(counts)
 
     median_object_size = np.median(all_object_counts)
