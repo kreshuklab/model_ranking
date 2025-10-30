@@ -109,6 +109,7 @@ class EvalDatasetConfig(BaseModel):
     convert_to_boundary_label: bool
     gt_zero_largest_instance: bool
     gt_zero_large_instances: bool
+    gt_set_id_to_zero: Optional[int]
     min_object_size: Optional[int]
     zero_large_instances: bool
     zero_largest_instance: bool
@@ -118,6 +119,13 @@ class EvalDatasetConfig(BaseModel):
 
 class Pytorch3DUnetSliceBuilderConfig(BaseModel):
     name: Literal["SliceBuilder"]
+    patch_shape: Tuple[int, int, int]
+    stride_shape: Tuple[int, int, int]
+    halo_shape: Tuple[int, int, int]
+
+
+class Pytorch3DUnetSingleZSliceBuilderConfig(BaseModel):
+    name: Literal["SingleZSliceBuilder"]
     patch_shape: Tuple[int, int, int]
     stride_shape: Tuple[int, int, int]
     halo_shape: Tuple[int, int, int]
@@ -168,7 +176,11 @@ class SBIAD1410PhaseConfig(BaseModel):
     roi: Optional[Sequence[Sequence[int]]]
     transformer: transformer_type
     slice_builder: Optional[
-        Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
+        Union[
+            Pytorch3DUnetFilterSliceBuilderConfig,
+            Pytorch3DUnetSliceBuilderConfig,
+            Pytorch3DUnetSingleZSliceBuilderConfig,
+        ]
     ]
 
 
@@ -179,7 +191,9 @@ class SBIAD1410PhaseMetaConfig(BaseModel):
     slice_builder: Optional[
         Annotated[
             Union[
-                Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig
+                Pytorch3DUnetFilterSliceBuilderConfig,
+                Pytorch3DUnetSliceBuilderConfig,
+                Pytorch3DUnetSingleZSliceBuilderConfig,
             ],
             Discriminator("name"),
         ]
@@ -220,6 +234,7 @@ class EvalDataloaderMetaConfig(BaseModel):
     min_object_size: Optional[int]
     gt_zero_largest_instance: bool
     gt_zero_large_instances: bool
+    gt_set_id_to_zero: Optional[int]
     zero_large_instances: bool
     zero_largest_instance: bool
     largest_obj_multiplier: Optional[float]
@@ -256,6 +271,7 @@ class EvalDataloaderMetaConfig(BaseModel):
                 min_object_size=self.min_object_size,
                 gt_zero_largest_instance=self.gt_zero_largest_instance,
                 gt_zero_large_instances=self.gt_zero_large_instances,
+                gt_set_id_to_zero=self.gt_set_id_to_zero,
                 zero_large_instances=self.zero_large_instances,
                 zero_largest_instance=self.zero_largest_instance,
                 largest_obj_multiplier=self.largest_obj_multiplier,
@@ -294,6 +310,7 @@ class EvalDataloaderMetaConfig(BaseModel):
                 min_object_size=self.min_object_size,
                 gt_zero_largest_instance=self.gt_zero_largest_instance,
                 gt_zero_large_instances=self.gt_zero_large_instances,
+                gt_set_id_to_zero=self.gt_set_id_to_zero,
                 zero_large_instances=self.zero_large_instances,
                 zero_largest_instance=self.zero_largest_instance,
                 largest_obj_multiplier=self.largest_obj_multiplier,
@@ -660,7 +677,11 @@ class Pytorch3DUnetPredictorConfig(Pytorch3DUnetPredictorMetaConfig):
 class Pytorch3DUnetDatasetConfig(BaseModel, frozen=True):
     file_paths: Sequence[str]
     slice_builder: Annotated[
-        Union[Pytorch3DUnetSliceBuilderConfig, Pytorch3DUnetFilterSliceBuilderConfig],
+        Union[
+            Pytorch3DUnetSliceBuilderConfig,
+            Pytorch3DUnetFilterSliceBuilderConfig,
+            Pytorch3DUnetSingleZSliceBuilderConfig,
+        ],
         Discriminator("name"),
     ]
     transformer: transformer_type
@@ -718,7 +739,11 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
     roi: Optional[Sequence[Sequence[int]]]
     transformer: transformer_type
     slice_builder: Optional[
-        Union[Pytorch3DUnetFilterSliceBuilderConfig, Pytorch3DUnetSliceBuilderConfig]
+        Union[
+            Pytorch3DUnetFilterSliceBuilderConfig,
+            Pytorch3DUnetSliceBuilderConfig,
+            Pytorch3DUnetSingleZSliceBuilderConfig,
+        ]
     ]
 
     def create_config(
@@ -783,7 +808,11 @@ class Pytorch3DUnetLoaderMetaConfig(BaseModel, frozen=True):
     global_percentiles: Optional[Sequence[float]]
     file_paths: Sequence[str]
     slice_builder: Annotated[
-        Union[Pytorch3DUnetSliceBuilderConfig, Pytorch3DUnetFilterSliceBuilderConfig],
+        Union[
+            Pytorch3DUnetSliceBuilderConfig,
+            Pytorch3DUnetFilterSliceBuilderConfig,
+            Pytorch3DUnetSingleZSliceBuilderConfig,
+        ],
         Discriminator("name"),
     ]
     transformer: transformer_type
@@ -2428,6 +2457,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -2450,6 +2480,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=1,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -2472,6 +2503,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -2494,6 +2526,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=1,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -2960,6 +2993,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -2982,6 +3016,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=50,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3004,6 +3039,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3026,6 +3062,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=50,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3065,14 +3102,20 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 639, 765),
-            stride_shape=(1, 639, 765),
-            halo_shape=(0, 96, 96),
-            # patch_shape=(1, 256, 256),
-            # stride_shape=(1, 256, 256),
+            # patch_shape=(1, 639, 765),
+            # stride_shape=(1, 639, 765),
+            # halo_shape=(0, 96, 96),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
             # halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            halo_shape=(0, 0, 0),
         ),
+        # slice_builder=Pytorch3DUnetSingleZSliceBuilderConfig(
+        #     name="SingleZSliceBuilder",
+        #     patch_shape=(1, 640, 640),
+        #     stride_shape=(1, 640, 640),
+        #     halo_shape=(0, 0, 0),
+        # ),
     )
     predictor_semantic: None = None
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
@@ -3106,6 +3149,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=1.5,
@@ -3133,6 +3177,7 @@ class FlyWingTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=1.5,
@@ -3155,8 +3200,8 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["Ovules"] = "Ovules"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=5,
-        # batch_size=32,
+        # batch_size=5,
+        batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="label_with_ignore",
@@ -3172,14 +3217,20 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 960, 1000),
-            stride_shape=(1, 960, 1000),
-            halo_shape=(0, 96, 96),
-            # patch_shape=(1, 256, 256),
-            # stride_shape=(1, 256, 256),
+            # patch_shape=(1, 960, 1000),
+            # stride_shape=(1, 960, 1000),
+            # halo_shape=(0, 96, 96),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
             # halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            halo_shape=(0, 0, 0),
         ),
+        # slice_builder=Pytorch3DUnetSingleZSliceBuilderConfig(
+        #     name="SingleZSliceBuilder",
+        #     patch_shape=(1, 640, 640),
+        #     stride_shape=(1, 640, 640),
+        #     halo_shape=(0, 0, 0),
+        # ),
     )
     predictor_semantic: None = None
     predictor_instance: Pytorch3DUnetPredictorMetaConfig = (
@@ -3213,6 +3264,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=1.7,
@@ -3238,6 +3290,7 @@ class OvulesTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_large_instances=False,
         gt_zero_largest_instance=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=1.7,
@@ -3260,7 +3313,8 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["PNAS"] = "PNAS"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=5,
+        # batch_size=32,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="label",
@@ -3282,8 +3336,11 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             name="SliceBuilder",
             patch_shape=(1, 256, 256),
             stride_shape=(1, 256, 256),
-            halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            # halo_shape=(0, 32, 32),
+            # patch_shape=(1, 512, 512),
+            # stride_shape=(1, 512, 512),
+            # halo_shape=(0, 64, 64),
+            halo_shape=(0, 0, 0),
         ),
     )
     predictor_semantic: None = None
@@ -3295,9 +3352,9 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
             layer_id=None,
             beta=0.5,
             zero_largest_instance=False,
-            zero_large_instances=False,
-            large_instance_multiplier=4,
-            max_obj_size=None,
+            zero_large_instances=True,
+            large_instance_multiplier=1.5,
+            max_obj_size=2173,
         )
     )
     eval_dataloader_semantic: None = None
@@ -3306,7 +3363,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         gt_path=(
             # "/PNAS/test/12hrs_plant18_trim-acylYFP.h5",
             "/PNAS/test/24hrs_plant18_trim-acylYFP.h5",
-            "/PNAS/test/36hrs_plant18_trim-acylYFP.h5",
+            # "/PNAS/test/hrs_plant18_trim-acylYFP.h5",
         ),
         pred_key="segmentation",
         gt_key="label",
@@ -3318,8 +3375,9 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         convert_to_boundary_label=False,
         convert_to_binary_label=False,
         min_object_size=50,
-        gt_zero_largest_instance=True,
+        gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=1,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3343,6 +3401,7 @@ class PNASTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=50,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3491,6 +3550,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3514,6 +3574,7 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3660,6 +3721,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3683,6 +3745,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3829,6 +3892,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -3852,6 +3916,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -4016,6 +4081,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,
@@ -4039,6 +4105,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         min_object_size=None,
         gt_zero_largest_instance=False,
         gt_zero_large_instances=False,
+        gt_set_id_to_zero=None,
         zero_large_instances=False,
         zero_largest_instance=False,
         largest_obj_multiplier=4,

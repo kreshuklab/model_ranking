@@ -133,6 +133,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         convert_to_boundary_label: bool = False,
         gt_zero_largest_instance: bool = False,
         gt_zero_large_instances: bool = False,
+        gt_set_id_to_zero: Optional[int] = None,
         largest_obj_multiplier: Optional[float] = 1.5,
         max_obj_size: Optional[int] = None,
         min_object_size: Optional[int] = None,
@@ -161,6 +162,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
         self.ignore_index = ignore_index
         self.ignore_path = ignore_path
         self.ignore_key = ignore_key
+        self.gt_set_id_to_zero = gt_set_id_to_zero
 
         with h5py.File(self.gt_path, "r") as f:
             assert (
@@ -263,6 +265,9 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
                 max_obj_size=self.max_obj_size,
             )
             assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
+        if self.gt_set_id_to_zero is not None:
+            gt = np.where(gt == self.gt_set_id_to_zero, 0, gt)
+            assert is_ndarray(gt), f"Data is not a numpy array: {gt}"
         if self.zero_large_instances == True:
             assert (
                 self.largest_obj_multiplier is not None
@@ -350,6 +355,7 @@ class StandardEvalDataset(Dataset[Tuple[NDArray[Any], NDArray[Any]]]):
                 gt_zero_large_instances=getattr(
                     dataset_config, "gt_zero_large_instances", False
                 ),
+                gt_set_id_to_zero=getattr(dataset_config, "gt_set_id_to_zero", None),
                 min_object_size=getattr(dataset_config, "min_object_size", None),
                 zero_large_instances=getattr(
                     dataset_config, "zero_large_instances", False
