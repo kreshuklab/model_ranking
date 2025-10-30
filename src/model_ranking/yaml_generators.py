@@ -229,6 +229,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
         # Set Unetr Img size 256 + 2(halo 32) = 320
         img_size: int = 256
+        # img_size: Tuple[int, int] = (640, 640)
 
         feat_pert_cfg = meta_cfg.feature_perturbations
         model_cfgs: Dict[
