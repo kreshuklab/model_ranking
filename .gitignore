@@ -4,6 +4,7 @@ wandb/
 *.egg-info/
 *.h5
 *.npz
+*.npy
 /tests
 */SLURM
 *.sh
