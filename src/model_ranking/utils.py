@@ -438,7 +438,7 @@ def get_output_paths(
             if norm == None:
                 norm_foldername = "norm_Normalize"
             else:
-                norm_foldername = f"norm_{str(norm[0])}_{str(norm[1]).replace('.', '')}"
+                norm_foldername = f"norm_{str(norm[0]).replace('.', '')}_{str(norm[1]).replace('.', '')}"
             path = list(
                 Path(base_dir_path).glob(
                     (
