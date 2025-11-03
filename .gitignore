@@ -9,5 +9,6 @@ wandb/
 */SLURM
 *.sh
 *.png
+*.svg
 *.out
 *.DS_Store
