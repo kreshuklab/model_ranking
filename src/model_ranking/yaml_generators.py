@@ -25,6 +25,7 @@ from model_ranking.dataclass import (
     SelfTrainingModelConfig,
     TransformerConsistencyMetaConfig,
     UNet_4Layers_CCFVConfig,
+    UNet_3Layers_CCFVConfig,
     Unetr_Layers_CCFVConfig,
     UnetrModelConfig,
     UnetrWithDropOutModelConfig,
@@ -954,7 +955,10 @@ def generate_ccfv_yaml(config_path: Union[str, Path]):
         if "Residual" in model_cfg.name:
             ccfv_layer_cfg = ResUNet_Layers_CCFVConfig
         elif "UNet" in model_cfg.name:
-            ccfv_layer_cfg = UNet_4Layers_CCFVConfig
+            if meta_cfg.num_layers == 3:
+                ccfv_layer_cfg = UNet_3Layers_CCFVConfig
+            else:
+                ccfv_layer_cfg = UNet_4Layers_CCFVConfig
         elif "Unetr" in model_cfg.name:
             ccfv_layer_cfg = Unetr_Layers_CCFVConfig
         else:
