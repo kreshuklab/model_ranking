@@ -181,6 +181,7 @@ def run_consistency_evaluation(
         if isinstance(loader_cfg.eval_dataset, TIFEvalDatasetConfig):
             pred_dir = loader_cfg.eval_dataset.eval.image_dir[0]
             pred_paths = natsorted(list(Path(pred_dir).glob("*.h5")))
+            pred_paths = [p for p in pred_paths if "metric_summary" not in str(p)]
             assert consis_scores[0] is not None, "Scores are not available"
             assert len(pred_paths) == len(
                 consis_scores[0]

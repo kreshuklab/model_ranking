@@ -70,6 +70,8 @@ def run_performance_evaluation(
     if isinstance(config_data.eval_dataloader.eval_dataset, TIFEvalDatasetConfig):
         pred_dir = config_data.eval_dataloader.eval_dataset.eval.image_dir[0]
         pred_paths = sorted(list(Path(pred_dir).glob("*.h5")))
+        # filter out any prediction files that contain "metric_summary" in their path
+        pred_paths = [p for p in pred_paths if "metric_summary" not in str(p)]
         assert eval_scores[0] is not None, "Scores are not available"
         assert len(pred_paths) == len(
             eval_scores[0]
