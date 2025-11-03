@@ -2759,6 +2759,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
+                {"name": "CropToFixed", "size": (256, 256), "centered": True},
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
@@ -2818,6 +2819,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
                     {"name": "ToTensor", "expand_dims": True},
                 ],
                 "label": [
+                    {"name": "CropToFixed", "size": (256, 256), "centered": True},
                     {"name": "Relabel"},
                     {"name": "BlobsToMask", "append_label": False},
                     {"name": "ToTensor", "expand_dims": True},
