@@ -728,6 +728,10 @@ class SBIAD1410LoaderTrainConfig(SBIAD1410LoaderConfig, frozen=True):
     train: SBIAD1410PhaseConfig
 
 
+class SBIAD1410LoaderValConfig(SBIAD1410LoaderConfig, frozen=True):
+    val: SBIAD1410PhaseConfig
+
+
 class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
     dataset: Literal["S_BIAD1410_Dataset"]
     batch_size: int
@@ -750,7 +754,7 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
         self,
         output_dir: Optional[str],
         data_base_path: str,
-        phase: Literal["train", "test"] = "test",
+        phase: Literal["train", "test", "val"] = "test",
     ):
         img_paths: List[str] = []
         mask_paths: List[str] = []
@@ -775,9 +779,9 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
                 ),
             )
         elif phase == "train":
-            for i in range(len(img_paths)):
-                img_paths[i] = img_paths[i].replace("test", "train")
-                mask_paths[i] = mask_paths[i].replace("test", "train")
+            # for i in range(len(img_paths)):
+            #     img_paths[i] = img_paths[i].replace("test", "train")
+            #     mask_paths[i] = mask_paths[i].replace("test", "train")
             loader = SBIAD1410LoaderTrainConfig(
                 dataset=self.dataset,
                 batch_size=self.batch_size,
@@ -785,6 +789,24 @@ class SBIAD1410LoaderMetaConfig(BaseModel, frozen=True):
                 global_normalization=self.global_normalization,
                 global_percentiles=self.global_percentiles,
                 train=SBIAD1410PhaseConfig(
+                    img_paths=img_paths,
+                    mask_paths=mask_paths,
+                    roi=self.roi,
+                    transformer=self.transformer,
+                    slice_builder=self.slice_builder,
+                ),
+            )
+        elif phase == "val":
+            # for i in range(len(img_paths)):
+            #     img_paths[i] = img_paths[i].replace("test", "train")
+            #     mask_paths[i] = mask_paths[i].replace("test", "train")
+            loader = SBIAD1410LoaderValConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_normalization=self.global_normalization,
+                global_percentiles=self.global_percentiles,
+                val=SBIAD1410PhaseConfig(
                     img_paths=img_paths,
                     mask_paths=mask_paths,
                     roi=self.roi,
@@ -921,6 +943,10 @@ class TIFTrainLoadersConfig(TIFLoadersConfig, frozen=True):
     train: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
 
 
+class TIFValLoadersConfig(TIFLoadersConfig, frozen=True):
+    val: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
+
+
 feature_perturbation_type = Optional[
     Union[
         DropOutPerturbationConfig,
@@ -1037,7 +1063,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
         self,
         output_dir: Optional[str],
         data_base_path: str,
-        phase: Literal["train", "test"] = "test",
+        phase: Literal["train", "test", "val"] = "test",
     ):
         mask_dir: List[str] = []
         image_dir: List[str] = []
@@ -1075,6 +1101,19 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
                     transformer=self.transformer,
                 ),
             )
+        elif phase == "val":
+            loader = TIFValLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                val=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
         else:
             assert_never(phase)
         return loader
@@ -1088,7 +1127,7 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
         self,
         output_dir: Optional[str],
         data_base_path: str,
-        phase: Literal["test", "train"] = "test",
+        phase: Literal["test", "train", "val"] = "test",
     ):
         mask_dir: List[str] = []
         image_dir: List[str] = []
@@ -1119,6 +1158,20 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
                 train=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "val":
+            loader = TIFValLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                val=TIFtxtPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
                     filenames_path=data_base_path + self.filenames_path,
@@ -3835,7 +3888,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         # global_normalization=False,
         global_percentiles=None,
         file_paths=("/Rmito/test_converted.h5",),
-        roi=[[0, 150], [0, 1280], [0, 1280]],
+        roi=[[0, 80], [0, 1280], [0, 1280]],
         transformer={
             "raw": [
                 {"name": "Normalize"},
@@ -4659,6 +4712,21 @@ class CCFVFeatureConfig(BaseModel):
     num_classes: int
 
 
+UNet_3Layers_CCFVConfig = CCFVFeatureConfig(
+    layers=[
+        "encoders.2",
+        "decoders.0",
+        "decoders.1",
+    ],
+    sample_num={
+        "encoders.2": 200,
+        "decoders.0": 400,
+        "decoders.1": 800,
+    },
+    num_classes=1,
+)
+
+
 UNet_4Layers_CCFVConfig = CCFVFeatureConfig(
     layers=[
         "encoders.3",
@@ -4684,11 +4752,11 @@ ResUNet_Layers_CCFVConfig = CCFVFeatureConfig(
         "decoders.3",
     ],
     sample_num={
-        "encoders.4": 100,
-        "decoders.0": 200,
-        "decoders.1": 400,
-        "decoders.2": 800,
-        "decoders.3": 800,
+        "encoders.4": 25,
+        "decoders.0": 50,
+        "decoders.1": 100,
+        "decoders.2": 200,
+        "decoders.3": 400,
     },
     num_classes=1,
 )
@@ -4716,11 +4784,12 @@ class CCFVConfig(CCFVFeatureConfig):
 
 
 class CCFVRunMetaConfig(BaseModel):
-    target_datasets: Sequence[mito_dataset_type]
+    target_datasets: Sequence[semantic_dataset_type]
     source_models: Sequence[ModelSourceConfig]
     overwrite_yaml: bool
     overwrite_scores: bool
     data_base_path: str
     model_dir_path: str
     model_key: str
+    num_layers: Optional[int] = None
     output_base_path: str
