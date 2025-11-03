@@ -930,6 +930,8 @@ def plot_single_consistency_vs_performance(
 def plot_single_consistency_vs_performance_CVPR(
     augmentation_strength: str,
     target_dataset: str,
+    title: Optional[str] = None,
+    make_title_bold: bool = True,
     performance_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/transfer_performance_scores.json",
     base_consistency_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/consistency",
     custom_legend_labels: Optional[Dict[str, str]] = None,
@@ -944,6 +946,13 @@ def plot_single_consistency_vs_performance_CVPR(
     performance_score_key: str = "F1",
     source_abbreviations: List[str] = ["E", "Hm", "Rm", "V"],
     save_path: Optional[Union[str, Path]] = None,
+    plot_style: str = "default",
+    legend_loc: Optional[str] = None,
+    legend_bbox_to_anchor: Optional[Tuple[float, float]] = (1.05, 1),
+    corr_box_loc: Tuple[float, float] = (0.05, 0.05),
+    tick_fontsize: Optional[int] = None,
+    corr_fontsize: int = 18,
+    legend_fontsize: int = 18,
 ):
     """
     Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
@@ -954,26 +963,62 @@ def plot_single_consistency_vs_performance_CVPR(
         The augmentation strength identifier (e.g., "a001-a003")
     target_dataset : str
         The target dataset name (e.g., "EPFL", "Hmito", "Rmito", "VNC")
-    performance_scores : Dict
-        Dictionary containing performance scores organized as {target: {model: score}}
+    performance_path : str
+        Path to the JSON file containing performance scores
     base_consistency_path : str
         Base path to the consistency scores JSON files
     custom_legend_labels : Optional[Dict[str, str]]
         Optional mapping from model names to custom legend labels
-    correlation_scores : Optional[Dict[str, float]]
-        Optional dictionary with correlation scores, e.g., {"kt": 0.95, "sp": 0.12, "p": 0.67}
-        where "kt" is Kendall tau, "sp" is Spearman's ρ, and "p" is Pearson r
     figsize : tuple
         Figure size (width, height)
     alpha : float
         Transparency of the markers
     marker_size : int
         Size of the scatter plot markers
+    fontsize : int
+        Font size for labels, title, legend, and correlation scores
+    invert_performance_score : bool
+        If True, inverts performance scores (1 - score)
+    invert_consistency_score : bool
+        If True, inverts consistency scores (1 - score)
+    perturbation_type : str
+        Type of perturbation (e.g., "Gauss", "DO")
+    file_name_postfix : str
+        Postfix for the consistency scores filename
+    performance_score_key : str
+        Key for the performance metric (e.g., "F1", "MAP", "MSA")
+    source_abbreviations : List[str]
+        List of source abbreviations for grouping models
+    save_path : Optional[Union[str, Path]]
+        Path to save the figure. Both PNG (300 DPI) and SVG versions will be saved.
+        If path includes extension, it will be replaced with .png and .svg.
+        If no extension, .png and .svg will be appended.
+        Example: "output/figure" or "output/figure.png" both save to
+        "output/figure.png" and "output/figure.svg"
+    plot_style : str
+        Matplotlib style to use (e.g., "default", "seaborn-v0_8-colorblind")
+    legend_loc : Optional[str]
+        Legend location. If None, places legend outside the plot at bbox_to_anchor.
+        Use standard matplotlib location strings like "upper left", "upper right", etc.
+    legend_bbox_to_anchor : Optional[Tuple[float, float]]
+        Custom bbox_to_anchor for legend. If None and legend_loc is None,
+        defaults to (1.05, 1) for outside placement.
+    corr_box_loc : Tuple[float, float]
+        Location of correlation scores box in axes coordinates (x, y).
+        Default is (0.05, 0.05) for lower left corner.
+    tick_fontsize : Optional[int]
+        Font size for x and y axis tick labels. If None, uses fontsize - 4.
 
     Returns:
     --------
     fig, ax : matplotlib figure and axis objects
     """
+    # Set the plot style
+    plt.style.use(plot_style)
+
+    # Set tick fontsize if not provided
+    if tick_fontsize is None:
+        tick_fontsize = fontsize - 4
 
     # Load consistency scores for the specified augmentation
     file_name = (
@@ -1100,16 +1145,23 @@ def plot_single_consistency_vs_performance_CVPR(
     # Add labels and title
     _ = ax.set_xlabel(f"CTE", fontsize=fontsize)
     _ = ax.set_ylabel(f"Performance Score ({performance_score_key})", fontsize=fontsize)
-    _ = ax.set_title(
-        f"Consistency vs Performance for {target_dataset}\n"
-        + f"{perturbation_type} {pert_str}",
-        fontsize=fontsize,
-    )
+
+    if title is None:
+        title = f"Consistency vs Performance for {target_dataset}\n{perturbation_type} {pert_str}"
+
+    if make_title_bold:
+        _ = ax.set_title(title, fontsize=fontsize, fontweight="bold")
+    else:
+        _ = ax.set_title(title, fontsize=fontsize)
+
+    # Set tick label font sizes
+    _ = ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
 
     # Add legend with matching colors
+    legend_handles = []
     for i, label in enumerate(labels):
         # Use the color assigned to this model
-        _ = ax.scatter(
+        handle = ax.scatter(
             [],
             [],
             c=[colors[i]],  # pyright: ignore
@@ -1117,45 +1169,81 @@ def plot_single_consistency_vs_performance_CVPR(
             alpha=alpha,
             label=label,
         )
-    legend = ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=fontsize)
+        legend_handles.append(handle)
 
-    # Add correlation scores text if provided
-    # Format correlation scores text
+    # Configure legend position
+    if legend_loc is not None:
+        # Place legend inside the plot
+        _ = ax.legend(loc=legend_loc, fontsize=legend_fontsize)
+    else:
+        # Place legend outside the plot (default behavior)
+        if legend_bbox_to_anchor is None:
+            legend_bbox_to_anchor = (1.05, 1)
+
+        _ = ax.legend(
+            bbox_to_anchor=legend_bbox_to_anchor,
+            loc="upper left",
+            fontsize=legend_fontsize,
+        )
+
+    # Format correlation scores text with Greek symbols and abbreviations
     corr_text = "Correlation Scores:\n"
+    corr_text += f"    K$\\tau$: {kt:.2f}\n"
+    corr_text += f"    S$\\rho$: {sp:.2f}\n"
+    corr_text += f"    Pr: {pr:.2f}"
 
-    corr_text += f"Kendall τ: {kt:.2f}\n"
-
-    corr_text += f"Spearman ρ: {sp:.2f}\n"
-
-    corr_text += f"Pearson r: {pr:.2f}"
-
-    # Position the text below the legend
-    legend_bbox = legend.get_window_extent(fig.canvas.get_renderer())  # pyright: ignore
-    # Convert to figure coordinates
-    legend_bottom = legend_bbox.y0 / fig.bbox.height
-
-    # Add text box below the legend
+    # Add correlation scores box inside the plot at specified location
     _ = ax.text(
-        1.05,
-        legend_bottom - 0.05,
+        corr_box_loc[0],
+        corr_box_loc[1],
         corr_text,
         transform=ax.transAxes,
-        fontsize=fontsize - 2,
-        verticalalignment="top",
+        fontsize=corr_fontsize,
+        verticalalignment="bottom",
         horizontalalignment="left",
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+        bbox=dict(
+            boxstyle="round,pad=0.5",
+            facecolor="white",
+            edgecolor="black",
+            alpha=0.9,
+            linestyle="dotted",
+            linewidth=1.5,
+        ),
     )
 
     # Add grid for better readability
     _ = ax.grid(True, alpha=0.8)
 
     # Tight layout to prevent legend cutoff
-    plt.tight_layout()
+    fig.tight_layout()
 
     if save_path is not None:
-        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Saved figure to: {save_path}")
+        save_path_obj = Path(save_path)
+        save_path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+        # Determine base path without extension
+        if save_path_obj.suffix:
+            # If path has extension, remove it to use as base
+            base_path = save_path_obj.with_suffix("")
+        else:
+            # If no extension, use as-is
+            base_path = save_path_obj
+
+        # Save PNG version
+        png_path = base_path.with_suffix(".png")
+        try:
+            fig.savefig(png_path, dpi=300, bbox_inches="tight", format="png")
+            print(f"Saved PNG figure to: {png_path}")
+        except Exception as e:
+            print(f"Error saving PNG: {e}")
+
+        # Save SVG version
+        svg_path = base_path.with_suffix(".svg")
+        try:
+            fig.savefig(svg_path, bbox_inches="tight", format="svg")
+            print(f"Saved SVG figure to: {svg_path}")
+        except Exception as e:
+            print(f"Error saving SVG: {e}")
 
     plt.show()
 
