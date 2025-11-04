@@ -561,13 +561,13 @@ def plot_performance_vs_transfer_metric(
     _ = plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
     plt.grid()
-    if show_plot:
-        plt.show()
-
     if save_path:
         plt.savefig(save_path, bbox_inches="tight")
         print(f"Plot saved to {save_path}")
-        plt.close(f)
+    if show_plot:
+        plt.show()
+
+    plt.close(f)
     return f
 
 
@@ -1181,6 +1181,371 @@ def plot_single_consistency_vs_performance_CVPR(
             legend_bbox_to_anchor = (1.05, 1)
 
         _ = ax.legend(
+            bbox_to_anchor=legend_bbox_to_anchor,
+            loc="upper left",
+            fontsize=legend_fontsize,
+        )
+
+    # Format correlation scores text with Greek symbols and abbreviations
+    corr_text = "Correlation Scores:\n"
+    corr_text += f"    K$\\tau$: {kt:.2f}\n"
+    corr_text += f"    S$\\rho$: {sp:.2f}\n"
+    corr_text += f"    Pr: {pr:.2f}"
+
+    # Add correlation scores box inside the plot at specified location
+    _ = ax.text(
+        corr_box_loc[0],
+        corr_box_loc[1],
+        corr_text,
+        transform=ax.transAxes,
+        fontsize=corr_fontsize,
+        verticalalignment="bottom",
+        horizontalalignment="left",
+        bbox=dict(
+            boxstyle="round,pad=0.5",
+            facecolor="white",
+            edgecolor="black",
+            alpha=0.9,
+            linestyle="dotted",
+            linewidth=1.5,
+        ),
+    )
+
+    # Add grid for better readability
+    _ = ax.grid(True, alpha=0.8)
+
+    # Tight layout to prevent legend cutoff
+    fig.tight_layout()
+
+    if save_path is not None:
+        save_path_obj = Path(save_path)
+        save_path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+        # Determine base path without extension
+        if save_path_obj.suffix:
+            # If path has extension, remove it to use as base
+            base_path = save_path_obj.with_suffix("")
+        else:
+            # If no extension, use as-is
+            base_path = save_path_obj
+
+        # Save PNG version
+        png_path = base_path.with_suffix(".png")
+        try:
+            fig.savefig(png_path, dpi=300, bbox_inches="tight", format="png")
+            print(f"Saved PNG figure to: {png_path}")
+        except Exception as e:
+            print(f"Error saving PNG: {e}")
+
+        # Save SVG version
+        svg_path = base_path.with_suffix(".svg")
+        try:
+            fig.savefig(svg_path, bbox_inches="tight", format="svg")
+            print(f"Saved SVG figure to: {svg_path}")
+        except Exception as e:
+            print(f"Error saving SVG: {e}")
+
+    plt.show()
+
+
+def plot_single_consistency_vs_performance_CVPR_shapes(
+    augmentation_strength: str,
+    target_dataset: str,
+    title: Optional[str] = None,
+    make_title_bold: bool = True,
+    performance_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/transfer_performance_scores.json",
+    base_consistency_path: str = "/g/kreshuk/talks/consistency_results/patch_segmentation/mitochondria/transfer_results/consistency",
+    custom_legend_labels: Optional[Dict[str, str]] = None,
+    figsize: Tuple[int, int] = (10, 8),
+    alpha: float = 0.7,
+    marker_size: int = 200,
+    fontsize: int = 16,
+    invert_performance_score: bool = False,
+    invert_consistency_score: bool = False,
+    perturbation_type: str = "Gauss",
+    file_name_postfix: str = "CMB_05f_05b_EI_scores",
+    performance_score_key: str = "F1",
+    source_abbreviations: List[str] = ["E", "Hm", "Rm", "V"],
+    save_path: Optional[Union[str, Path]] = None,
+    plot_style: str = "default",
+    legend_loc: Optional[str] = None,
+    legend_bbox_to_anchor: Optional[Tuple[float, float]] = (1.05, 1),
+    corr_box_loc: Tuple[float, float] = (0.05, 0.05),
+    tick_fontsize: Optional[int] = None,
+    corr_fontsize: int = 18,
+    legend_fontsize: int = 18,
+):
+    """
+    Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
+    Models from the same source dataset have the same color, while different model architectures
+    have different shapes.
+
+    Parameters:
+    -----------
+    augmentation_strength : str
+        The augmentation strength identifier (e.g., "a001-a003")
+    target_dataset : str
+        The target dataset name (e.g., "EPFL", "Hmito", "Rmito", "VNC")
+    performance_path : str
+        Path to the JSON file containing performance scores
+    base_consistency_path : str
+        Base path to the consistency scores JSON files
+    custom_legend_labels : Optional[Dict[str, str]]
+        Optional mapping from model names to custom legend labels
+    figsize : tuple
+        Figure size (width, height)
+    alpha : float
+        Transparency of the markers
+    marker_size : int
+        Size of the scatter plot markers
+    fontsize : int
+        Font size for labels, title, legend, and correlation scores
+    invert_performance_score : bool
+        If True, inverts performance scores (1 - score)
+    invert_consistency_score : bool
+        If True, inverts consistency scores (1 - score)
+    perturbation_type : str
+        Type of perturbation (e.g., "Gauss", "DO")
+    file_name_postfix : str
+        Postfix for the consistency scores filename
+    performance_score_key : str
+        Key for the performance metric (e.g., "F1", "MAP", "MSA")
+    source_abbreviations : List[str]
+        List of source abbreviations for grouping models
+    save_path : Optional[Union[str, Path]]
+        Path to save the figure. Both PNG (300 DPI) and SVG versions will be saved.
+        If path includes extension, it will be replaced with .png and .svg.
+        If no extension, .png and .svg will be appended.
+        Example: "output/figure" or "output/figure.png" both save to
+        "output/figure.png" and "output/figure.svg"
+    plot_style : str
+        Matplotlib style to use (e.g., "default", "seaborn-v0_8-colorblind")
+    legend_loc : Optional[str]
+        Legend location. If None, places legend outside the plot at bbox_to_anchor.
+        Use standard matplotlib location strings like "upper left", "upper right", etc.
+    legend_bbox_to_anchor : Optional[Tuple[float, float]]
+        Custom bbox_to_anchor for legend. If None and legend_loc is None,
+        defaults to (1.05, 1) for outside placement.
+    corr_box_loc : Tuple[float, float]
+        Location of correlation scores box in axes coordinates (x, y).
+        Default is (0.05, 0.05) for lower left corner.
+    tick_fontsize : Optional[int]
+        Font size for x and y axis tick labels. If None, uses fontsize - 4.
+
+    Returns:
+    --------
+    fig, ax : matplotlib figure and axis objects
+
+    Notes:
+    ------
+    Model shapes are determined by identifiers in the model name:
+    - "NA" → circle (U-Net No Augs)
+    - "Res" → square (ResUNet)
+    - "Unetr" → diamond (UNETR)
+    - None of above → triangle (U-Net)
+    """
+    # Set the plot style
+    plt.style.use(plot_style)
+
+    # Set tick fontsize if not provided
+    if tick_fontsize is None:
+        tick_fontsize = fontsize - 4
+
+    # Load consistency scores for the specified augmentation
+    file_name = (
+        f"transfer_{perturbation_type}_{augmentation_strength}_{file_name_postfix}.json"
+    )
+    consistency_path = Path(base_consistency_path) / file_name
+    results = load_transfer_metric_results(consistency_path)
+    consistency_scores = results["transfer_scores"]
+
+    performance_results = load_transfer_metric_results(performance_path)
+    performance_scores = performance_results["performance_scores"]
+
+    # Extract scores for the target dataset
+    if target_dataset not in performance_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in performance scores"
+        )
+    if target_dataset not in consistency_scores:
+        raise ValueError(
+            f"Target dataset '{target_dataset}' not found in consistency scores"
+        )
+
+    target_performance = performance_scores[target_dataset]
+    target_consistency = consistency_scores[target_dataset]
+
+    # Find common models between performance and consistency scores
+    common_models: set[str] = set(target_performance.keys()) & set(
+        target_consistency.keys()
+    )
+    if not common_models:
+        raise ValueError(
+            f"No common models found between performance and consistency scores for target '{target_dataset}'"
+        )
+
+    # Prepare data for plotting
+    x_values: List[float] = []  # consistency scores
+    y_values: List[float] = []  # performance scores
+    labels: List[str] = []
+
+    for model in sorted(common_models):
+        x_values.append(target_consistency[model])
+        y_values.append(target_performance[model])
+
+        # Use custom label if provided, otherwise use model name
+        if custom_legend_labels and model in custom_legend_labels:
+            labels.append(custom_legend_labels[model])
+        else:
+            labels.append(model)
+
+    if invert_consistency_score:
+        x_values = [1 - val for val in x_values]
+    if invert_performance_score:
+        y_values = [1 - val for val in y_values]
+
+    consis_array = np.array(x_values).reshape(-1, 1)  # Shape (n_models, 1)
+    kt_scores, sp_scores, pearson_scores = calculate_correlation_statistics(
+        consis_array, np.array(y_values)
+    )
+    pr = pearson_scores[0, 0]  # Pearson r
+    sp = sp_scores[0, 0]  # Spearman rho
+    kt = kt_scores[0, 0]  # Kendall tau
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Define colors for each source dataset (same color for all models from same source)
+    source_colors = {
+        source_abbreviations[0]: "#377eb8",  # Blue
+        source_abbreviations[1]: "#ff7f00",  # Orange
+        source_abbreviations[2]: "#2ca02c",  # Green
+        # source_abbreviations[3]: "#984ea3",  # Purple
+    }
+    # Add more colors if needed
+    additional_colors = [
+        "#984ea3",
+        "#8c564b",
+        "#e377c2",
+        "#7f7f7f",
+        "#bcbd22",
+        "#17becf",
+    ]
+    for i, abbr in enumerate(source_abbreviations[4:], start=0):
+        source_colors[abbr] = additional_colors[i % len(additional_colors)]
+
+    # Function to determine marker shape based on model name
+    def get_marker_shape(model_name: str) -> str:
+        """Determine marker shape based on model architecture identifiers."""
+        if "NA" in model_name:
+            return "o"  # circle - U-Net (No Augs)
+        elif "Res" in model_name:
+            return "s"  # square - ResUNet
+        elif "Unetr" in model_name:
+            return "*"  # diamond - UNETR
+        elif "vit_b" in model_name:
+            return "o"
+        elif "vit_l" in model_name:
+            return "s"
+        elif "vit_t" in model_name:
+            return "D"
+        elif "cpsam" in model_name.lower():
+            return "p"
+        elif "powerful" in model_name.lower():
+            return "*"
+        else:
+            return "^"  # triangle - U-Net
+
+    # Plot each model with appropriate color and shape
+    for i, model in enumerate(sorted(common_models)):
+        # Determine source abbreviation
+        model_source = None
+        for abbr in source_abbreviations:
+            if model.startswith(abbr + "_"):
+                model_source = abbr
+                break
+
+        # Get color (same for all models from same source)
+        color = source_colors.get(model_source, "gray") if model_source else "gray"
+
+        # Get marker shape based on model architecture
+        marker = get_marker_shape(model)
+
+        # Plot individual point
+        _ = ax.scatter(
+            x_values[i],
+            y_values[i],
+            s=marker_size,
+            alpha=alpha,
+            c=color,
+            marker=marker,
+            edgecolors="black",
+            linewidths=0.5,
+        )
+
+    if perturbation_type == "DO":
+        if augmentation_strength.startswith("a"):
+            val = augmentation_strength[1:]
+            pert_str: Union[float, Tuple[float, float]] = add_decimal(val)
+        else:
+            pert_str = add_decimal(augmentation_strength)
+    else:
+        pert_str = aug_name_to_sigma_tuple(augmentation_strength)
+
+    # Add labels and title
+    _ = ax.set_xlabel(f"CTE", fontsize=fontsize)
+    _ = ax.set_ylabel(f"Performance Score ({performance_score_key})", fontsize=fontsize)
+
+    if title is None:
+        title = f"Consistency vs Performance for {target_dataset}\n{perturbation_type} {pert_str}"
+
+    if make_title_bold:
+        _ = ax.set_title(title, fontsize=fontsize, fontweight="bold")
+    else:
+        _ = ax.set_title(title, fontsize=fontsize)
+
+    # Set tick label font sizes
+    _ = ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+
+    # Add legend with matching colors and shapes
+    legend_handles: List[Any] = []
+    for i, (model, label) in enumerate(zip(sorted(common_models), labels)):
+        # Determine source abbreviation
+        model_source = None
+        for abbr in source_abbreviations:
+            if model.startswith(abbr + "_"):
+                model_source = abbr
+                break
+
+        # Get color and marker
+        color = source_colors.get(model_source, "gray") if model_source else "gray"
+        marker = get_marker_shape(model)
+
+        # Create handle for legend
+        handle = ax.scatter(
+            [],
+            [],
+            c=color,
+            s=marker_size,
+            alpha=alpha,
+            marker=marker,
+            label=label,
+            edgecolors="black",
+            linewidths=0.5,
+        )
+        legend_handles.append(handle)
+
+    # Configure legend position
+    if legend_loc is not None:
+        # Place legend inside the plot
+        _ = ax.legend(handles=legend_handles, loc=legend_loc, fontsize=legend_fontsize)
+    else:
+        # Place legend outside the plot (default behavior)
+        if legend_bbox_to_anchor is None:
+            legend_bbox_to_anchor = (1.05, 1)
+
+        _ = ax.legend(
+            handles=legend_handles,
             bbox_to_anchor=legend_bbox_to_anchor,
             loc="upper left",
             fontsize=legend_fontsize,
