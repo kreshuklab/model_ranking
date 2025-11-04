@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 from typing import Dict, Any, Tuple, Union
 from tqdm import tqdm
@@ -19,6 +20,7 @@ from model_ranking.transferability_metrics import (
     log_maximum_evidence,
     NCTI_Score,
     process_NCTI_scores,
+    run_transfer_metric_calc,
 )
 from model_ranking.feature_ranking import get_precomputed_feature_path
 from model_ranking.utils import load_h5, get_source_from_model_name
@@ -79,6 +81,20 @@ def calculate_transfer_metric(  # pyright: ignore
             n_PCA_components is not None
         ), "n_PCA_components must be provided for NCTI metric."
         return NCTI_Score(features, labels, PCA_components=n_PCA_components)
+    elif metric_name == "Transfer_Score":
+        assert (
+            features is not None
+        ), "Features must be provided for Transfer_Score metric."
+        assert (
+            predictions is not None
+        ), "Predictions must be provided for Transfer_Score metric."
+        return run_transfer_metric_calc(
+            features,
+            predictions,
+            weights=None,
+            labels=labels,
+            n_samples_per_class=150000,
+        )
     else:
         raise ValueError(f"Unknown transfer metric: {metric_name}")
 
@@ -107,12 +123,15 @@ def get_transfer_data_segmentation(
         feature_config.base_path,
         filetype=feature_config.file_type,
     )
-    if str(transferability_metric) not in ["LEEP"]:
-        features = load_h5(feature_path, f"{key}_features")
-        predictions = None
-    else:
+    if str(transferability_metric) == "LEEP":
         features = None
         predictions = load_h5(feature_path, f"{key}_predictions")
+    elif str(transferability_metric) == "Transfer_Score":
+        features = load_h5(feature_path, f"{key}_features")
+        predictions = load_h5(feature_path, f"{key}_predictions")
+    else:
+        features = load_h5(feature_path, f"{key}_features")
+        predictions = None
 
     labels = load_h5(feature_path, f"{key}_labels")
 
@@ -154,13 +173,15 @@ def get_transfer_data_segmentation(
     if features is not None:
         features = features[non_zero_patch_ids]
         features_flat = features.reshape(-1, features.shape[-1])
-        predictions_flat = None
     else:
-        assert predictions is not None, "Predictions must be provided."
+        features_flat = None
+
+    if predictions is not None:
         predictions = predictions[non_zero_patch_ids]
         predictions_flat = predictions.reshape(-1)  # Shape: (n * 1000,)
         predictions_flat = np.column_stack([1 - predictions_flat, predictions_flat])
-        features_flat = None
+    else:
+        predictions_flat = None
 
     labels = labels[non_zero_patch_ids]
 
@@ -265,15 +286,22 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                 assert (
                     output_cfg.save_name is not None
                 ), "Save name must be provided for plotting."
-                save_path = f"{output_cfg.save_base_path}/figs/{target}_{output_cfg.save_name}_{transferability_metric}.png"
-                os.makedirs(output_cfg.save_base_path, exist_ok=True)
+                save_path = (
+                    Path(output_cfg.save_base_path)
+                    / "figs"
+                    / f"{target}_{output_cfg.save_name}_{transferability_metric}.png"
+                )
+
+                os.makedirs(save_path.parent, exist_ok=True)
+
                 _ = plot_performance_vs_transfer_metric(
                     performance_per_model,
                     transfer_metric_per_model,
                     target=target,
                     metric_name=transferability_metric,
                     performance_metric_name=performance_cfg.key,
-                    save_path=save_path,
+                    show_plot=False,
+                    save_path=str(save_path),
                 )
 
         correlation_scores: Dict[str, NDArray[Any]] = {}

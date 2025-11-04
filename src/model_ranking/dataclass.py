@@ -53,6 +53,7 @@ transferability_metric_names = Literal[
     "LogME",
     "NCTI",
     "CTE",
+    "Transfer_Score",
 ]
 
 
