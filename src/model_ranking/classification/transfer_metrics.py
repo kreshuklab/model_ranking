@@ -32,12 +32,15 @@ def get_transfer_data_classification(
         target,
         feature_config.base_path,
     )
-    if str(transferability_metric) not in ["LEEP"]:
-        features = load_h5(pred_path, key)
-        predictions = None
-    else:
+    if str(transferability_metric) == "LEEP":
         features = None
         predictions = load_h5(pred_path, f"predictions")
+    elif str(transferability_metric) == "Transfer_Score":
+        features = load_h5(pred_path, key)
+        predictions = load_h5(pred_path, f"predictions")
+    else:
+        features = load_h5(pred_path, key)
+        predictions = None
 
     labels = load_h5(pred_path, "labels")
 
