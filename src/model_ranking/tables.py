@@ -427,6 +427,7 @@ def avg_correlation_to_latex(
     latex = (
         r"""\begin{table}[htbp]
     \centering
+    \small
     \setlength{\tabcolsep}{3pt}
     \begin{tabular}{"""
         + col_spec
@@ -470,7 +471,7 @@ def avg_correlation_to_latex(
             metric_display = f"\\multirow{{2}}{{*}}{{{metric_name}}}"
 
         # Average row
-        avg_row = f"{metric_display} & \\textbf{{Avg.}}"
+        avg_row = f"{metric_display} & \\textit{{Avg.}}"
         for task in tasks:
             if task in data[metric_key]:
                 vals = data[metric_key][task]
@@ -481,7 +482,7 @@ def avg_correlation_to_latex(
         latex += avg_row
 
         # Std row
-        std_row = " & \\textbf{std.}"
+        std_row = " & \\textit{std.}"
         for task in tasks:
             if task in data[metric_key]:
                 vals = data[metric_key][task]
@@ -625,7 +626,7 @@ def avg_correlation_to_latex_transposed(
     # Header row 2: Empty cell for Task row label, then Avg. and std. for each metric
     header2 = " & "
     for i in range(num_metrics):
-        header2 += " & \\textbf{Avg.} & \\textbf{std.}"
+        header2 += " & \\textit{Avg.} & \\textit{std.}"
     header2 += " \\\\\n"
     latex += header2
     latex += r"\hline" + "\n"
