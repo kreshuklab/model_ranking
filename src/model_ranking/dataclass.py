@@ -4638,6 +4638,7 @@ class PrecomputedFinetunedPerformanceConfig(PrecomputedPerformanceConfig):
         "direct_eval",
         "feature_perturbation",
         "default_selftraining",
+        "AdaBN",
     ]
     result_type: Literal["predictions", "checkpoints"]
 

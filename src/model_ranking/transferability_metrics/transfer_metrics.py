@@ -93,7 +93,7 @@ def calculate_transfer_metric(  # pyright: ignore
             predictions,
             weights=None,
             labels=labels,
-            # n_samples_per_class=150000,
+            n_samples_per_class=150000,
         )
     else:
         raise ValueError(f"Unknown transfer metric: {metric_name}")
