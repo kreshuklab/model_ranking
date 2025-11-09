@@ -1619,8 +1619,8 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
     transfer_metrics: Sequence[transferability_metric_names],
     nrows: int = 2,
     ncols: int = 4,
-    classification_color: str = "blue",
-    segmentation_color: str = "red",
+    classification_color: str = "#984ea3",
+    segmentation_color: str = "#2ca02c",
     figsize: Tuple[int, int] = (20, 10),
     save_path: Optional[Path] = None,
     point_size: int = 100,
@@ -1629,6 +1629,14 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
     consis_class_aug_str: Optional[str] = None,
     consis_seg_aug_str: Optional[str] = None,
     CTE_metric_key: Optional[str] = "EI",
+    scores_fontsize: int = 12,
+    title_fontsize: int = 16,
+    label_fontsize: int = 14,
+    ticks_fontsize: int = 12,
+    title_bold: bool = True,
+    marker_align_param: float = 0.85,
+    stats_marker_size: Optional[int] = None,
+    stats_marker_gap: float = 0.01,
 ):
     """
     Create combined classification and segmentation correlation plots per target dataset.
@@ -1638,7 +1646,6 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
     classification_results_path : Path
         Base path to classification transfer metric results
     segmentation_results_path : Path
-        Base path to segmentation transfer metric results
     transfer_metrics : list, optional
         List of transfer metrics to plot. If None, defaults to all standard metrics.
     nrows : int
@@ -1653,6 +1660,12 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
         Figure size (width, height)
     save_path : Path, optional
         Path to save figures. If None, figures are displayed but not saved.
+    stats_marker_size : Optional[int]
+        (Note: This parameter is kept for backward compatibility but is no
+        longer used as markers are now shown via matplotlib legend.)
+    stats_marker_gap : float
+        (Note: This parameter is kept for backward compatibility but is no
+        longer used as markers are now shown via matplotlib legend.)
 
     Returns:
     --------
@@ -1753,7 +1766,7 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
             seg_x = np.array(list(seg_transfer_scores.values()))
             seg_y = np.array(list(seg_performance_scores.values()))
 
-            # Plot classification points
+            # Plot classification points (crosses)
             _ = ax.scatter(  # pyright: ignore
                 class_x,
                 class_y,
@@ -1762,10 +1775,9 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
                 s=point_size,
                 linewidths=2,
                 alpha=0.7,
-                label="Classification" if idx == 0 else "",
             )
 
-            # Plot segmentation points
+            # Plot segmentation points (circles)
             _ = ax.scatter(  # pyright: ignore
                 seg_x,
                 seg_y,
@@ -1773,7 +1785,22 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
                 color=segmentation_color,
                 s=point_size,
                 alpha=0.7,
-                label="Segmentation" if idx == 0 else "",
+            )
+
+            # Set axis title/labels and tick font sizes using new parameters
+            _ = ax.set_title(  # pyright: ignore
+                metric,
+                fontsize=title_fontsize,
+                fontweight=("bold" if title_bold else "normal"),
+            )
+            _ = ax.set_xlabel(  # pyright: ignore
+                f"{metric} score", fontsize=label_fontsize
+            )
+            _ = ax.set_ylabel(  # pyright: ignore
+                "Performance Score (F1)", fontsize=label_fontsize
+            )
+            _ = ax.tick_params(  # pyright: ignore
+                axis="both", which="major", labelsize=ticks_fontsize
             )
 
             # Calculate correlation statistics for classification using calculate_correlation_statistics
@@ -1794,43 +1821,68 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
             seg_sp = seg_sp_scores[0, 0]  # Spearman rho
             seg_kt = seg_kt_scores[0, 0]  # Kendall tau
 
-            # Add correlation statistics box in bottom right
-            textstr = f"Classification:\n  Kτ: {class_kt:.2f}\n  ρ: {class_sp:.2f}\n  r: {class_pr:.2f}\n\n"
-            textstr += f"Segmentation:\n  Kτ: {seg_kt:.2f}\n  ρ: {seg_sp:.2f}\n  r: {seg_pr:.2f}"
+            # Create custom legend with markers and correlation scores
+            # Build legend handles with proper markers and correlation info
+            # Use newlines to structure correlation scores below the category labels
+            legend_elements = [
+                Line2D(
+                    [0],
+                    [0],
+                    marker="x",
+                    color="w",
+                    markerfacecolor=classification_color,
+                    markeredgecolor=classification_color,
+                    markersize=10,
+                    label=f"Classification\n  Kτ: {class_kt:.2f}\n  Sρ: {class_sp:.2f}\n  Pr: {class_pr:.2f}",
+                    linewidth=0,
+                    markeredgewidth=2,
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    markerfacecolor=segmentation_color,
+                    markeredgecolor="black",
+                    markersize=8,
+                    label=f"Segmentation\n  Kτ: {seg_kt:.2f}\n  Sρ: {seg_sp:.2f}\n  Pr: {seg_pr:.2f}",
+                    linewidth=0,
+                    markeredgewidth=1,
+                ),
+            ]
 
-            props = dict(boxstyle="round", facecolor="white", alpha=0.5, linestyle="--")
-            _ = ax.text(  # pyright: ignore
-                0.95,
-                0.05,
-                textstr,
-                transform=ax.transAxes,  # pyright: ignore
-                fontsize=12,
-                verticalalignment="bottom",
-                horizontalalignment="right",
-                bbox=props,
+            # Add the legend in bottom-right corner with dashed border
+            legend = ax.legend(  # pyright: ignore
+                handles=legend_elements,
+                loc="lower right",
+                fontsize=scores_fontsize,
+                frameon=True,
+                fancybox=True,
+                shadow=False,
+                framealpha=0.9,
+                edgecolor="black",
+                handletextpad=0.5,
+                borderpad=0.5,
             )
 
-            # Set labels and title
-            _ = ax.set_xlabel(f"{metric} Score", fontsize=12)  # pyright: ignore
-            _ = ax.set_ylabel("Performance Score", fontsize=12)  # pyright: ignore
-            _ = ax.set_title(metric, fontsize=14, fontweight="bold")  # pyright: ignore
+            # Align markers with first line of text instead of center
+            # We need to manually adjust the y-offset of each marker
+            for handle_artist in legend.legend_handles:  # pyright: ignore
+                # Set the marker offset to align with top of text (first line)
+                handle_artist._y = marker_align_param  # type: ignore  # Move marker up to align with first line
+
+            # Make the legend frame have a dashed border
+            _ = legend.get_frame().set_linestyle("--")  # pyright: ignore
+            _ = legend.get_frame().set_linewidth(1.5)  # pyright: ignore
+
+            # Keep grid on for readability
             _ = ax.grid(True, alpha=0.5)  # pyright: ignore
 
         # Hide unused subplots
         for idx in range(len(transfer_metrics), len(axes)):  # pyright: ignore
             axes[idx].set_visible(False)  # pyright: ignore
 
-        # Add a single shared legend
-        handles, labels = axes[0].get_legend_handles_labels()  # pyright: ignore
-        _ = fig.legend(
-            handles,  # pyright: ignore
-            labels,  # pyright: ignore
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.98),
-            ncol=2,
-            fontsize=14,
-            frameon=True,
-        )
+        # No shared legend: markers are shown inside each subplot's stats box
 
         # Add overall title
         _ = fig.suptitle(
@@ -1845,9 +1897,12 @@ def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
         # Save or show figure
         if save_path is not None:
             save_path.mkdir(parents=True, exist_ok=True)
-            fig_path = save_path / f"combined_metrics_{target}.png"
-            plt.savefig(fig_path, dpi=300, bbox_inches="tight")
-            print(f"Saved figure to: {fig_path}")
+            fig_path_png = save_path / f"combined_metrics_{target}.png"
+            plt.savefig(fig_path_png, dpi=300, bbox_inches="tight")
+            print(f"Saved figure to: {fig_path_png}")
+            fig_path_svg = save_path / f"combined_metrics_{target}.svg"
+            plt.savefig(fig_path_svg, bbox_inches="tight")
+            print(f"Saved figure to: {fig_path_svg}")
 
         plt.show()
 
