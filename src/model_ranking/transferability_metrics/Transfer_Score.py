@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from sklearn.neighbors import NearestNeighbors
-from typing import Any
+from typing import Any, Tuple
 from numpy.typing import NDArray
 from numpy.random import uniform
 from random import sample
@@ -70,7 +70,7 @@ def calculate_transfer_metric(
 
     transfer_metric = H_stat - mi_score / math.log(2) - unf
 
-    return transfer_metric
+    return transfer_metric, H_stat, mi_score, unf
 
 
 def run_transfer_metric_calc(
@@ -80,7 +80,7 @@ def run_transfer_metric_calc(
     labels: NDArray[Any],
     num_classes: int = 2,
     n_samples_per_class: Optional[int] = None,
-) -> float:
+) -> Tuple[float, float, float, float]:
     features_balanced, _, predictions_balanced = ensure_even_feature_sampling(
         features=features,
         labels=labels,

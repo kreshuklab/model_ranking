@@ -263,7 +263,21 @@ def transfer_sweep_transferability_metric(config: TransferabilityMetricConfig):
                         transfer_metric
                     )
 
-            if transferability_metric == "NCTI":
+            if transferability_metric == "Transfer_Score":
+                transfer_score_per_model: Dict[str, float] = {}
+                for model_name, transfer_metric in transfer_metric_per_model.items():
+                    assert isinstance(
+                        transfer_metric, tuple
+                    ), "Transfer_Score should return a tuple of scores."
+                    component_scores_per_target[target] = {
+                        "Hopkins": transfer_metric[1],
+                        "MI": transfer_metric[2],
+                        "UNF": transfer_metric[3],
+                    }
+                    transfer_score_per_model[model_name] = transfer_metric[0]
+                transfer_metric_per_model = transfer_score_per_model
+
+            elif transferability_metric == "NCTI":
                 # Ensure transfer_metric_per_model is not a Dict[str, float] before unpacking
                 transfer_metric_per_model, seli_scores, ncc_scores, vc_scores = (
                     process_NCTI_scores(
