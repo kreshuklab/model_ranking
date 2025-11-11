@@ -247,6 +247,7 @@ def correlation_table(
     targets: Sequence[str],
     task: str = "Mito",
     idx: int = 0,
+    num_sig_fig: int = 2,
 ):
     df = pd.DataFrame(
         {
@@ -261,8 +262,12 @@ def correlation_table(
     df["targets"] = targets
     df = df.set_index("targets")
     df.index = pd.MultiIndex.from_product([[task], df.index], names=["Task", "targets"])
-    # Round all float columns to 2 significant figures
-    df = df.map(lambda x: round(x, 2) if isinstance(x, float) else x)  # pyright: ignore
+    # Round all float columns to appropriate significant figures
+    df = df.map(
+        lambda x: (  # pyright: ignore
+            round(x, num_sig_fig) if isinstance(x, float) else x
+        )
+    )
     return df
 
 
