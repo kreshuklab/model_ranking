@@ -3498,12 +3498,12 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 480, 640),
-            stride_shape=(1, 480, 640),
-            halo_shape=(0, 64, 64),
-            # patch_shape=(1, 256, 256),
-            # stride_shape=(1, 256, 256),
-            # halo_shape=(0, 32, 32),
+            # patch_shape=(1, 480, 640),
+            # stride_shape=(1, 480, 640),
+            # halo_shape=(0, 64, 64),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
+            halo_shape=(0, 32, 32),
             # halo_shape=(0, 0, 0),
         ),
     )
