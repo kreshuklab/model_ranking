@@ -227,7 +227,7 @@ def save_summary_metrics(
     # save scores in h5 file in parent directory
     # save_path = Path(config.output_path).parent / "metric_summary.h5"
     save_path = (
-        Path(config.output_path) / f"metric_summary{config.save_name_postfix}.h5"
+        Path(config.output_path).parent / f"metric_summary{config.save_name_postfix}.h5"
     )
 
     with h5py.File(save_path, "a") as f:
@@ -300,15 +300,15 @@ def get_summary_results(
     selected_norms: Mapping[
         str, Union[List[Tuple[float, float]], List[None], List[str]]
     ] = {
-        "BBBC039": [(5, 98)],
-        "DSB2018": [(5, 98)],
-        "Go-Nuclear": [(0, 99.8)],
-        "HeLaNuc": [(5, 99.6)],
-        "Hoechst": [(5, 98)],
-        "S_BIAD634": [(5, 98)],
-        "S_BIAD895": [(5, 98)],
-        "S_BIAD1196": [(5, 98)],
-        "S_BIAD1410": [(5, 98)],
+        "BBBC039": [(5.0, 98.0)],
+        "DSB2018": [(5.0, 98.0)],
+        "Go-Nuclear": [(0.0, 99.8)],
+        "HeLaNuc": [(5.0, 99.6)],
+        "Hoechst": [(5.0, 98.0)],
+        "S_BIAD634": [(5.0, 98.0)],
+        "S_BIAD895": [(5.0, 98.0)],
+        "S_BIAD1196": [(5.0, 98.0)],
+        "S_BIAD1410": [(5.0, 98.0)],
         "FlyWing": [(5.0, 95.0)],
         "Ovules": [(5.0, 95.0)],
         "PNAS": [(5.0, 95.0)],
@@ -668,6 +668,7 @@ def get_finetuned_result_path(
         "direct_eval",
         "feature_perturbation",
         "default_selftraining",
+        "AdaBN",
     ],
     epoch: str,
     base_path: Union[str, Path],
@@ -676,14 +677,23 @@ def get_finetuned_result_path(
     if isinstance(base_path, str):
         base_path = Path(base_path)
     transfer = model_name.split("_")[0]
-    source = MODEL_ABBREVIATIONS_TO_DATASET[transfer[0]]
-    target = MODEL_ABBREVIATIONS_TO_DATASET[transfer[-1]]
+    source_abbrev = transfer.split("to")[0]
+    target_abbrev = transfer.split("to")[-1]
+    source = MODEL_ABBREVIATIONS_TO_DATASET[source_abbrev]
+    target = MODEL_ABBREVIATIONS_TO_DATASET[target_abbrev]
     transfer = f"{source}_to_{target}_gap"
-    results_dir_paths = list(
-        base_path.rglob(
-            f"{transfer}/{finetuning_approach}/{result_type}/{model_name}/{epoch}"
+
+    if finetuning_approach == "AdaBN":
+        results_dir_paths = list(
+            base_path.rglob(f"{transfer}/{model_name}/predictions/none")
         )
-    )
+
+    else:
+        results_dir_paths = list(
+            base_path.rglob(
+                f"{transfer}/{finetuning_approach}/{result_type}/{model_name}/{epoch}"
+            )
+        )
     assert (
         len(results_dir_paths) == 1
     ), f"Expected exactly one path for {model_name}, found {len(results_dir_paths)}"
