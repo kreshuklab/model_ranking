@@ -1613,6 +1613,433 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
     plt.show()
 
 
+def plot_consistency_vs_performance_grid(
+    augmentation_strengths: List[str],
+    target_datasets: List[str],
+    performance_path: str,
+    base_consistency_path: str,
+    custom_legend_labels: Optional[Dict[str, str]] = None,
+    correlation_dfs: Optional[List[Any]] = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    alpha: float = 0.7,
+    marker_size: int = 150,
+    title_fontsize: int = 12,
+    label_fontsize: int = 10,
+    tick_fontsize: int = 8,
+    corr_fontsize: int = 8,
+    legend_fontsize: int = 10,
+    invert_performance_score: bool = False,
+    invert_consistency_score: bool = False,
+    perturbation_type: str = "DO",
+    file_name_postfix: str = "CMB_05f_05b_EI_scores",
+    performance_score_key: str = "F1",
+    source_abbreviations: List[str] = ["E", "Hm", "Rm", "V"],
+    save_path: Optional[Union[str, Path]] = None,
+    plot_style: str = "default",
+    show_legend: bool = True,
+    legend_loc: str = "center left",
+    legend_bbox_to_anchor: Tuple[float, float] = (1.02, 0.5),
+    corr_box_loc: Tuple[float, float] = (0.05, 0.75),
+    wspace: float = 0.3,
+    hspace: float = 0.35,
+) -> Tuple[Any, Any]:
+    """
+    Plot consistency scores vs performance scores in a grid of subplots.
+    Each row represents one augmentation strength, each column represents one target dataset.
+
+    Parameters:
+    -----------
+    augmentation_strengths : List[str]
+        List of augmentation strength identifiers (e.g., ["a0001", "a0005", "a001"])
+    target_datasets : List[str]
+        List of target dataset names (e.g., ["EPFL", "Hmito", "Rmito", "VNC"])
+    performance_path : str
+        Path to the JSON file containing performance scores
+    base_consistency_path : str
+        Base path to the consistency scores JSON files
+    custom_legend_labels : Optional[Dict[str, str]]
+        Optional mapping from model names to custom legend labels
+    correlation_dfs : Optional[List[pd.DataFrame]]
+        Optional list of correlation DataFrames (one per augmentation strength)
+        If provided, used for display. Not required for plotting.
+    figsize : Optional[Tuple[int, int]]
+        Figure size (width, height). If None, automatically calculated based on grid size.
+    alpha : float
+        Transparency of the markers
+    marker_size : int
+        Size of the scatter plot markers
+    title_fontsize : int
+        Font size for subplot titles
+    label_fontsize : int
+        Font size for axis labels
+    tick_fontsize : int
+        Font size for tick labels
+    corr_fontsize : int
+        Font size for correlation text boxes
+    legend_fontsize : int
+        Font size for legend
+    invert_performance_score : bool
+        If True, inverts performance scores (1 - score)
+    invert_consistency_score : bool
+        If True, inverts consistency scores (1 - score)
+    perturbation_type : str
+        Type of perturbation (e.g., "Gauss", "DO")
+    file_name_postfix : str
+        Postfix for the consistency scores filename
+    performance_score_key : str
+        Key for the performance metric (e.g., "F1", "MAP", "MSA")
+    source_abbreviations : List[str]
+        List of source abbreviations for grouping models by color
+    save_path : Optional[Union[str, Path]]
+        Path to save the figure. Both PNG and SVG versions will be saved.
+    plot_style : str
+        Matplotlib style to use
+    show_legend : bool
+        Whether to show the legend (only once for entire figure)
+    legend_loc : str
+        Legend location specification
+    legend_bbox_to_anchor : Tuple[float, float]
+        Bbox anchor for legend positioning
+    corr_box_loc : Tuple[float, float]
+        Location of correlation box within each subplot (in axes coordinates)
+    wspace : float
+        Width space between subplots
+    hspace : float
+        Height space between subplots
+
+    Returns:
+    --------
+    fig, axes : matplotlib figure and axes array
+
+    Example:
+    --------
+    >>> augmentation_strengths = ["a0001", "a0005", "a001", "a002"]
+    >>> target_datasets = ["EPFL", "Hmito", "Rmito", "VNC"]
+    >>> fig, axes = plot_consistency_vs_performance_grid(
+    ...     augmentation_strengths=augmentation_strengths,
+    ...     target_datasets=target_datasets,
+    ...     performance_path="path/to/performance.json",
+    ...     base_consistency_path="path/to/consistency/",
+    ...     custom_legend_labels={"E_model5": "EPFL U-Net"},
+    ...     perturbation_type="DO",
+    ... )
+    """
+    # Set the plot style
+    plt.style.use(plot_style)
+
+    # Load performance scores once
+    performance_results = load_transfer_metric_results(performance_path)
+    performance_scores = performance_results["performance_scores"]
+
+    # Calculate figure size if not provided
+    n_rows = len(augmentation_strengths)
+    n_cols = len(target_datasets)
+    if figsize is None:
+        # Auto-calculate: 4 inches per column + 1 for legend, 3 inches per row
+        figsize = (6 * n_cols + 3, 5 * n_rows)
+
+    # Create subplots
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)  # pyright: ignore
+
+    # Handle case where we have only one row or column
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])  # pyright: ignore
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)  # pyright: ignore
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)  # pyright: ignore
+    # Define colors for each source dataset
+    source_colors = {
+        source_abbreviations[0]: "#377eb8",  # Blue
+        source_abbreviations[1]: "#ff7f00",  # Orange
+        source_abbreviations[2]: "#2ca02c",  # Green
+    }
+    # Add more colors if needed
+    additional_colors = [
+        "#984ea3",
+        "#8c564b",
+        "#e377c2",
+        "#7f7f7f",
+        "#bcbd22",
+        "#17becf",
+    ]
+    for i, abbr in enumerate(source_abbreviations[3:], start=0):
+        source_colors[abbr] = additional_colors[i % len(additional_colors)]
+
+    def get_marker_shape(model_name: str) -> str:
+        """Determine marker shape based on model architecture identifiers."""
+        if "NA" in model_name:
+            return "o"  # circle - U-Net (No Augs)
+        elif "Res" in model_name:
+            return "s"  # square - ResUNet
+        elif "Unetr" in model_name:
+            return "*"  # star - UNETR
+        elif "vit_b" in model_name:
+            return "o"
+        elif "vit_l" in model_name:
+            return "s"
+        elif "vit_t" in model_name:
+            return "D"
+        elif "cpsam" in model_name.lower():
+            return "p"
+        elif "powerful" in model_name.lower():
+            return "*"
+        else:
+            return "^"  # triangle - U-Net
+
+    # Collect all models for creating a single legend
+    all_models: set[str] = set()
+
+    # Loop through each augmentation strength (rows)
+    for row_idx, aug_strength in enumerate(augmentation_strengths):
+        # Load consistency scores for this augmentation
+        file_name = (
+            f"transfer_{perturbation_type}_{aug_strength}_{file_name_postfix}.json"
+        )
+        consistency_path = Path(base_consistency_path) / file_name
+
+        try:
+            results = load_transfer_metric_results(consistency_path)
+            consistency_scores = results["consistency_scores"]
+        except FileNotFoundError:
+            print(f"Warning: Could not find consistency file: {consistency_path}")
+            continue
+
+        # Loop through each target dataset (columns)
+        for col_idx, target_dataset in enumerate(target_datasets):
+            ax = axes[row_idx, col_idx]  # pyright: ignore
+
+            # Extract scores for this target
+            if target_dataset not in performance_scores:
+                ax.text(
+                    0.5,
+                    0.5,
+                    f"No data for\n{target_dataset}",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+                continue
+
+            if target_dataset not in consistency_scores:
+                ax.text(
+                    0.5,
+                    0.5,
+                    f"No consistency\ndata for\n{target_dataset}",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+                continue
+
+            target_performance = performance_scores[target_dataset]
+            target_consistency = consistency_scores[target_dataset]
+
+            # Find common models
+            common_models: set[str] = set(target_performance.keys()) & set(
+                target_consistency.keys()
+            )
+            all_models.update(common_models)
+
+            if not common_models:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No common\nmodels",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
+                continue
+
+            # Prepare data
+            x_values: List[float] = []
+            y_values: List[float] = []
+
+            for model in sorted(common_models):
+                x_values.append(target_consistency[model])
+                y_values.append(target_performance[model])
+
+            if invert_consistency_score:
+                x_values = [1 - val for val in x_values]
+            if invert_performance_score:
+                y_values = [1 - val for val in y_values]
+
+            # Calculate correlations
+            consis_array = np.array(x_values).reshape(-1, 1)
+            kt_scores, sp_scores, pearson_scores = calculate_correlation_statistics(
+                consis_array, np.array(y_values)
+            )
+            pr = pearson_scores[0, 0]
+            sp = sp_scores[0, 0]
+            kt = kt_scores[0, 0]
+
+            # Plot each model
+            for i, model in enumerate(sorted(common_models)):
+                # Determine source abbreviation
+                model_source = None
+                for abbr in source_abbreviations:
+                    if model.startswith(abbr + "_"):
+                        model_source = abbr
+                        break
+
+                # Get color and marker
+                color = (
+                    source_colors.get(model_source, "gray") if model_source else "gray"
+                )
+                marker = get_marker_shape(model)
+
+                # Plot point
+                ax.scatter(
+                    x_values[i],
+                    y_values[i],
+                    s=marker_size,
+                    alpha=alpha,
+                    c=color,
+                    marker=marker,
+                    edgecolors="black",
+                    linewidths=0.5,
+                )
+
+            # Format augmentation strength for display
+            if perturbation_type == "DO":
+                if aug_strength.startswith("a"):
+                    val = aug_strength[1:]
+                    pert_str: Union[float, Tuple[float, float]] = add_decimal(val)
+                else:
+                    pert_str = add_decimal(aug_strength)
+            else:
+                pert_str = aug_name_to_sigma_tuple(aug_strength)
+
+            # Set title (show target on top row, augmentation on left column)
+            if row_idx == 0:
+                # Top row: show target name
+                ax.set_title(
+                    f"{target_dataset}", fontsize=title_fontsize, fontweight="bold"
+                )
+            if col_idx == 0:
+                # Left column: show augmentation strength
+                ax.set_ylabel(
+                    f"{perturbation_type} {pert_str}\n{performance_score_key}",
+                    fontsize=label_fontsize,
+                )
+            else:
+                ax.set_ylabel(f"{performance_score_key}", fontsize=label_fontsize)
+
+            # Set x-label only on bottom row
+            if row_idx == n_rows - 1:
+                ax.set_xlabel("CTE", fontsize=label_fontsize)
+
+            # Set tick sizes
+            ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+
+            # Add correlation box
+            corr_text = f"K$\\tau$: {kt:.2f}\nS$\\rho$: {sp:.2f}\nPr: {pr:.2f}"
+            ax.text(
+                corr_box_loc[0],
+                corr_box_loc[1],
+                corr_text,
+                transform=ax.transAxes,
+                fontsize=corr_fontsize,
+                verticalalignment="top",
+                horizontalalignment="left",
+                bbox=dict(
+                    boxstyle="round,pad=0.3",
+                    facecolor="white",
+                    edgecolor="black",
+                    alpha=0.85,
+                    linestyle="dotted",
+                    linewidth=1.0,
+                ),
+            )
+
+            # Add grid
+            ax.grid(True, alpha=0.3)
+
+    # Create legend once for entire figure (if requested)
+    if show_legend and all_models:
+        legend_handles: List[Any] = []
+        labels: List[str] = []
+
+        for model in sorted(all_models):
+            # Determine source abbreviation
+            model_source = None
+            for abbr in source_abbreviations:
+                if model.startswith(abbr + "_"):
+                    model_source = abbr
+                    break
+
+            # Get color and marker
+            color = source_colors.get(model_source, "gray") if model_source else "gray"
+            marker = get_marker_shape(model)
+
+            # Use custom label if provided
+            if custom_legend_labels and model in custom_legend_labels:
+                label = custom_legend_labels[model]
+            else:
+                label = model
+
+            # Create handle
+            handle = plt.scatter(
+                [],
+                [],
+                c=color,
+                s=marker_size,
+                alpha=alpha,
+                marker=marker,
+                edgecolors="black",
+                linewidths=0.5,
+            )
+            legend_handles.append(handle)
+            labels.append(label)
+
+        # Add legend to the figure
+        _ = fig.legend(
+            legend_handles,
+            labels,
+            loc=legend_loc,
+            bbox_to_anchor=legend_bbox_to_anchor,
+            fontsize=legend_fontsize,
+            frameon=True,
+            fancybox=True,
+            shadow=False,
+        )
+
+    # Adjust spacing
+    plt.subplots_adjust(wspace=wspace, hspace=hspace)
+
+    # Save if requested
+    if save_path is not None:
+        save_path_obj = Path(save_path)
+        save_path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+        # Determine base path without extension
+        if save_path_obj.suffix:
+            base_path = save_path_obj.with_suffix("")
+        else:
+            base_path = save_path_obj
+
+        # Save PNG version
+        png_path = base_path.with_suffix(".png")
+        try:
+            fig.savefig(png_path, dpi=300, bbox_inches="tight", format="png")
+            print(f"Saved PNG figure to: {png_path}")
+        except Exception as e:
+            print(f"Error saving PNG: {e}")
+
+        # Save SVG version
+        svg_path = base_path.with_suffix(".svg")
+        try:
+            fig.savefig(svg_path, bbox_inches="tight", format="svg")
+            print(f"Saved SVG figure to: {svg_path}")
+        except Exception as e:
+            print(f"Error saving SVG: {e}")
+
+    plt.show()
+
+    return fig, axes  # pyright: ignore
+
+
 def plot_cmb_classification_seg_transfer_metric_correlations_CVPR(
     classification_results_path: Path,
     segmentation_results_path: Path,
