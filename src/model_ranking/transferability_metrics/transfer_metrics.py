@@ -6,6 +6,8 @@ import os
 from numpy.typing import NDArray
 from typing import Any, Optional
 
+from model_ranking.utils import is_ndarray
+
 from model_ranking.classification.transfer_metrics import (
     get_transfer_data_classification,
 )
@@ -21,6 +23,9 @@ from model_ranking.transferability_metrics import (
     NCTI_Score,
     process_NCTI_scores,
     run_transfer_metric_calc,
+    dispersion,
+    get_nuno,
+    ensure_even_label_sampling,
 )
 from model_ranking.feature_ranking import get_precomputed_feature_path
 from model_ranking.utils import load_h5, get_source_from_model_name
@@ -95,6 +100,41 @@ def calculate_transfer_metric(  # pyright: ignore
             labels=labels,
             n_samples_per_class=150000,
         )
+    elif metric_name == "Dispersion":
+        assert (
+            features is not None
+        ), "Features must be provided for Transfer_Score metric."
+        assert (
+            predictions is not None
+        ), "Predictions must be provided for Transfer_Score metric."
+        features_balanced, _, predictions_balanced = ensure_even_label_sampling(
+            features=features,
+            labels=labels,
+            predictions=predictions,
+            n_samples_per_class=150000,
+        )
+        assert is_ndarray(features_balanced), "Features should be numpy array"
+        assert is_ndarray(predictions_balanced), "Predictions should be numpy array"
+        return dispersion(
+            features_balanced, (predictions_balanced > 0.5).astype(np.int8)
+        )
+
+    elif metric_name == "NuNo":
+        assert (
+            predictions is not None
+        ), "Predictions must be provided for Transfer_Score metric."
+        _, _, predictions_balanced = ensure_even_label_sampling(
+            features=None,
+            labels=labels,
+            predictions=predictions,
+            n_samples_per_class=150000,
+        )
+        assert is_ndarray(predictions_balanced), "Predictions should be numpy array"
+        if predictions_balanced.ndim == 1:
+            predictions_balanced = np.stack(
+                [1 - predictions_balanced, predictions_balanced], axis=1
+            )
+        return get_nuno(predictions_balanced)
     else:
         raise ValueError(f"Unknown transfer metric: {metric_name}")
 

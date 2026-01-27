@@ -7,3 +7,6 @@ from .leep import *
 from .logme import *
 from .NCTI import *
 from .Transfer_Score import *
+from .dispersion import *
+from .nuclear_norm import *
+from .utils import *

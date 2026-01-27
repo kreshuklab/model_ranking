@@ -54,6 +54,8 @@ transferability_metric_names = Literal[
     "NCTI",
     "CTE",
     "Transfer_Score",
+    "Dispersion",
+    "NuNo",
 ]
 
 
