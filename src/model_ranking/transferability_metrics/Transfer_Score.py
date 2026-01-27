@@ -9,42 +9,8 @@ from random import sample
 from typing import Optional, Any
 import math
 
-
-def ensure_even_feature_sampling(
-    features: NDArray[Any],
-    labels: NDArray[Any],
-    predictions: NDArray[Any],
-    n_samples_per_class: Optional[int] = None,
-):
-    # Sample equal number of class 0 and 1 labels
-    class_0_indices = np.where(labels.flatten() == 0)[0]
-    class_1_indices = np.where(labels.flatten() == 1)[0]
-
-    # Determine the minimum count between the two classes
-    min_count = min(len(class_0_indices), len(class_1_indices))
-
-    if n_samples_per_class is None:
-        n_samples = min_count
-
-    else:
-        n_samples = min(n_samples_per_class, min_count)
-
-    # Randomly sample equal numbers from each class
-    np.random.seed(42)  # for reproducibility
-    sampled_class_0 = np.random.choice(class_0_indices, size=n_samples, replace=False)
-    sampled_class_1 = np.random.choice(class_1_indices, size=n_samples, replace=False)
-
-    # Combine the indices
-    balanced_indices = np.concatenate([sampled_class_0, sampled_class_1])
-
-    # Create balanced datasets
-    features_balanced = features.reshape(-1, features.shape[-1])[balanced_indices]
-    labels_balanced = labels.flatten()[balanced_indices]
-    predictions_balanced = predictions.flatten()[balanced_indices]
-
-    print(f"Original dataset: {len(labels.flatten())} samples")
-    print(f"Balanced dataset: {len(labels_balanced)} samples")
-    return features_balanced, labels_balanced, predictions_balanced
+from .utils import ensure_even_label_sampling
+from model_ranking.utils import is_ndarray
 
 
 def calculate_transfer_metric(
@@ -81,12 +47,14 @@ def run_transfer_metric_calc(
     num_classes: int = 2,
     n_samples_per_class: Optional[int] = None,
 ) -> Tuple[float, float, float, float]:
-    features_balanced, _, predictions_balanced = ensure_even_feature_sampling(
+    features_balanced, _, predictions_balanced = ensure_even_label_sampling(
         features=features,
         labels=labels,
         predictions=predictions,
         n_samples_per_class=n_samples_per_class,
     )
+    assert is_ndarray(features_balanced), "Features should be numpy array"
+    assert is_ndarray(predictions_balanced), "Predictions should be numpy array"
     transfer_metric = calculate_transfer_metric(
         features_balanced, predictions_balanced, weights, num_classes=num_classes
     )
