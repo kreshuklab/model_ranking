@@ -21,6 +21,7 @@ from model_ranking.metrics import (
     MultiClassF1Eval,
     BinaryF1Eval,
     SoftF1Eval,
+    BinaryAccuracyEval,
     AdaptedRandErrorEval,
     DifferenceImageEval,
     EffectiveInvarianceEval,
@@ -447,6 +448,18 @@ class MultiClassF1Config(EvalMetricConfig, frozen=True):
 
     def initialise_score(self, num_samples: int) -> torch.Tensor:
         return torch.zeros((num_samples, 2), dtype=torch.float32)
+    
+class BinaryAccuracyConfig(EvalMetricConfig, frozen=True):
+    name: Literal["BinaryAccuracy"] = "BinaryAccuracy"
+    threshold: float = 0.5
+
+    def initialise_metric(self) -> BinaryAccuracyEval:
+        return BinaryAccuracyEval(
+            threshold=self.threshold,
+        )
+
+    def initialise_score(self, num_samples: int) -> torch.Tensor:
+        return torch.zeros(num_samples, dtype=torch.float32)
 
 
 class BinaryF1Config(EvalMetricConfig, frozen=True):
@@ -596,6 +609,7 @@ eval_metric_type = Annotated[
     Union[
         AdaptedRandErrorEvalConfig,
         BinaryF1Config,
+        BinaryAccuracyConfig,
         MeanAvgPrecisionEvalConfig,
         MultiClassF1Config,
         SoftF1Config,

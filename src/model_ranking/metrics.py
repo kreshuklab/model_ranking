@@ -3,7 +3,11 @@ import torch.nn as nn
 from typing import Dict, List, Optional, Any, Sequence, Tuple, Union, Literal
 import numpy as np
 from numpy.typing import NDArray
-from torcheval.metrics.functional import binary_f1_score, multiclass_f1_score
+from torcheval.metrics.functional import (
+    binary_f1_score,
+    multiclass_f1_score,
+    binary_accuracy,
+)
 from scipy.stats import (  # pyright: ignore[reportMissingTypeStubs]
     entropy,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -52,6 +56,21 @@ class MultiClassF1Eval:
                     num_classes=2,
                     average=None,
                 )
+        return batch_perf_scores
+
+
+class BinaryAccuracyEval:
+    def __init__(self, threshold: float = 0.5):
+        super().__init__()
+        self.threshold = threshold
+
+    def __call__(self, pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+        batch_perf_scores = torch.zeros(pred.shape[0])
+        # Loop over batch dimension
+        for j in range(pred.shape[0]):
+            batch_perf_scores[j] = binary_accuracy(
+                pred[j].flatten(), gt[j].long().flatten(), threshold=self.threshold
+            )
         return batch_perf_scores
 
 
