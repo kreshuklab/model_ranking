@@ -101,12 +101,10 @@ def calculate_transfer_metric(  # pyright: ignore
             n_samples_per_class=150000,
         )
     elif metric_name == "Dispersion":
-        assert (
-            features is not None
-        ), "Features must be provided for Transfer_Score metric."
+        assert features is not None, "Features must be provided for Dispersion metric."
         assert (
             predictions is not None
-        ), "Predictions must be provided for Transfer_Score metric."
+        ), "Predictions must be provided for Dispersion metric."
         features_balanced, _, predictions_balanced = ensure_even_label_sampling(
             features=features,
             labels=labels,
@@ -122,7 +120,7 @@ def calculate_transfer_metric(  # pyright: ignore
     elif metric_name == "NuNo":
         assert (
             predictions is not None
-        ), "Predictions must be provided for Transfer_Score metric."
+        ), "Predictions must be provided for Nuclear_norm metric."
         _, _, predictions_balanced = ensure_even_label_sampling(
             features=None,
             labels=labels,
@@ -163,10 +161,10 @@ def get_transfer_data_segmentation(
         feature_config.base_path,
         filetype=feature_config.file_type,
     )
-    if str(transferability_metric) == "LEEP":
+    if str(transferability_metric) in ["LEEP", "NuNo"]:
         features = None
         predictions = load_h5(feature_path, f"{key}_predictions")
-    elif str(transferability_metric) == "Transfer_Score":
+    elif str(transferability_metric) in ["Transfer_Score", "Dispersion"]:
         features = load_h5(feature_path, f"{key}_features")
         predictions = load_h5(feature_path, f"{key}_predictions")
     else:
@@ -199,7 +197,10 @@ def get_transfer_data_segmentation(
         )[1]
     else:
         performance_score = load_h5(performance_path, performance_config.key)
-        performance_score = np.median(performance_score[:, 1])
+        if performance_score.ndim == 2:
+            performance_score = np.median(performance_score[:, 1])
+        else:
+            performance_score = np.median(performance_score)
 
     if performance_config.invert_score == True:
         performance_score = 1 - performance_score
