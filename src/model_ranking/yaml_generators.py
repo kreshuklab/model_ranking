@@ -442,17 +442,17 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                     # get prediction file_name postfix for eval and consis loaders, legacy postifix on older models
                     # is equal to the perturbation aplied to prediction, on current models it is equal to "predictions"
-                    if source_model.model_name in [
-                        "E_model4",
-                        "Hm_model3",
-                        "Rm_model3",
-                        "fw_model8",
-                        "ov_model8",
-                        "p_model5",
-                    ]:
-                        pred_file_name_postfix = save_name
-                    else:
-                        pred_file_name_postfix = "predictions"
+                    # if source_model.model_name in [
+                    #     "E_model4",
+                    #     "Hm_model3",
+                    #     "Rm_model3",
+                    #     "fw_model8",
+                    #     "ov_model8",
+                    #     "p_model5",
+                    # ]:
+                    #     pred_file_name_postfix = save_name
+                    # else:
+                    pred_file_name_postfix = "predictions"
 
                     # Get Predictor config
                     if meta_cfg.segmentation_mode == "semantic":
