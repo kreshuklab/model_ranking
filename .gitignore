@@ -8,7 +8,6 @@ wandb/
 /tests
 */SLURM
 *.sh
-*.png
 *.svg
 *.out
 *.DS_Store
