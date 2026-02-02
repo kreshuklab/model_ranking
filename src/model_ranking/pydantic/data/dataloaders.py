@@ -235,3 +235,158 @@ class TIFTrainLoadersConfig(TIFLoadersConfig, frozen=True):
 
 class TIFValLoadersConfig(TIFLoadersConfig, frozen=True):
     val: Union[TIFPhaseConfig, TIFtxtPhaseConfig]
+
+
+class LoaderMetaConfig(BaseModel):
+    batch_size: int
+    num_workers: int
+    global_norm: bool
+    percentiles: Optional[Sequence[float]]
+    image_dir: Sequence[str]
+    mask_dir: Sequence[str]
+    transformer: transforms_type
+
+
+class TIFLoaderMetaConfig(LoaderMetaConfig):
+    dataset: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
+
+    def create_config(
+        self,
+        output_dir: Optional[str],
+        data_base_path: str,
+        phase: Literal["train", "test", "val"] = "test",
+    ):
+        mask_dir: List[str] = []
+        image_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+            image_dir.append(data_base_path + self.image_dir[i])
+        if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
+            loader = TIFPredictionLoadersConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                test=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "train":
+            loader = TIFTrainLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                train=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "val":
+            loader = TIFValLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                val=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+            )
+        else:
+            assert_never(phase)
+        return loader
+
+
+class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
+    dataset: Literal["TIF_txt_Dataset"]
+    filenames_path: str
+
+    def create_config(
+        self,
+        output_dir: Optional[str],
+        data_base_path: str,
+        phase: Literal["test", "train", "val"] = "test",
+    ):
+        mask_dir: List[str] = []
+        image_dir: List[str] = []
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+            image_dir.append(data_base_path + self.image_dir[i])
+        if phase == "test":
+            assert output_dir is not None, "output_dir must be given for test phase"
+            loader = TIFPredictionLoadersConfig(
+                dataset=self.dataset,
+                output_dir=output_dir,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                test=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "train":
+            loader = TIFTrainLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                train=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        elif phase == "val":
+            loader = TIFValLoadersConfig(
+                dataset=self.dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                val=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+            )
+        else:
+            assert_never(phase)
+        return loader
+
+
+loader_type = Annotated[
+    Union[
+        Pytorch3DUnetLoaderMetaConfig,
+        TIFLoaderMetaConfig,
+        TIFtxtLoaderMetaConfig,
+        SBIAD1410LoaderMetaConfig,
+    ],
+    Discriminator("dataset"),
+]
+
+
+semantic_loaders_type = Annotated[
+    Union[
+        Pytorch3DUnetTrainLoaderConfig,
+        TIFTrainLoadersConfig,
+        SBIAD1410LoaderTrainConfig,
+    ],
+    Discriminator("name"),
+]

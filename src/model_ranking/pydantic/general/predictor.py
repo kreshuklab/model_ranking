@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Literal, Optional
+from pydantic import BaseModel, Discriminator
+from typing import Annotated, Literal, Optional, Union
 
 
 class Pytorch3DUnetPredictorMetaConfig(BaseModel):
@@ -30,3 +30,20 @@ class TIFNucleiInstancePredictorConfig(BaseModel):
     min_size: int
     zero_largest_instance: bool = False
     no_adjust_background: bool = False
+
+
+predictor_semantic_type = Annotated[
+    Union[
+        Pytorch3DUnetPredictorMetaConfig,
+        TIFNucleiSemanticPredictorConfig,
+    ],
+    Discriminator("name"),
+]
+
+predictor_instance_type = Annotated[
+    Union[
+        Pytorch3DUnetPredictorMetaConfig,
+        TIFNucleiInstancePredictorConfig,
+    ],
+    Discriminator("name"),
+]

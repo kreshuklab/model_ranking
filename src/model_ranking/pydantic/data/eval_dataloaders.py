@@ -2,7 +2,13 @@ from pydantic import BaseModel
 from typing import Annotated, List, Literal, Optional, Sequence, Union
 from pydantic import Discriminator
 
-from .datasets import SBIAD1410PhaseConfig, SBIAD1410PhaseMetaConfig
+from .datasets import (
+    SBIAD1410PhaseConfig,
+    SBIAD1410PhaseMetaConfig,
+    transforms_type,
+    TIFtxtPhaseConfig,
+    TIFPhaseConfig,
+)
 
 from .eval_datasets import (
     EvalDatasetConfig,
@@ -182,3 +188,148 @@ class EvalSB1410DataloaderMetaConfig(BaseModel):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
         )
+
+
+class Eval_TIF_TxtDataloaderMetaConfig(BaseModel, frozen=True):
+    name: Literal["TIF_txt_Dataset"]
+    expand_dims: bool
+    global_norm: bool
+    percentiles: Optional[Sequence[Union[float, int]]]
+    image_key: Optional[str]
+    min_object_size: Optional[int]
+    zero_large_instances: bool
+    mask_dir: Optional[Sequence[str]]
+    mask_key: Optional[str]
+    filenames_path: str
+    batch_size: int
+    num_workers: int
+    transformer: transforms_type
+
+    def create_config(self, image_dir: Sequence[str], data_base_path: str):
+        mask_dir: List[str] = []
+        assert self.mask_dir is not None, "mask_dir must be given"
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFtxtPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                zero_large_instances=self.zero_large_instances,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+    def create_consis_config(
+        self,
+        perturbed_dir: Sequence[str],
+        unperturbed_dir: Sequence[str],
+        data_base_path: str,
+    ):
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFtxtPhaseConfig(
+                    image_dir=perturbed_dir,
+                    mask_dir=unperturbed_dir,
+                    filenames_path=data_base_path + self.filenames_path,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                zero_large_instances=self.zero_large_instances,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+
+class Eval_TIF_DataloaderMetaConfig(BaseModel, frozen=True):
+    name: Literal["Standard_TIF_Dataset", "HeLaNuc_Dataset", "Hoechst_Dataset"]
+    expand_dims: bool
+    global_norm: bool
+    percentiles: Optional[Sequence[float]]
+    image_key: Optional[str]
+    min_object_size: Optional[int]
+    zero_large_instances: bool
+    mask_dir: Optional[Sequence[str]]
+    mask_key: Optional[str]
+    batch_size: int
+    num_workers: int
+    transformer: transforms_type
+
+    def create_config(self, image_dir: Sequence[str], data_base_path: str):
+        mask_dir: List[str] = []
+        assert self.mask_dir is not None, "mask_dir must be given"
+        for i in range(len(self.mask_dir)):
+            mask_dir.append(data_base_path + self.mask_dir[i])
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFPhaseConfig(
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                zero_large_instances=self.zero_large_instances,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+    def create_consis_config(
+        self,
+        perturbed_dir: Sequence[str],
+        unperturbed_dir: Sequence[str],
+    ):
+        return EvalDataloaderConfig(
+            eval_dataset=TIFEvalDatasetConfig(
+                name=self.name,
+                eval=TIFPhaseConfig(
+                    image_dir=perturbed_dir,
+                    mask_dir=unperturbed_dir,
+                    transformer=self.transformer,
+                ),
+                expand_dims=self.expand_dims,
+                global_norm=self.global_norm,
+                percentiles=self.percentiles,
+                image_key=self.image_key,
+                mask_key=self.mask_key,
+                min_object_size=self.min_object_size,
+                zero_large_instances=self.zero_large_instances,
+            ),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+
+
+eval_dataloader_type = Annotated[
+    Union[
+        Eval_TIF_TxtDataloaderMetaConfig,
+        Eval_TIF_DataloaderMetaConfig,
+        EvalDataloaderMetaConfig,
+        EvalSB1410DataloaderMetaConfig,
+    ],
+    Discriminator("name"),
+]

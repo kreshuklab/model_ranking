@@ -12,7 +12,10 @@ from model_ranking.metrics import (
     HammingDistanceEval,
 )
 
-from .performance_metrics import AdaptedRandErrorConfig, MeanAvgPrecisionConfig
+from .performance_metrics import (
+    AdaptedRandErrorConfig,
+    MeanAvgPrecisionConfig,
+)
 
 consistency_metric_names = Literal[
     "Diff",
@@ -171,3 +174,11 @@ consistency_metric_type = Annotated[
     ],
     Discriminator("name"),
 ]
+
+
+class ConsistencyMetricMetaConfig(BaseModel, frozen=True):
+    save_mask: bool
+    ignore_path: Optional[str]
+    ignore_key: Optional[str]
+    remove_background: bool
+    zero_largest_instance: bool
