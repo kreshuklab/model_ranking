@@ -32,7 +32,7 @@ def get_transfer_data_classification(
         target,
         feature_config.base_path,
     )
-    if str(transferability_metric) in ["LEEP", "NuNo"]:
+    if str(transferability_metric) in ["LEEP", "NuNo", "MaNo"]:
         features = None
         predictions = load_h5(pred_path, f"predictions")
     elif str(transferability_metric) in ["Transfer_Score", "Dispersion"]:

@@ -10,3 +10,4 @@ from .Transfer_Score import *
 from .dispersion import *
 from .nuclear_norm import *
 from .utils import *
+from .MaNo import *

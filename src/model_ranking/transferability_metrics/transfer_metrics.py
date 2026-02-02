@@ -26,6 +26,8 @@ from model_ranking.transferability_metrics import (
     dispersion,
     get_nuno,
     ensure_even_label_sampling,
+    uniform_cross_entropy,
+    MaNo_evaluate,
 )
 from model_ranking.feature_ranking import get_precomputed_feature_path
 from model_ranking.utils import load_h5, get_source_from_model_name
@@ -133,6 +135,25 @@ def calculate_transfer_metric(  # pyright: ignore
                 [1 - predictions_balanced, predictions_balanced], axis=1
             )
         return get_nuno(predictions_balanced)
+
+    elif metric_name == "MaNo":
+        assert (
+            predictions is not None
+        ), "Predictions must be provided for Nuclear_norm metric."
+        _, _, predictions_balanced = ensure_even_label_sampling(
+            features=None,
+            labels=labels,
+            predictions=predictions,
+            n_samples_per_class=150000,
+        )
+        assert is_ndarray(predictions_balanced), "Predictions should be numpy array"
+        predictions_balanced = np.clip(predictions_balanced, 1e-7, 1 - 1e-7)
+        logits = np.log(predictions_balanced / (1 - predictions_balanced))
+        logits_2class = np.stack([np.zeros_like(logits), logits], axis=1)
+
+        delta = uniform_cross_entropy(2, logits_2class)
+        return MaNo_evaluate(4, float(delta), logits_2class)
+
     else:
         raise ValueError(f"Unknown transfer metric: {metric_name}")
 
@@ -161,7 +182,7 @@ def get_transfer_data_segmentation(
         feature_config.base_path,
         filetype=feature_config.file_type,
     )
-    if str(transferability_metric) in ["LEEP", "NuNo"]:
+    if str(transferability_metric) in ["LEEP", "NuNo", "MaNo"]:
         features = None
         predictions = load_h5(feature_path, f"{key}_predictions")
     elif str(transferability_metric) in ["Transfer_Score", "Dispersion"]:

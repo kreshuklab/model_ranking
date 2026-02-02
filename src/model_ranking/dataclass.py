@@ -57,6 +57,7 @@ transferability_metric_names = Literal[
     "Transfer_Score",
     "Dispersion",
     "NuNo",
+    "MaNo",
 ]
 
 
@@ -448,7 +449,8 @@ class MultiClassF1Config(EvalMetricConfig, frozen=True):
 
     def initialise_score(self, num_samples: int) -> torch.Tensor:
         return torch.zeros((num_samples, 2), dtype=torch.float32)
-    
+
+
 class BinaryAccuracyConfig(EvalMetricConfig, frozen=True):
     name: Literal["BinaryAccuracy"] = "BinaryAccuracy"
     threshold: float = 0.5
