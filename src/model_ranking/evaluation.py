@@ -11,7 +11,7 @@ from pytorch3dunet.datasets.dsb import (
     S_BIAD1410_Dataset,
 )
 
-from model_ranking.pydantic import (
+from model_ranking.data_structures import (
     EvalDataloaderConfig,
     EvaluateConfig,
     TIFEvalDatasetConfig,

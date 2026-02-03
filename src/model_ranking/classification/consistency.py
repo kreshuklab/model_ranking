@@ -8,7 +8,7 @@ from model_ranking.utils import load_h5, save_h5
 # from model_ranking.dataclass import SummaryResultsConfig
 from model_ranking.metrics import calculate_EI_binary
 
-from .utils import (
+from ._utils import (
     get_classification_pred_path,
 )
 

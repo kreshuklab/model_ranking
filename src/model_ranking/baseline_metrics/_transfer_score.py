@@ -9,7 +9,7 @@ from random import sample
 from typing import Optional, Any
 import math
 
-from .utils import ensure_even_label_sampling
+from ._utils import ensure_even_label_sampling
 from model_ranking.utils import is_ndarray
 
 

@@ -11,9 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from tqdm import tqdm
 
 from .data_loader import get_classification_TTA_loaders
-from .datasets import ClassificationFilteredDataset
-from .model import ClassificationNet
-from .utils import (
+from ._datasets import ClassificationFilteredDataset
+from ._model import ClassificationNet
+from ._utils import (
     merge_dicts,
     get_classification_transfer,
     copy_classification_config,

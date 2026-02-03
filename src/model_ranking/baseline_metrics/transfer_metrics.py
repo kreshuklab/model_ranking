@@ -8,27 +8,27 @@ from typing import Any, Optional
 
 from model_ranking.utils import is_ndarray
 
-from model_ranking.classification.transfer_metrics import (
+from model_ranking.classification._precomputed import (
     get_transfer_data_classification,
 )
-from model_ranking.classification.utils import get_source_from_classification_model_name
+from model_ranking.classification._utils import (
+    get_source_from_classification_model_name,
+)
 
-from model_ranking.baseline_metrics import (
-    bhattacharyya_coefficient,
-    h_score,
-    regularized_h_score,
+from ._dispersion import dispersion
+from ._transfer_score import run_transfer_metric_calc
+from ._GBC import bhattacharyya_coefficient
+from ._hscore import h_score, regularized_h_score
+from ._leep import (
     log_expected_empirical_prediction,
     gaussian_log_expected_empirical_prediction,
-    log_maximum_evidence,
-    NCTI_Score,
-    process_NCTI_scores,
-    run_transfer_metric_calc,
-    dispersion,
-    get_nuno,
-    ensure_even_label_sampling,
-    uniform_cross_entropy,
-    MaNo_evaluate,
 )
+from ._logme import log_maximum_evidence
+from ._NCTI import NCTI_Score, process_NCTI_scores
+from ._nuclear_norm import get_nuno
+from ._utils import ensure_even_label_sampling
+from ._MaNo import MaNo_evaluate, uniform_cross_entropy
+
 from model_ranking.correlation import (
     to_target_transfer_correlations,
 )

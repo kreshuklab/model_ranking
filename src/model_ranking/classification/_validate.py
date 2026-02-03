@@ -8,7 +8,7 @@ from typing import Any, List, Union
 
 import wandb
 
-from .utils import create_image_grid
+from ._utils import create_image_grid
 
 
 def validate(

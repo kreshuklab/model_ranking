@@ -2,10 +2,11 @@ from tqdm import tqdm
 import numpy as np
 from typing import Dict
 
-from .consistency import (
+from model_ranking.data_structures import (
     ClassificationPredicitonLoadConfig,
 )
-from .utils import (
+
+from ._utils import (
     get_classification_pred_path,
 )
 

@@ -4,12 +4,12 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Compose  # pyright: ignore[reportMissingTypeStubs]
 import torch
 
-from .augmentations import (
+from ._augmentations import (
     classification_geometric_TTAs,
     AUGMENTATION_ABBREVIATIONS,
 )
-from .datasets import ClassificationFilteredDataset
-from .utils import get_patch_positions
+from ._datasets import ClassificationFilteredDataset
+from ._utils import get_patch_positions
 from model_ranking.data_structures import ClassificationLoaderConfig
 
 from torch_em.segmentation import get_data_loader  # pyright: ignore

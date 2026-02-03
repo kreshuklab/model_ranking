@@ -1,6 +1,6 @@
 import numpy as np
 
-from .utils import (
+from ._utils import (
     get_classification_pred_path,
 )
 

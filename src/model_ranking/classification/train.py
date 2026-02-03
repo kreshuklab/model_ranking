@@ -11,14 +11,14 @@ from tqdm import trange
 from typing import Any, List, Optional
 import wandb
 
-from .model import ClassificationNet
-from .utils import (
+from ._model import ClassificationNet
+from ._utils import (
     create_image_grid,
     load_from_checkpoint,
     save_checkpoint,
     get_loss_function,
 )
-from .validate import validate
+from ._validate import validate
 from model_ranking.data_structures import (
     TrainingSettingsConfig,
     ClassificationModelConfig,
