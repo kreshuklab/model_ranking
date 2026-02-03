@@ -6,13 +6,12 @@ from numpy.typing import NDArray
 import torch_em.self_training as self_training
 
 from model_ranking.configs.utils import copy_config
-from model_ranking.dataclass import (
-    Pytorch3DUnetModelConfig,
-    UnetrModelConfig,
+from model_ranking.data_structures import (
     pseudo_labeler_type,
     WandbConfig,
     DEFAULT_SCHEDULER_KWARGS,
     MeanTeacherConfig,
+    internal_model_type,
 )
 from model_ranking.datasets import (
     calculate_global_stats,
@@ -53,7 +52,7 @@ def run_mean_teacher(
     unsupervised_val_paths: List[str],
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
-    model_config: Union[Pytorch3DUnetModelConfig, UnetrModelConfig],
+    model_config: internal_model_type,
     wandb_config: Optional[WandbConfig],
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_loader_config: Optional[Dict[str, Any]] = None,

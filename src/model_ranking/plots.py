@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Sequence, Tuple, Mapping, Optional, Union
 from model_ranking.results import load_transfer_metric_results
 from model_ranking.utils import aug_name_to_sigma_tuple, add_decimal
 from model_ranking.correlation import calculate_correlation_statistics
-from model_ranking.dataclass import transferability_metric_names
+from model_ranking.data_structures import transferability_metric_names
 
 MODEL_TO_DATASET = {
     "BC": "BBBC039",

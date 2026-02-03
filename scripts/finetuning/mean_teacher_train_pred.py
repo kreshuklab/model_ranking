@@ -5,12 +5,12 @@ from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking import batch_predict_checkpoints
-from model_ranking import (
+from model_ranking.predict import batch_predict_checkpoints
+from model_ranking.data_structures import (
     MetaConfig,
     MeanTeacherConfig,
 )
-from model_ranking import self_training_mean_teacher
+from model_ranking.finetuning import self_training_mean_teacher
 
 
 def main(

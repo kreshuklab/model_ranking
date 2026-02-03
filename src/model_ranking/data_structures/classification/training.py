@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union
 from .data import ClassificationLoaderConfig
 from .model import ClassificationModelConfig
 
-from model_ranking.pydantic.general import WandbConfig
+from model_ranking.data_structures.general import WandbConfig
 
 
 class SchedulerConfig(BaseModel):

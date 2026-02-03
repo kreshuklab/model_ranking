@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from .model import SelfTrainingModelConfig
 from .self_training import SelfTrainingTrainConfig
 
-from model_ranking.pydantic.general.logging import WandbConfig
+from model_ranking.data_structures.general.logging import WandbConfig
 
 
 class SupervisedFinetuningConfig(BaseModel):

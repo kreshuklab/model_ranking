@@ -6,7 +6,7 @@ from .model import SelfTrainingModelConfig
 from .pseudo_labeler import pseudo_labeler_type
 from .self_training import SelfTrainingTrainConfig
 
-from model_ranking.pydantic.general.logging import WandbConfig
+from model_ranking.data_structures.general.logging import WandbConfig
 
 
 class MeanTeacherConfig(BaseModel):

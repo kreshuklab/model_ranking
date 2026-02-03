@@ -1,12 +1,17 @@
 from pathlib import Path
 from pydantic import BaseModel
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple, Union
 
 __all__ = [
     "ClassificationPatchPositionConfig",
     "AugmentationsConfig",
     "ClassificationFilteredDatasetConfig",
     "ClassificationLoaderConfig",
+]
+
+
+augmentation_type = Literal[
+    "None", "HFlip", "VFlip", "Rot", "Aff", "Ctr", "Brt", "Gamma", "Gauss"
 ]
 
 

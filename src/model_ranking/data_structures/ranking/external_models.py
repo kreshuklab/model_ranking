@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from .consistency_metrics import AdaptedRandErrorConsisConfig
 
-from model_ranking.pydantic.general.summary import SummaryResultsConfig
+from model_ranking.data_structures.general.summary import SummaryResultsConfig
 
 
 class LoadTransformerPredictionsConfig(BaseModel):

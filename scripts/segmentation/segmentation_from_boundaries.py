@@ -1,12 +1,16 @@
 import typer
 from typing import Annotated
 
-from model_ranking import (
+from model_ranking.data_structures import (
+    CalculateSegmentationConfig,
+)
+from model_ranking.predict import (
+    calculate_segmentation,
+    get_pred_paths,
+)
+from model_ranking.utils import (
     load_h5,
     save_h5,
-    get_pred_paths,
-    calculate_segmentation,
-    CalculateSegmentationConfig,
 )
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]

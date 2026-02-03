@@ -3,10 +3,13 @@ from pathlib import Path
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-from model_ranking import (
-    run_classification_consistency,
+from model_ranking.data_structures import (
     ClassificationConsistencyConfig,
 )
+from model_ranking.classification import (
+    run_classification_consistency,
+)
+
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )

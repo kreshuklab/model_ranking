@@ -5,12 +5,16 @@ from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking import (
+from model_ranking.data_structures import (
     MetaConfig,
+    AdaptiveBatchNormConfig,
+)
+from model_ranking.configs import (
     generate_run_yamls,
+)
+from model_ranking.finetuning import (
     run_adaptive_batchnorm,
     run_sequential_adaptive_batchnorm,
-    AdaptiveBatchNormConfig,
     copy_checkpoint_with_updated_model,
 )
 

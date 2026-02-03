@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 import torch
 from typing import Optional, Any, Tuple, Union, Literal, List
 
-from model_ranking.dataclass import (
+from model_ranking.data_structures import (
     Pytorch3DUnetModelConfig,
     SemanticSegmentationConfig,
     InstanceSegmentationConfig,
@@ -35,6 +35,8 @@ from pytorch3dunet.unet3d.predictor import (
     pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
 
+from pytorch3dunet.unet3d.metrics import InstanceAveragePrecision
+
 consistency_metrics = Union[
     HammingDistanceEval,
     AdaptedRandErrorEval,
@@ -43,6 +45,7 @@ consistency_metrics = Union[
     DifferenceImageEval,
     EntropyEval,
     KLDivergenceEval,
+    InstanceAveragePrecision,
 ]
 
 
@@ -85,6 +88,12 @@ class AbstractConsistencyPatchwisePseudoLabeler:
             consis_score, consis_mask = self.consistency_metric(
                 perturbed_pseudo_labels, pseudo_labels
             )
+        elif isinstance(self.consistency_metric, InstanceAveragePrecision):
+            consis_score = self.consistency_metric(  # pyright: ignore
+                torch.tensor(perturbed_pseudo_labels), torch.tensor(pseudo_labels)
+            ).numpy()
+            assert is_ndarray(consis_score), "consis_score is not a numpy array."
+            consis_mask = np.ones_like(perturbed_pseudo_labels, dtype=bool)
         else:
             if self.mask_threshold is None:
                 consis_mask = np.ones_like(pseudo_labels)

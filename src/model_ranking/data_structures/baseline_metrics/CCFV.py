@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 from typing import Dict, List, Optional, Sequence
 
-from model_ranking.pydantic.data.data import semantic_dataset_type
-from model_ranking.pydantic.general.model import ModelSourceConfig
+from model_ranking.data_structures.data.data import semantic_dataset_type
+from model_ranking.data_structures.general.model import ModelSourceConfig
 
 
 class CCFVFeatureConfig(BaseModel):

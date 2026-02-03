@@ -2,7 +2,7 @@ from pathlib import Path
 import torch
 from typing import Union
 
-from model_ranking.pydantic import AdaptiveBatchNormConfig
+from model_ranking.data_structures import AdaptiveBatchNormConfig
 
 from adabn.utils import (  # pyright: ignore[reportMissingTypeStubs]
     compute_bn_stats,  # pyright: ignore[reportUnknownVariableType]

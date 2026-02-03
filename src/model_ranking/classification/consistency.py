@@ -1,5 +1,3 @@
-from pydantic import BaseModel
-from typing import Sequence, Mapping, Literal, Optional
 import numpy as np
 from scipy.spatial.distance import hamming
 from tqdm import tqdm
@@ -13,32 +11,10 @@ from model_ranking.metrics import calculate_EI_binary
 from .utils import (
     get_classification_pred_path,
 )
-from .augmentations import augmentation_type
 
-
-class ClassificationConsistencyMetric(BaseModel):
-    name: Literal["EI", "Hamming-Distance"]
-    threshold: float
-    save_key: str
-    overwrite_scores: bool
-
-
-class ClassificationSummaryResultsConfig(BaseModel):
-    eval_key: Optional[str]
-    overwrite_scores: bool
-    save_name_postfix: str = ""
-
-
-class ClassificationPredicitonLoadConfig(BaseModel):
-    source: Sequence[str]
-    target: Sequence[str]
-    perturbations: Mapping[augmentation_type, Sequence[str]]
-    base_path: str
-
-
-class ClassificationConsistencyConfig(ClassificationPredicitonLoadConfig):
-    consistency_metric: ClassificationConsistencyMetric
-    # summary_results: ClassificationSummaryResultsConfig
+from model_ranking.data_structures import (
+    ClassificationConsistencyConfig,
+)
 
 
 def run_classification_consistency(config: ClassificationConsistencyConfig):

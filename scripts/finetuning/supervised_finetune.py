@@ -2,16 +2,16 @@ import typer
 from typing import Annotated
 
 
-from scripts.finetuning.batch_predict_checkpoints import batch_predict_checkpoints
+from model_ranking.predict import batch_predict_checkpoints
 
 from model_ranking.configs.utils import copy_config
-from model_ranking import run_supervised_training
-from pytorch3dunet.unet3d.config import (
-    load_config_direct,  # pyright: ignore[reportUnknownVariableType]
-)
-from model_ranking import (
+from model_ranking.data_structures import (
     MetaConfig,
     SupervisedFinetuningConfig,
+)
+from model_ranking.finetuning import run_supervised_training
+from pytorch3dunet.unet3d.config import (
+    load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
 

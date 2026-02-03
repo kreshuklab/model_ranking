@@ -21,7 +21,7 @@ import os
 from datetime import datetime
 
 from model_ranking.consistency import calculate_per_patch_consistency
-from model_ranking.pydantic import (
+from model_ranking.data_structures import (
     ForegroundFilterConfig,
     SummaryResultsConfig,
     # transferability_metrics,

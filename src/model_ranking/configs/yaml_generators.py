@@ -11,7 +11,7 @@ from typing import (
     Mapping,
     assert_never,
 )
-from model_ranking import (
+from model_ranking.data_structures import (
     CCFVConfig,
     CCFVRunMetaConfig,
     ConsistencyConfig,

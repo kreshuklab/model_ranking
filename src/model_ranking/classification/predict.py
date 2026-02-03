@@ -20,8 +20,8 @@ from .utils import (
     load_from_checkpoint,
 )
 
-from model_ranking import ClassificationPredictConfig
-from model_ranking.feature_ranking import FeatureExtractor
+from model_ranking.data_structures import ClassificationPredictConfig
+from model_ranking.features import FeatureExtractor
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]

@@ -2,7 +2,7 @@ from pathlib import Path
 import typer
 
 
-from model_ranking import (
+from model_ranking.classification import (
     run_classification_prediction,
 )
 

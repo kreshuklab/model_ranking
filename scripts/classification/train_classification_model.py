@@ -6,8 +6,10 @@ from pathlib import Path
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
-from model_ranking import (
+from model_ranking.data_structures import (
     ClassificationTrainConfig,
+)
+from model_ranking.classification import (
     copy_classification_config,
     get_classification_dataloader,
     initialise_wandb,

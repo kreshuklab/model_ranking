@@ -23,7 +23,7 @@ from .slice_builders import (
     Pytorch3DUnetSliceBuilderConfig,
 )
 from .utils import ForegroundFilterConfig
-from model_ranking.pydantic.general.predictor import (
+from model_ranking.data_structures.general.predictor import (
     Pytorch3DUnetPredictorMetaConfig,
     TIFNucleiInstancePredictorConfig,
     TIFNucleiSemanticPredictorConfig,

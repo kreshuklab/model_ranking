@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Union
 import shutil
 
-from model_ranking import (
+from model_ranking.data_structures import (
     MeanTeacherConfig,
     SupervisedFinetuningConfig,
 )

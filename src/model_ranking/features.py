@@ -25,7 +25,7 @@ from pytorch3dunet.unet3d.utils import (
     load_checkpoint,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.dataclass import (
+from model_ranking.data_structures import (
     TransferFeatureExtractionConfig,
     ModelSourceConfig,
     Pytorch3DUnetTrainLoaderConfig,

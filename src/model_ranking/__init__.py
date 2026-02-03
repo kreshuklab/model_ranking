@@ -1,59 +1,56 @@
-"""Model ranking package for zero-shot transferability assessment."""
+# """Model ranking package for zero-shot transferability assessment."""
 
-# Augmentations
-from .augmentations import *
+# # Augmentations
+# from .augmentations import *
 
-# Consistency evaluation
-from .consistency import *
+# # Consistency evaluation
+# from .consistency import *
 
-# Configuration
-from .configs import *
+# # Configuration
+# from .configs import *
 
-# Correlation
-from .correlation import *
+# # Correlation
+# from .correlation import *
 
-# Key data classes and configurations
-from .dataclass import *
+# from .classification import *
 
-from .classification import *
+# # Datasets
+# from .datasets import *
 
-# Datasets
-from .datasets import *
+# from .evaluation import *
 
-from .evaluation import *
+# # Feature ranking and transfer learning
+# from .features import *
 
-# Feature ranking and transfer learning
-from .feature_ranking import *
+# # Finetuning
+# from .finetuning import *
 
-# Finetuning
-from .finetuning import *
+# from .logger import *
 
-from .logger import *
+# # Metrics
+# from .metrics import *
 
-# Metrics
-from .metrics import *
+# # Models
+# from .models import *
 
-# Models
-from .models import *
+# # Plotting
+# from .plots import *
 
-# Plotting
-from .plots import *
+# # Prediction and evaluation
+# from .predict import *
 
-# Prediction and evaluation
-from .predict import *
+# from .pydantic import *
 
-from .pydantic import *
+# # Results processing
+# from .results import *
 
-# Results processing
-from .results import *
+# # Import all transferability metrics from the new subdirectory
+# from .baseline_metrics import *
 
-# Import all transferability metrics from the new subdirectory
-from .baseline_metrics import *
+# # Utilities
+# from .utils import *
 
-# Utilities
-from .utils import *
+# from .visualise import *
 
-from .visualise import *
-
-# YAML configuration generation
-from .configs.yaml_generators import *
+# # YAML configuration generation
+# from .configs.yaml_generators import *

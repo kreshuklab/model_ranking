@@ -8,11 +8,12 @@ import torchvision.utils as vutils  # pyright: ignore[reportMissingTypeStubs]
 from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 import wandb
 
-from .augmentations import augmentation_type
-
 from model_ranking.utils import load_h5
-from model_ranking import ClassificationPatchPositionConfig
-from model_ranking.pydantic.general import WandbConfig
+from model_ranking.data_structures import (
+    augmentation_type,
+    ClassificationPatchPositionConfig,
+    WandbConfig,
+)
 
 CLASSIFICATION_DATASETS = {
     "epfl": "EPFL",

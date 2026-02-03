@@ -19,7 +19,10 @@ from .utils import (
     get_loss_function,
 )
 from .validate import validate
-from model_ranking import TrainingSettingsConfig, ClassificationModelConfig
+from model_ranking.data_structures import (
+    TrainingSettingsConfig,
+    ClassificationModelConfig,
+)
 
 
 def train(

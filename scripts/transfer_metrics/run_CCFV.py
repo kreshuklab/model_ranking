@@ -1,7 +1,9 @@
 import typer
 from typing import Annotated
-from model_ranking import (
+from model_ranking.configs import (
     generate_ccfv_yaml,
+)
+from model_ranking.baseline_metrics import (
     run_ccfv_evaluation,
 )
 from pytorch3dunet.unet3d.config import (

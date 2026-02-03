@@ -1,9 +1,11 @@
 from pydantic import BaseModel, Discriminator
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from model_ranking.pydantic.ranking.consistency_metrics import consistency_metric_type
-from model_ranking.pydantic.general.model import Pytorch3DUnetModelConfig
-from model_ranking.pydantic.general.segmentation import segmentation_type
+from model_ranking.data_structures.ranking.consistency_metrics import (
+    consistency_metric_type,
+)
+from model_ranking.data_structures.general.model import Pytorch3DUnetModelConfig
+from model_ranking.data_structures.general.segmentation import segmentation_type
 
 
 class ConsistencyPseudoLabelerConfig(BaseModel):

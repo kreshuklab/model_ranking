@@ -5,13 +5,15 @@ from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking import (
+from model_ranking.consistency import (
     ConsistencyPatchedTransformerConfig,
     run_patched_transformer_consistency,
+)
+from model_ranking.results import (
     save_summary_metrics,
-    ForegroundFilterConfig,
     run_foreground_patch_selection,
 )
+from model_ranking.data_structures import ForegroundFilterConfig
 
 
 def main(

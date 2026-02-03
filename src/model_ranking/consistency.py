@@ -1,11 +1,8 @@
-from typing import Annotated, Dict, List, Any, Literal, Optional, Union, Tuple
+from typing import List, Any, Union, Tuple
 from natsort import natsorted
 from numpy.typing import NDArray
 from pathlib import Path
-from pydantic import BaseModel, Discriminator
 from tqdm import tqdm
-import imageio.v3 as imageio
-import json
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -14,18 +11,17 @@ from pytorch3dunet.datasets.dsb import S_BIAD1410_Dataset
 from pytorch3dunet.datasets.hdf5 import StandardHDF5Dataset
 from pytorch3dunet.unet3d.metrics import InstanceAveragePrecision
 
-from model_ranking.dataclass import (
+from model_ranking.data_structures import (
     ConsistencyConfig,
     ConsistencyPatchedTransformerConfig,
     EvalDataloaderConfig,
     TIFEvalDatasetConfig,
+    ScaleConsistencyConfig,
 )
 from model_ranking.datasets import StandardEvalDataset
 from model_ranking.metrics import (
     AdaptedRandErrorEval,
     get_mask,
-    per_class_iou_consistency,
-    foreground_restricted_AdaRandError_consistency,
 )
 from model_ranking.utils import (
     save_h5,
@@ -309,117 +305,6 @@ def run_patched_transformer_consistency(
             )
 
 
-class IOUConsisMetric(BaseModel):
-    name: Literal["IoU"] = "IoU"
-
-
-class AdaRandErrorConsisMetric(BaseModel):
-    name: Literal["AdaRandError"] = "AdaRandError"
-    num_dilations: Optional[int] = None
-    num_erosions: Optional[int] = None
-
-
-ConsisMetric = Annotated[
-    Union[IOUConsisMetric, AdaRandErrorConsisMetric], Discriminator("name")
-]
-
-
-class ToothfairyConsistencyConfig(BaseModel):
-    unperturbed_dir_path: Union[str, Path]
-    perturbed_dir_path: Union[str, Path]
-    file_id_range: Optional[Tuple[int, int]] = None
-    consistency_metric: ConsisMetric
-    save_path: Optional[Union[str, Path]] = None
-
-
-def run_toothfairy_consistency(
-    consis_config: ToothfairyConsistencyConfig,
-):
-    unperturbed_paths = natsorted(
-        Path(consis_config.unperturbed_dir_path).glob("*.mha")
-    )
-    perturbed_paths = natsorted(Path(consis_config.perturbed_dir_path).glob("*.mha"))
-
-    if consis_config.file_id_range is not None:
-        unperturbed_paths = unperturbed_paths[
-            consis_config.file_id_range[0] : consis_config.file_id_range[1]
-        ]
-        perturbed_paths = perturbed_paths[
-            consis_config.file_id_range[0] : consis_config.file_id_range[1]
-        ]
-
-    assert len(unperturbed_paths) == len(perturbed_paths), (
-        f"Number of unperturbed files ({len(unperturbed_paths)}) does not match "
-        f"number of perturbed files ({len(perturbed_paths)})"
-    )
-    consistencies: Dict[str, Union[Tuple[float, float, float], Dict[int, float]]] = {}
-    for unperturbed_path, perturbed_path in tqdm(
-        zip(unperturbed_paths, perturbed_paths),
-        total=len(unperturbed_paths),
-        desc="files",
-    ):
-        assert unperturbed_path.stem == perturbed_path.stem, (
-            f"Unperturbed file {unperturbed_path.stem} does not match perturbed file "
-            f"{perturbed_path.stem}"
-        )
-
-        unperturbed_pred = imageio.imread(  # pyright: ignore[reportUnknownVariableType]
-            unperturbed_path
-        )
-        perturbed_pred = imageio.imread(  # pyright: ignore[reportUnknownVariableType]
-            perturbed_path
-        )
-
-        assert is_ndarray(
-            unperturbed_pred
-        ), f"Unperturbed prediction from {unperturbed_path} is not a numpy array"
-        assert is_ndarray(
-            perturbed_pred
-        ), f"Perturbed prediction from {perturbed_path} is not a numpy array"
-
-        if consis_config.consistency_metric.name == "IoU":
-            consistency = per_class_iou_consistency(perturbed_pred, unperturbed_pred)
-
-        elif consis_config.consistency_metric.name == "AdaRandError":
-            consistency = foreground_restricted_AdaRandError_consistency(
-                perturbed_pred, unperturbed_pred, num_dilations=2
-            )
-        else:
-            raise ValueError(
-                f"Unknown consistency metric {consis_config.consistency_metric.name}"
-            )
-
-        if consis_config.save_path is not None:
-            save_path = (
-                Path(consis_config.save_path)
-                / f"{consis_config.consistency_metric.name}_consistency.json"
-            )
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            # Load existing results if file exists
-            if save_path.exists():
-                with open(save_path, "r") as f:
-                    existing_consistencies = json.load(f)
-            else:
-                existing_consistencies = {}
-            # Update with current result
-            existing_consistencies[unperturbed_path.stem] = consistency
-            with open(save_path, "w") as f:
-                json.dump(existing_consistencies, f, indent=2)
-
-        consistencies[unperturbed_path.stem] = consistency
-
-    # if consis_config.save_path is not None:
-    #     save_path = (
-    #         Path(consis_config.save_path)
-    #         / f"{consis_config.consistency_metric.name}_consistency.json"
-    #     )
-    #     save_path.parent.mkdir(parents=True, exist_ok=True)
-    #     with open(save_path, "w") as f:
-    #         json.dump(consistencies, f, indent=2)
-
-    return consistencies
-
-
 def weighted_average_consistency(
     consis_scores: NDArray[Any], weights: NDArray[Any]
 ) -> float:
@@ -430,24 +315,6 @@ def weighted_average_consistency(
         valid_consis_scores,
         weights=valid_weights,
     )
-
-
-class ForegroundRatioConfig(BaseModel):
-    targets: List[str]
-    model_names: List[str]
-    run_id: str
-    seg_key: str
-    approach: Literal["consistency", "feature_perturbation_consistency"]
-    base_path: str
-    save_foreground_ratio: bool = True
-    overwrite_ratios: bool = False
-
-
-class ScaleConsistencyConfig(BaseModel):
-    foreground_ratio_cfg: ForegroundRatioConfig
-    consis_key: str
-    summary_postfix: str = "_full"
-    overwrite_scaled_consistency: bool = False
 
 
 def batch_scale_consis_by_foreground_ratio(config: ScaleConsistencyConfig):

@@ -4,12 +4,12 @@ from numpy.typing import NDArray
 import json
 
 # from model_ranking import transferability_metrics
-from model_ranking import (
+from model_ranking.results import (
     load_transfer_metric_results,
     convert_numpy_types,
     find_transferability_results_path,
 )
-from model_ranking import (
+from model_ranking.correlation import (
     to_target_transfer_correlations,
 )
 

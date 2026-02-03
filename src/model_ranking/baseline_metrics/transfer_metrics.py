@@ -32,7 +32,7 @@ from model_ranking.baseline_metrics import (
 from model_ranking.correlation import (
     to_target_transfer_correlations,
 )
-from model_ranking.feature_ranking import get_precomputed_feature_path
+from model_ranking.features import get_precomputed_feature_path
 from model_ranking.utils import load_h5, get_source_from_model_name
 from model_ranking.plots import plot_performance_vs_transfer_metric
 from model_ranking.results import (
@@ -40,7 +40,7 @@ from model_ranking.results import (
     save_transfer_metric_results,
     get_finetuned_result_path,
 )
-from model_ranking import (
+from model_ranking.data_structures import (
     TransferabilityMetricConfig,
     transferability_metric_names,
     PrecomputedFeatureConfig,

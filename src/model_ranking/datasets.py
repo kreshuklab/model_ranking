@@ -35,7 +35,7 @@ from pytorch3dunet.unet3d.utils import (
 )
 
 from model_ranking.utils import load_h5, get_roi_slice, is_ndarray, loader_classes
-from model_ranking.dataclass import (
+from model_ranking.data_structures import (
     EvalDatasetConfig,
     mito_dataset_type,
 )

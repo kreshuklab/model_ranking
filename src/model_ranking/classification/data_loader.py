@@ -10,7 +10,7 @@ from .augmentations import (
 )
 from .datasets import ClassificationFilteredDataset
 from .utils import get_patch_positions
-from model_ranking import ClassificationLoaderConfig
+from model_ranking.data_structures import ClassificationLoaderConfig
 
 from torch_em.segmentation import get_data_loader  # pyright: ignore
 from torch_em.transform.augmentation import (

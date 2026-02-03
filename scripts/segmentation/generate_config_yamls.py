@@ -1,7 +1,7 @@
 from typing import Annotated
 import typer
 
-from model_ranking import generate_run_yamls
+from model_ranking.configs import generate_run_yamls
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )

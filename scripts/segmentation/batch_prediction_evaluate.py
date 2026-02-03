@@ -8,21 +8,21 @@ from pytorch3dunet.predict import (
     predict,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking import (
+from model_ranking.consistency import (
     run_consistency_evaluation,
 )
-from model_ranking import (
+from model_ranking.data_structures import (
     EvaluateConfig,
     ConsistencyConfig,
     ForegroundFilterConfig,
     SummaryResultsConfig,
 )
-from model_ranking import run_performance_evaluation
-from model_ranking import (
+from model_ranking.evaluation import run_performance_evaluation
+from model_ranking.results import (
     run_foreground_patch_selection,
     save_summary_metrics,
 )
-from model_ranking import generate_run_yamls
+from model_ranking.configs import generate_run_yamls
 
 
 def main(

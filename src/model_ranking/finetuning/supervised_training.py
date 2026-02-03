@@ -42,7 +42,7 @@ from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
     open_file,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking.pydantic import (
+from model_ranking.data_structures import (
     internal_model_type,
     WandbConfig,
     DEFAULT_SCHEDULER_KWARGS,

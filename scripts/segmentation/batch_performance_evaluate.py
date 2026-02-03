@@ -1,17 +1,17 @@
 from typing import Annotated
 import typer
 
-from model_ranking import (
-    # run_foreground_patch_selection,
-    save_summary_metrics,
-)
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from model_ranking import EvaluateConfig, SummaryResultsConfig
-from model_ranking import run_performance_evaluation
-from model_ranking import generate_run_yamls
+from model_ranking.configs import generate_run_yamls
+from model_ranking.data_structures import EvaluateConfig, SummaryResultsConfig
+from model_ranking.evaluation import run_performance_evaluation
+from model_ranking.results import (
+    # run_foreground_patch_selection,
+    save_summary_metrics,
+)
 
 
 def main(

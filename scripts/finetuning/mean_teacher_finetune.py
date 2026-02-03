@@ -1,8 +1,8 @@
 import typer
 from typing import Annotated
 
-from model_ranking import MeanTeacherConfig
-from model_ranking import self_training_mean_teacher
+from model_ranking.data_structures import MeanTeacherConfig
+from model_ranking.finetuning import self_training_mean_teacher
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
 )
