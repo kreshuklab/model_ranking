@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
-from ..data.utils import ForegroundFilterConfig
+from model_ranking.pydantic.data.utils import ForegroundFilterConfig
 
 
 class SummaryResultsMetaConfig(BaseModel):

@@ -4,7 +4,7 @@ from .utils import (
     get_classification_pred_path,
 )
 
-from model_ranking.dataclass import (
+from model_ranking import (
     PrecomputedFeatureConfig,
     transferability_metric_names,
     PrecomputedClassificationPerformanceConfig,

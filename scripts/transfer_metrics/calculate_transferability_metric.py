@@ -2,7 +2,7 @@ from typing import Annotated
 import typer
 
 from model_ranking import TransferabilityMetricConfig
-from model_ranking.transferability_metrics.transfer_metrics import (
+from model_ranking.baseline_metrics.transfer_metrics import (
     transfer_sweep_transferability_metric,
 )
 

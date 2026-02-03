@@ -1,3 +1,4 @@
+from .adaptive_batchnorm import *
 from .data import *
 from .mean_teacher import *
 from .model import *

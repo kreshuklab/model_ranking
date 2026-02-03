@@ -1,17 +1,10 @@
 from pathlib import Path
-from pydantic import BaseModel, Discriminator
-from typing import Annotated, Optional, Union
+from pydantic import BaseModel
+from typing import Optional, Union
 
-from model_ranking.pydantic.general.model import (
-    Pytorch3DUnetModelConfig,
-    UnetrModelConfig,
-    UnetrWithDropOutModelConfig,
-)
+from model_ranking.pydantic.general.model import internal_model_type
 
 
 class SelfTrainingModelConfig(BaseModel):
-    model: Annotated[
-        Union[Pytorch3DUnetModelConfig, UnetrModelConfig, UnetrWithDropOutModelConfig],
-        Discriminator("name"),
-    ]
+    model: internal_model_type
     source_checkpoint: Optional[Union[str, Path]]

@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 
 import torch_em.self_training as self_training
 
-from model_ranking.config import copy_config
+from model_ranking.configs.utils import copy_config
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     UnetrModelConfig,

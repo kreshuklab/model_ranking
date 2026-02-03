@@ -390,3 +390,12 @@ semantic_loaders_type = Annotated[
     ],
     Discriminator("name"),
 ]
+
+test_loaders_type = Annotated[
+    Union[
+        Pytorch3DUnetTestLoaderConfig,
+        SBIAD1410LoaderTestConfig,
+        TIFPredictionLoadersConfig,
+    ],
+    Discriminator("dataset"),
+]

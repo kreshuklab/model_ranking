@@ -9,8 +9,8 @@ from .augmentations import (
     AUGMENTATION_ABBREVIATIONS,
 )
 from .datasets import ClassificationFilteredDataset
-from .dataclass import ClassificationLoaderConfig
 from .utils import get_patch_positions
+from model_ranking import ClassificationLoaderConfig
 
 from torch_em.segmentation import get_data_loader  # pyright: ignore
 from torch_em.transform.augmentation import (

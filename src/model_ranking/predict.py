@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Union
 from pathlib import Path
 from pydantic import BaseModel
 
-from model_ranking.dataclass import (
+from model_ranking.pydantic import (
     MetaConfig,
     EvaluateConfig,
     ForegroundFilterConfig,
@@ -16,7 +16,7 @@ from model_ranking.results import (
     run_foreground_patch_selection,
     save_summary_metrics,
 )
-from model_ranking.yaml_generators import generate_run_yamls
+from model_ranking.configs.yaml_generators import generate_run_yamls
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]

@@ -4,7 +4,7 @@ from torch_em.segmentation import (
 from typing import Any, Dict, Literal
 
 
-from .dataclass import AugmentationsConfig
+from model_ranking import AugmentationsConfig
 
 AUGMENTATION_ABBREVIATIONS = {
     "None": "None",

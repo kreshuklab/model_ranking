@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Literal, Optional, Union
 
+__all__ = ["WandbConfig"]
+
 
 class WandbConfig(BaseModel):
     project: str

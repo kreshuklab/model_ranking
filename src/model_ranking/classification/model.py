@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models  # pyright: ignore[reportMissingTypeStubs]
 
-from .dataclass import ClassificationModelConfig
+from model_ranking import ClassificationModelConfig
 
 
 class ClassificationNet(nn.Module):

@@ -7,7 +7,7 @@ from .augmentations import *
 from .consistency import *
 
 # Configuration
-from .config import *
+from .configs import *
 
 # Correlation
 from .correlation import *
@@ -24,9 +24,6 @@ from .evaluation import *
 
 # Feature ranking and transfer learning
 from .feature_ranking import *
-
-# Feature analysis and visualization
-from .feature_analysis import *
 
 # Finetuning
 from .finetuning import *
@@ -51,7 +48,7 @@ from .pydantic import *
 from .results import *
 
 # Import all transferability metrics from the new subdirectory
-from .transferability_metrics import *
+from .baseline_metrics import *
 
 # Utilities
 from .utils import *
@@ -59,4 +56,4 @@ from .utils import *
 from .visualise import *
 
 # YAML configuration generation
-from .yaml_generators import *
+from .configs.yaml_generators import *

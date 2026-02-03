@@ -270,3 +270,9 @@ class ModelSourceConfig(SourceModelConfigBase):
                 final_sigmoid=model.final_sigmoid,
                 feature_perturbation=feature_perturbation,
             )
+
+
+internal_model_type = Annotated[
+    Union[Pytorch3DUnetModelConfig, UnetrModelConfig, UnetrWithDropOutModelConfig],
+    Discriminator("name"),
+]

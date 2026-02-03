@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 from typing import Any, Dict, List, Optional, Tuple, Union
 from tqdm import tqdm
 
-from .dataclass import ClassificationPredictConfig
 from .data_loader import get_classification_TTA_loaders
 from .datasets import ClassificationFilteredDataset
 from .model import ClassificationNet
@@ -21,6 +20,7 @@ from .utils import (
     load_from_checkpoint,
 )
 
+from model_ranking import ClassificationPredictConfig
 from model_ranking.feature_ranking import FeatureExtractor
 
 from pytorch3dunet.unet3d.config import (

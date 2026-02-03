@@ -11,7 +11,6 @@ from tqdm import trange
 from typing import Any, List, Optional
 import wandb
 
-from .dataclass import TrainingSettingsConfig, ClassificationModelConfig
 from .model import ClassificationNet
 from .utils import (
     create_image_grid,
@@ -20,6 +19,7 @@ from .utils import (
     get_loss_function,
 )
 from .validate import validate
+from model_ranking import TrainingSettingsConfig, ClassificationModelConfig
 
 
 def train(

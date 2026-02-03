@@ -40,7 +40,7 @@ from model_ranking.utils import (
     loader_classes,
     get_source_from_model_name,
 )
-from model_ranking.yaml_generators import (
+from model_ranking.configs.yaml_generators import (
     get_model_path,
 )
 
