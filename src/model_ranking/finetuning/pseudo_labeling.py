@@ -37,6 +37,8 @@ from pytorch3dunet.unet3d.predictor import (
 
 from pytorch3dunet.unet3d.metrics import InstanceAveragePrecision
 
+# Union of all possible metric types returned by consistency_metric_type.initialise_metric()
+# InstanceAveragePrecision is returned by MeanAvgPrecisionConsisConfig.initialise_metric()
 consistency_metrics = Union[
     HammingDistanceEval,
     AdaptedRandErrorEval,
