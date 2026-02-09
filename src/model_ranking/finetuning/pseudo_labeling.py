@@ -35,6 +35,10 @@ from pytorch3dunet.unet3d.predictor import (
     pmaps_to_IN_seg,  # pyright: ignore[reportUnknownVariableType]
 )
 
+from pytorch3dunet.unet3d.metrics import (
+    InstanceAveragePrecision,
+)
+
 consistency_metrics = Union[
     HammingDistanceEval,
     AdaptedRandErrorEval,
@@ -43,6 +47,7 @@ consistency_metrics = Union[
     DifferenceImageEval,
     EntropyEval,
     KLDivergenceEval,
+    InstanceAveragePrecision,
 ]
 
 
