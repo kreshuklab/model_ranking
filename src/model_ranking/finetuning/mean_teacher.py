@@ -9,6 +9,7 @@ from model_ranking.config import copy_config
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
     UnetrModelConfig,
+    UnetrWithDropOutModelConfig,
     pseudo_labeler_type,
     WandbConfig,
     DEFAULT_SCHEDULER_KWARGS,
@@ -53,7 +54,9 @@ def run_mean_teacher(
     unsupervised_val_paths: List[str],
     patch_shape: Tuple[int, ...],
     pseudo_labeler_config: pseudo_labeler_type,
-    model_config: Union[Pytorch3DUnetModelConfig, UnetrModelConfig],
+    model_config: Union[
+        Pytorch3DUnetModelConfig, UnetrModelConfig, UnetrWithDropOutModelConfig
+    ],
     wandb_config: Optional[WandbConfig],
     source_checkpoint: Optional[Union[str, Path]] = None,
     supervised_loader_config: Optional[Dict[str, Any]] = None,
