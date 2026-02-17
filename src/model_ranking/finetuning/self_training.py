@@ -245,7 +245,7 @@ def get_MT_unsupervised_loaders(
             cfg.label_key is not None
         ), "label_key must be provided for DummySelfTrainingLoader"
         unsupervised_train_loader = get_DummySelfTraining_loader(
-            cfg.unsupervised_train_paths,
+            unsup_t_paths,
             cfg.raw_key,
             cfg.label_key,
             cfg.patch_shape,
@@ -256,7 +256,7 @@ def get_MT_unsupervised_loaders(
             norm01=cfg.normalisation.norm01,
         )
         unsupervised_val_loader = get_DummySelfTraining_loader(
-            cfg.unsupervised_val_paths,
+            unsup_v_paths,
             cfg.raw_key,
             cfg.label_key,
             cfg.patch_shape,
@@ -270,7 +270,7 @@ def get_MT_unsupervised_loaders(
     else:
         print("Get unsup loaders")
         unsupervised_train_loader = get_unsupervised_loader(
-            cfg.unsupervised_train_paths,
+            unsup_t_paths,
             cfg.raw_key,
             cfg.patch_shape,
             cfg.batch_size,
@@ -281,7 +281,7 @@ def get_MT_unsupervised_loaders(
             norm01=cfg.normalisation.norm01,
         )
         unsupervised_val_loader = get_unsupervised_loader(
-            cfg.unsupervised_val_paths,
+            unsup_v_paths,
             cfg.raw_key,
             cfg.patch_shape,
             cfg.batch_size,
