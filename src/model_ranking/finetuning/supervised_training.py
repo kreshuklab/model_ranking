@@ -44,6 +44,8 @@ from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
 
 from model_ranking.dataclass import (
     Pytorch3DUnetModelConfig,
+    UnetrModelConfig,
+    UnetrWithDropOutModelConfig,
     WandbConfig,
     DEFAULT_SCHEDULER_KWARGS,
 )
@@ -195,7 +197,11 @@ def get_supervised_loader(
 def run_supervised_training(
     name: str,
     output_root: str,
-    model_config: Pytorch3DUnetModelConfig,
+    model_config: Union[
+        Pytorch3DUnetModelConfig,
+        UnetrModelConfig,
+        UnetrWithDropOutModelConfig,
+    ],
     wandb_config: Optional[WandbConfig],
     loader_config: Dict[str, Any],
     lr: float = 1e-4,
