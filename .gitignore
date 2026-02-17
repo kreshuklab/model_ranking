@@ -1,6 +1,7 @@
 __pycache__/
 wandb/
 .vscode/
+checks/
 *.egg-info/
 *.h5
 *.npz
