@@ -90,10 +90,10 @@ def normalize_specify_range(
     maxval: Optional[float] = None,
     axis: Optional[Union[int, Tuple[int, ...]]] = None,
     eps: float = 1e-7,
-    norm01: bool = False,
+    norm01: Optional[bool] = None,
 ) -> Union[NDArray[Any], torch.Tensor]:
-    """Normalize the input data using min/max normalisation so that it is in range [0, 1] or [-1,1]
-    depending on norm01 argument.
+    """Normalize the input data using min/max normalisation, if norm01 is True clip to range [0, 1]
+    else [-1,1] or no clipping if norm01 is None.
 
     Args:
         raw: The input data.
@@ -106,19 +106,20 @@ def normalize_specify_range(
     Returns:
         The normalized input data.
     """
-    normalised_raw = normalize(  # pyright: ignore[reportUnknownVariableType]
+    normalised_raw: Union[NDArray[Any], torch.Tensor] = normalize(  # pyright: ignore
         raw,
         minval=minval,
         maxval=maxval,
         axis=axis,
         eps=eps,
     )
-    if norm01:
-        return clip_array(
-            normalised_raw, 0.0, 1.0  # pyright: ignore[reportUnknownArgumentType]
-        )
+    if norm01 is None:
+        return normalised_raw
     else:
-        return clip_array(2 * normalised_raw - 1, -1.0, 1.0)
+        if norm01 == True:
+            return clip_array(normalised_raw, 0.0, 1.0)
+        else:
+            return clip_array(2 * normalised_raw - 1, -1.0, 1.0)
 
 
 def clip_array(x: Union[NDArray[Any], torch.Tensor], min_val: float, max_val: float):

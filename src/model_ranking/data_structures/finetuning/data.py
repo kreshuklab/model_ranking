@@ -5,7 +5,7 @@ from typing import List, Optional, Sequence, Tuple
 class DataNormalisationConfig(BaseModel):
     global_normalisation: bool = False
     global_percentiles: Optional[Tuple[float, float]] = None
-    norm01: bool = False
+    norm01: Optional[bool] = None
 
 
 class SelfTrainingDataConfig(BaseModel):

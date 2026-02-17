@@ -95,11 +95,21 @@ def run_mean_teacher(
         ):
             assert (Path(train_path).suffix == ".h5") and (
                 Path(val_path).suffix == ".h5"
-            ), "Global normalisation only works with h5 files."
+            ), "Global normalisation only designed for h5 files."
             raw_train.append(load_h5(train_path, data_cfg.raw_key))
             raw_val.append(load_h5(val_path, data_cfg.raw_key))
-        raw_stats = calculate_global_stats(raw_train)
-        val_stats = calculate_global_stats(raw_val)
+
+        if data_cfg.normalisation.global_percentiles is not None:
+            min_p = data_cfg.normalisation.global_percentiles[0]
+            max_p = data_cfg.normalisation.global_percentiles[1]
+        else:
+            min_p, max_p = None, None
+        raw_stats = calculate_global_stats(
+            raw_train, percentile_min=min_p, percentile_max=max_p
+        )
+        val_stats = calculate_global_stats(
+            raw_val, percentile_min=min_p, percentile_max=max_p
+        )
     else:
         raw_stats = None
         val_stats = None

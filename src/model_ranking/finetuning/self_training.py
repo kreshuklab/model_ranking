@@ -26,13 +26,19 @@ def get_unsupervised_dataset(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
     global_stats: Optional[Dict[str, Any]] = None,
-    norm01: bool = False,
+    norm01: Optional[bool] = False,
 ) -> ConcatDataset[RawDataset]:
     if global_stats is not None:
+        if global_stats.get("pmin") is not None:
+            minval = global_stats["pmin"]
+            maxval = global_stats["pmax"]
+        else:
+            minval = global_stats["min"]
+            maxval = global_stats["max"]
         norm = partial(
             normalize_specify_range,
-            minval=global_stats["min"],
-            maxval=global_stats["max"],
+            minval=minval,
+            maxval=maxval,
             norm01=norm01,
         )
     else:
@@ -72,13 +78,19 @@ def get_DummySelfTraining_dataset(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     n_samples: Optional[int] = None,
     global_stats: Optional[Dict[str, Any]] = None,
-    norm01: bool = False,
+    norm01: Optional[bool] = False,
 ) -> ConcatDataset[DummySelfTrainingDataset]:
     if global_stats is not None:
+        if global_stats.get("pmin") is not None:
+            minval = global_stats["pmin"]
+            maxval = global_stats["pmax"]
+        else:
+            minval = global_stats["min"]
+            maxval = global_stats["max"]
         norm = partial(
             normalize_specify_range,
-            minval=global_stats["min"],
-            maxval=global_stats["max"],
+            minval=minval,
+            maxval=maxval,
             norm01=norm01,
         )
     else:
@@ -123,7 +135,7 @@ def get_DummySelfTraining_loader(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     shuffle: bool = True,
     global_stats: Optional[Dict[str, Any]] = None,
-    norm01: bool = False,
+    norm01: Optional[bool] = False,
 ) -> torch.utils.data.DataLoader[Any]:
 
     ds = get_DummySelfTraining_dataset(
@@ -156,7 +168,7 @@ def get_unsupervised_loader(
     roi: Optional[Union[slice, Tuple[slice, ...]]] = None,
     shuffle: bool = True,
     global_stats: Optional[Dict[str, Any]] = None,
-    norm01: bool = False,
+    norm01: Optional[bool] = False,
 ) -> torch.utils.data.DataLoader[Any]:
 
     ds = get_unsupervised_dataset(

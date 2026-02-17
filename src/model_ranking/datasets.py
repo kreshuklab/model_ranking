@@ -569,14 +569,13 @@ def calculate_global_stats(
         min_val = np.min(img)
         max_val = np.max(img)
         if percentile_min is not None:
+            assert (
+                percentile_max is not None
+            ), "percentile_max must be provided if percentile_min is provided"
             pmin = np.percentile(img, percentile_min)
-        else:
-            pmin = None
-        if percentile_max is not None:
             pmax = np.percentile(img, percentile_max)
         else:
-            pmax = None
-
+            pmin, pmax = None, None
     else:
         pmin, pmax, mean, std, min_val, max_val = None, None, None, None, None, None
 
