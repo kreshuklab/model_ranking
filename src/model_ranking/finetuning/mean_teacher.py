@@ -1,7 +1,6 @@
 import torch
-from typing import Optional, Union, Tuple, List, Dict, Any
+from typing import Optional, Union, Tuple, Dict, Any
 from pathlib import Path
-from numpy.typing import NDArray
 
 import torch_em.self_training as self_training
 
@@ -10,18 +9,14 @@ from model_ranking.data_structures import (
     DEFAULT_SCHEDULER_KWARGS,
     MeanTeacherConfig,
 )
-from model_ranking.datasets import (
-    calculate_global_stats,
-)
 from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.metrics import DiceMetric
+from model_ranking.utils import get_roi_slice
 from .pseudo_labeling import (
-    DummyDirectEvalPseudoLabeler,
     get_pseudo_labeler,
 )
 from .self_training import (
-    get_unsupervised_loader,
-    get_DummySelfTraining_loader,
+    get_MT_unsupervised_loaders,
 )
 
 from pytorch3dunet.unet3d.model import (
@@ -30,8 +25,6 @@ from pytorch3dunet.unet3d.model import (
 from pytorch3dunet.unet3d.utils import (
     load_checkpoint,  # pyright: ignore[reportUnknownVariableType]
 )
-from model_ranking.utils import load_h5, get_roi_slice
-
 from pytorch3dunet.datasets.utils import (
     get_train_loaders,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -87,85 +80,12 @@ def run_mean_teacher(
         activation=torch.nn.Sigmoid(),
     )
 
-    if data_cfg.normalisation.global_normalisation:
-        raw_train: List[NDArray[Any]] = []
-        raw_val: List[NDArray[Any]] = []
-        for train_path, val_path in zip(
-            data_cfg.unsupervised_train_paths, data_cfg.unsupervised_val_paths
-        ):
-            assert (Path(train_path).suffix == ".h5") and (
-                Path(val_path).suffix == ".h5"
-            ), "Global normalisation only designed for h5 files."
-            raw_train.append(load_h5(train_path, data_cfg.raw_key))
-            raw_val.append(load_h5(val_path, data_cfg.raw_key))
-
-        if data_cfg.normalisation.global_percentiles is not None:
-            min_p = data_cfg.normalisation.global_percentiles[0]
-            max_p = data_cfg.normalisation.global_percentiles[1]
-        else:
-            min_p, max_p = None, None
-        raw_stats = calculate_global_stats(
-            raw_train, percentile_min=min_p, percentile_max=max_p
-        )
-        val_stats = calculate_global_stats(
-            raw_val, percentile_min=min_p, percentile_max=max_p
-        )
-    else:
-        raw_stats = None
-        val_stats = None
-
-    if isinstance(pseudo_labeler, DummyDirectEvalPseudoLabeler):
-        # For the dummy pseudo labeler, we use the DummySelfTrainingLoader
-        assert (
-            data_cfg.label_key is not None
-        ), "label_key must be provided for DummySelfTrainingLoader"
-        unsupervised_train_loader = get_DummySelfTraining_loader(
-            data_cfg.unsupervised_train_paths,
-            data_cfg.raw_key,
-            data_cfg.label_key,
-            data_cfg.patch_shape,
-            data_cfg.batch_size,
-            n_samples=data_cfg.n_samples_train,
-            roi=roi_unsupervised_train,
-            global_stats=raw_stats,
-            norm01=data_cfg.normalisation.norm01,
-        )
-        unsupervised_val_loader = get_DummySelfTraining_loader(
-            data_cfg.unsupervised_val_paths,
-            data_cfg.raw_key,
-            data_cfg.label_key,
-            data_cfg.patch_shape,
-            data_cfg.batch_size,
-            n_samples=data_cfg.n_samples_val,
-            roi=roi_unsupervised_val,
-            global_stats=val_stats,
-            norm01=data_cfg.normalisation.norm01,
-        )
-
-    else:
-        print("Get unsup loaders")
-        unsupervised_train_loader = get_unsupervised_loader(
-            data_cfg.unsupervised_train_paths,
-            data_cfg.raw_key,
-            data_cfg.patch_shape,
-            data_cfg.batch_size,
-            num_workers=data_cfg.num_workers,
-            n_samples=data_cfg.n_samples_train,
-            roi=roi_unsupervised_train,
-            global_stats=raw_stats,
-            norm01=data_cfg.normalisation.norm01,
-        )
-        unsupervised_val_loader = get_unsupervised_loader(
-            data_cfg.unsupervised_val_paths,
-            data_cfg.raw_key,
-            data_cfg.patch_shape,
-            data_cfg.batch_size,
-            num_workers=data_cfg.num_workers,
-            n_samples=data_cfg.n_samples_val,
-            roi=roi_unsupervised_val,
-            global_stats=val_stats,
-            norm01=data_cfg.normalisation.norm01,
-        )
+    unsupervised_train_loader, unsupervised_val_loader = get_MT_unsupervised_loaders(
+        data_cfg,
+        roi_unsupervised_train=roi_unsupervised_train,
+        roi_unsupervised_val=roi_unsupervised_val,
+        psuedo_labeler_name=psd_cfg.name,
+    )
 
     if sup_data_cfg is not None:
         print("Get supervised loaders with config")

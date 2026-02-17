@@ -56,6 +56,15 @@ class ScheduledPseudoLabelerConfig(BaseModel):
     activation: Optional[Literal["softmax", "sigmoid"]] = "sigmoid"
 
 
+psuedo_labeler_names = Literal[
+    "input_consistency",
+    "model_consistency",
+    "default_pseudo_labeler",
+    "scheduled_pseudo_labeler",
+    "direct_eval_pseudo_labeler",
+]
+
+
 pseudo_labeler_type = Annotated[
     Union[
         InputConsisPseudoLabelerConfig,
