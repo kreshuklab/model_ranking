@@ -1,5 +1,5 @@
 import torch
-from typing import Optional, Union, Tuple, List, assert_never, Dict, Any
+from typing import Optional, Union, Tuple, List, Dict, Any
 from pathlib import Path
 from numpy.typing import NDArray
 
@@ -16,10 +16,8 @@ from model_ranking.datasets import (
 from model_ranking.logger import SelfTrainingWandbLogger
 from model_ranking.metrics import DiceMetric
 from .pseudo_labeling import (
-    InputConsistencyPatchwisePseudoLabeler,
-    ModelConsistencyPatchWisePseudoLabeler,
-    ScheduledPseudoLabeler,
     DummyDirectEvalPseudoLabeler,
+    get_pseudo_labeler,
 )
 from .self_training import (
     get_unsupervised_loader,
@@ -34,9 +32,6 @@ from pytorch3dunet.unet3d.utils import (
 )
 from model_ranking.utils import load_h5, get_roi_slice
 
-from pytorch3dunet.augment.transforms import (
-    Transformer,
-)
 from pytorch3dunet.datasets.utils import (
     get_train_loaders,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -84,81 +79,7 @@ def run_mean_teacher(
         optimizer, **scheduler_kwargs
     )
 
-    if psd_cfg.activation is not None:
-        if psd_cfg.activation == "softmax":
-            activation = torch.nn.Softmax(dim=1)
-        elif psd_cfg.activation == "sigmoid":
-            activation = torch.nn.Sigmoid()
-        else:
-            raise ValueError(
-                f"Unknown activation: {psd_cfg.activation}. "
-                + "Supported are 'softmax' and 'sigmoid'."
-            )
-    else:
-        activation = None
-
-    # Get the consistency metric
-    if (psd_cfg.name == "input_consistency") or (psd_cfg.name == "model_consistency"):
-        consis_cfg = psd_cfg.consistency_metric
-        if consis_cfg.name == "AdaptedRandError":
-            consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
-        else:
-            consistency_metric = consis_cfg.initialise_metric()
-
-        # self training functionality
-        if psd_cfg.name == "input_consistency":
-
-            pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
-                transformer=Transformer(
-                    psd_cfg.transformer_cfg,
-                    psd_cfg.stats_cfg,
-                ),
-                consistency_metric=consistency_metric,
-                mask_threshold=consis_cfg.mask_threshold,
-                consistency_threshold=psd_cfg.consistency_threshold,
-                seg_params=psd_cfg.seg_params,
-                activation=activation,
-            )
-
-        else:
-            pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
-                perturbed_model_config=psd_cfg.perturbed_model_config,
-                consistency_metric=consistency_metric,
-                mask_threshold=consis_cfg.mask_threshold,
-                consistency_threshold=psd_cfg.consistency_threshold,
-                seg_params=psd_cfg.seg_params,
-                activation=activation,
-            )
-
-    elif psd_cfg.name == "default_pseudo_labeler":
-        pseudo_labeler = self_training.DefaultPseudoLabeler(
-            activation=activation,
-            confidence_threshold=psd_cfg.confidence_threshold,
-            threshold_from_both_sides=psd_cfg.threshold_from_both_sides,
-        )
-    elif psd_cfg.name == "scheduled_pseudo_labeler":
-        pseudo_labeler = ScheduledPseudoLabeler(
-            activation=activation,
-            confidence_threshold=psd_cfg.confidence_threshold,
-            threshold_from_both_sides=psd_cfg.threshold_from_both_sides,
-            mode=psd_cfg.mode,
-            factor=psd_cfg.factor,
-            patience=psd_cfg.patience,
-            threshold=psd_cfg.threshold,
-            threshold_mode=psd_cfg.threshold_mode,
-            min_ct=psd_cfg.min_ct,
-            eps=psd_cfg.eps,
-            verbose=psd_cfg.verbose,
-        )
-
-    elif psd_cfg.name == "direct_eval_pseudo_labeler":
-        pseudo_labeler = DummyDirectEvalPseudoLabeler(
-            score_threshold=psd_cfg.score_threshold,
-            activation=activation,
-        )
-
-    else:
-        assert_never(psd_cfg.name)
+    pseudo_labeler = get_pseudo_labeler(psd_cfg)
 
     loss = self_training.DefaultSelfTrainingLoss(activation=torch.nn.Sigmoid())
     loss_and_metric = self_training.DefaultSelfTrainingLossAndMetric(

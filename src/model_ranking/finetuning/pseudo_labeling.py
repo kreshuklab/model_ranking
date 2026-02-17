@@ -1,13 +1,16 @@
 import numpy as np
 from numpy.typing import NDArray
 import torch
-from typing import Optional, Any, Tuple, Union, Literal, List
+from typing import assert_never, Optional, Any, Tuple, Union, Literal, List
+
+import torch_em.self_training as self_training
 
 from model_ranking.data_structures import (
     Pytorch3DUnetModelConfig,
     SemanticSegmentationConfig,
     InstanceSegmentationConfig,
     segmentation_type,
+    pseudo_labeler_type,
 )
 from model_ranking.metrics import (
     get_mask,
@@ -571,3 +574,83 @@ class DummyDirectEvalPseudoLabeler:
 
     def step(self, metric: Optional[float], epoch: int):
         pass
+
+
+def get_pseudo_labeler(cfg: pseudo_labeler_type):
+    if cfg.activation is not None:
+        if cfg.activation == "softmax":
+            activation = torch.nn.Softmax(dim=1)
+        elif cfg.activation == "sigmoid":
+            activation = torch.nn.Sigmoid()
+        else:
+            raise ValueError(
+                f"Unknown activation: {cfg.activation}. "
+                + "Supported are 'softmax' and 'sigmoid'."
+            )
+    else:
+        activation = None
+
+    # Get the consistency metric
+    if (cfg.name == "input_consistency") or (cfg.name == "model_consistency"):
+        consis_cfg = cfg.consistency_metric
+        if consis_cfg.name == "AdaptedRandError":
+            consistency_metric = consis_cfg.initialise_metric(incomplete_gt=False)
+        else:
+            consistency_metric = consis_cfg.initialise_metric()
+
+        # self training functionality
+        if cfg.name == "input_consistency":
+
+            pseudo_labeler = InputConsistencyPatchwisePseudoLabeler(
+                transformer=Transformer(
+                    cfg.transformer_cfg,
+                    cfg.stats_cfg,
+                ),
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=cfg.consistency_threshold,
+                seg_params=cfg.seg_params,
+                activation=activation,
+            )
+
+        else:
+            pseudo_labeler = ModelConsistencyPatchWisePseudoLabeler(
+                perturbed_model_config=cfg.perturbed_model_config,
+                consistency_metric=consistency_metric,
+                mask_threshold=consis_cfg.mask_threshold,
+                consistency_threshold=cfg.consistency_threshold,
+                seg_params=cfg.seg_params,
+                activation=activation,
+            )
+
+    elif cfg.name == "default_pseudo_labeler":
+        pseudo_labeler = self_training.DefaultPseudoLabeler(
+            activation=activation,
+            confidence_threshold=cfg.confidence_threshold,
+            threshold_from_both_sides=cfg.threshold_from_both_sides,
+        )
+    elif cfg.name == "scheduled_pseudo_labeler":
+        pseudo_labeler = ScheduledPseudoLabeler(
+            activation=activation,
+            confidence_threshold=cfg.confidence_threshold,
+            threshold_from_both_sides=cfg.threshold_from_both_sides,
+            mode=cfg.mode,
+            factor=cfg.factor,
+            patience=cfg.patience,
+            threshold=cfg.threshold,
+            threshold_mode=cfg.threshold_mode,
+            min_ct=cfg.min_ct,
+            eps=cfg.eps,
+            verbose=cfg.verbose,
+        )
+
+    elif cfg.name == "direct_eval_pseudo_labeler":
+        pseudo_labeler = DummyDirectEvalPseudoLabeler(
+            score_threshold=cfg.score_threshold,
+            activation=activation,
+        )
+
+    else:
+        assert_never(cfg.name)
+
+    return pseudo_labeler
