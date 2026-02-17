@@ -76,6 +76,7 @@ def run_mean_teacher(
     optimizer_kwargs: Dict[str, Any] = {},
     mixed_precision: bool = True,
     global_normalisation: bool = False,
+    global_percentiles: Optional[Tuple[float, float]] = None,
     norm01: bool = False,
 ):
     assert (n_iterations is None) != (
@@ -198,8 +199,22 @@ def run_mean_teacher(
             ), "Global normalisation only works with h5 files."
             raw_train.append(load_h5(train_path, raw_key))
             raw_val.append(load_h5(val_path, raw_key))
-        raw_stats = calculate_global_stats(raw_train)
-        val_stats = calculate_global_stats(raw_val)
+
+        if global_percentiles is not None:
+            min_p = global_percentiles[0]
+            max_p = global_percentiles[1]
+        else:
+            min_p = None
+            max_p = None
+
+        raw_stats = calculate_global_stats(
+            raw_train,
+            percentile_min=min_p,
+            percentile_max=max_p,
+        )
+        val_stats = calculate_global_stats(
+            raw_val, percentile_min=min_p, percentile_max=max_p
+        )
     else:
         raw_stats = None
         val_stats = None
