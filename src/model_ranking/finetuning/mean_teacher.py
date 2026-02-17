@@ -48,7 +48,7 @@ def run_mean_teacher(
         trn_cfg.epochs is None
     ), "Specify exactly one of n_iterations or epochs (not both, not neither)"
 
-    model = get_model(model_cfg.model_dump())
+    model = get_model(model_cfg.model.model_dump())
     if model_cfg.source_checkpoint is None:
         # training from scratch only makes sense if we have supervised training data
         # that's why we have the assertion here.
