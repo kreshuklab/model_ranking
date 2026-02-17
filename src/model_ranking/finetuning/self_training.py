@@ -206,10 +206,10 @@ def get_MT_unsupervised_loaders(
         traverse_h5_paths(cfg.unsupervised_val_paths)
     )
 
-    if cfg.normalisation.global_normalisation:
-        if cfg.normalisation.global_percentiles is not None:
-            min_p = cfg.normalisation.global_percentiles[0]
-            max_p = cfg.normalisation.global_percentiles[1]
+    if cfg.global_normalisation:
+        if cfg.global_percentiles is not None:
+            min_p = cfg.global_percentiles[0]
+            max_p = cfg.global_percentiles[1]
         else:
             min_p, max_p = None, None
 
@@ -253,7 +253,7 @@ def get_MT_unsupervised_loaders(
             n_samples=cfg.n_samples_train,
             roi=roi_unsupervised_train,
             global_stats=train_stats,
-            norm01=cfg.normalisation.norm01,
+            norm01=cfg.norm01,
         )
         unsupervised_val_loader = get_DummySelfTraining_loader(
             unsup_v_paths,
@@ -264,7 +264,7 @@ def get_MT_unsupervised_loaders(
             n_samples=cfg.n_samples_val,
             roi=roi_unsupervised_val,
             global_stats=val_stats,
-            norm01=cfg.normalisation.norm01,
+            norm01=cfg.norm01,
         )
 
     else:
@@ -278,7 +278,7 @@ def get_MT_unsupervised_loaders(
             n_samples=cfg.n_samples_train,
             roi=roi_unsupervised_train,
             global_stats=train_stats,
-            norm01=cfg.normalisation.norm01,
+            norm01=cfg.norm01,
         )
         unsupervised_val_loader = get_unsupervised_loader(
             unsup_v_paths,
@@ -289,7 +289,7 @@ def get_MT_unsupervised_loaders(
             n_samples=cfg.n_samples_val,
             roi=roi_unsupervised_val,
             global_stats=val_stats,
-            norm01=cfg.normalisation.norm01,
+            norm01=cfg.norm01,
         )
 
     return unsupervised_train_loader, unsupervised_val_loader
