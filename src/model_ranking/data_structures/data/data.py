@@ -22,7 +22,10 @@ from .slice_builders import (
     Pytorch3DUnetFilterSliceBuilderConfig,
     Pytorch3DUnetSliceBuilderConfig,
 )
-from .utils import ForegroundFilterConfig
+from model_ranking.data_structures.common_types import (
+    dataset_names,
+    ForegroundFilterConfig,
+)
 from model_ranking.data_structures.general.predictor import (
     Pytorch3DUnetPredictorMetaConfig,
     TIFNucleiInstancePredictorConfig,
@@ -30,26 +33,6 @@ from model_ranking.data_structures.general.predictor import (
     predictor_semantic_type,
     predictor_instance_type,
 )
-
-dataset_names = Literal[
-    "Go-Nuclear",
-    "S_BIAD1196",
-    "S_BIAD1410",
-    "FlyWing",
-    "Ovules",
-    "PNAS",
-    "EPFL",
-    "Hmito",
-    "Rmito",
-    "VNC",
-    "BBBC039",
-    "DSB2018",
-    "HeLaNuc",
-    "Hoechst",
-    "S_BIAD634",
-    "S_BIAD895",
-    "Covid_IF",
-]
 
 
 class TargetDatasetConfigBase(BaseModel, frozen=True):

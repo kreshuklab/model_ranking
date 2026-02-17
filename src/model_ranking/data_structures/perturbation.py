@@ -1,6 +1,14 @@
 from pydantic import BaseModel
 from typing import Dict, Literal, Optional, Sequence, Tuple, Union
 
+# from model_ranking.data_structures.common_types import (
+#     FeaturePerturbationBaseConfig,
+#     DropOutPerturbationConfig,
+#     FeatureDropPerturbationConfig,
+#     FeatureNoisePerturbationConfig,
+#     feature_perturbation_type,
+# )
+
 
 class FeaturePerturbationBaseConfig(BaseModel):
     layers: Sequence[int]

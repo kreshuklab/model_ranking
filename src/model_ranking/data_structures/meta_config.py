@@ -7,7 +7,7 @@ from .data.eval_dataloaders import EvalDataloaderConfig
 from .ranking.performance_metrics import eval_metric_type
 from .general.model import ModelSourceConfig, SourceModelConfigBase
 from .general.summary import SummaryResultsMetaConfig
-from .ranking.perturbation import FeaturePerturbationConfig
+from .perturbation import FeaturePerturbationConfig
 
 
 class EvaluateConfig(BaseModel, frozen=True):

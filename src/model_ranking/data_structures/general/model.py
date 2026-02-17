@@ -1,8 +1,11 @@
 from pydantic import BaseModel, Discriminator
 from typing import Annotated, Literal, Optional, Sequence, Tuple, Union
 
-from model_ranking.data_structures.data.data import dataset_names
-from model_ranking.data_structures.ranking.perturbation import feature_perturbation_type
+# from model_ranking.data_structures.constants import dataset_names
+from model_ranking.data_structures.common_types import dataset_names
+
+# from model_ranking.data_structures.common_types import feature_perturbation_type
+from model_ranking.data_structures.perturbation import feature_perturbation_type
 
 pytorch3dunet_model_names = Literal[
     "UNet2D", "UNet2d_as3d", "ResidualUNet2D", "ResidualUNet2D_as_3D", "UNet3D"
