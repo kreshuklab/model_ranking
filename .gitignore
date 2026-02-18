@@ -7,7 +7,6 @@ wandb/
 *.npy
 /tests
 */SLURM
-*.sh
 *.png
 *.svg
 *.out
