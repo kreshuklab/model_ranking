@@ -1,3 +1,4 @@
+from typing_extensions import get_args
 from pydantic import BaseModel, Discriminator
 from typing import Annotated, Literal, Optional, Sequence, Tuple, Union
 
@@ -179,8 +180,8 @@ class ModelSourceConfig(SourceModelConfigBase):
         self,
         feature_perturbation: Optional[feature_perturbation_type],
     ):
-        assert (
-            self.model_type in pytorch3dunet_model_names
+        assert self.model_type in get_args(
+            pytorch3dunet_model_names
         ), f"Invalid model type: {self.model_type}"
         if self.model_type == "UNet2D" or self.model_type == "UNet2d_as3d":
             if self.source_name in [
