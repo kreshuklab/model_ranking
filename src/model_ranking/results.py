@@ -520,12 +520,26 @@ def get_ckpt_eval_scores(
         path = Path(path)
     for id in checkpoint_ids:
         checkpoint_name = f"epoch-{int(id)}"
-        summary_path = path / checkpoint_name / "predictions" / "metric_summary.h5"
+        matches = list((path / checkpoint_name).rglob("metric_summary.h5"))
+        if len(matches) != 1:
+            raise ValueError(
+                f"Expected exactly one match, found {len(matches)}: {matches}"
+            )
+        summary_path = matches[0]
+        # summary_path = path / checkpoint_name / "predictions" / "metric_summary.h5"
         eval_score_pp = load_h5(summary_path, eval_key)
         eval_mean = load_h5(summary_path, f"{eval_key}_mean")
         eval_median = load_h5(summary_path, f"{eval_key}_median")
-        mean_eval_scores.append(eval_mean[1])
-        median_eval_scores.append(eval_median[1])
+        if eval_score_pp.ndim == 2:
+            mean_eval_scores.append(eval_mean[1])
+            median_eval_scores.append(eval_median[1])
+        elif eval_score_pp.ndim == 1:
+            mean_eval_scores.append(float(eval_mean))
+            median_eval_scores.append(float(eval_median))
+        else:
+            raise ValueError(
+                f"Unexpected shape for eval_score_pp: {eval_score_pp.shape}"
+            )
         assert np.all(
             np.equal(np.mean(eval_score_pp, axis=0), eval_mean)
         ), f"Eval mean mismatch for {checkpoint_name} {eval_mean} vs {np.mean(eval_score_pp, axis=0)}"

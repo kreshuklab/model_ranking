@@ -19,7 +19,7 @@ from pytorch3dunet.datasets.utils import (
     get_class,  # pyright: ignore[reportUnknownVariableType]
 )
 
-MODEL_ABBREVIATIONS_TO_DATASET = {
+MODEL_ABBREVIATIONS_TO_DATASET: Dict[str, str] = {
     #### Mitochondria
     "E": "EPFL",
     "Hm": "Hmito",
@@ -28,8 +28,11 @@ MODEL_ABBREVIATIONS_TO_DATASET = {
     "H": "Hmito",
     "R": "Rmito",
     "fw": "FlyWing",
+    "Fw": "FlyWing",
     "ov": "Ovules",
+    "Ov": "Ovules",
     "p": "PNAS",
+    "P": "PNAS",
     "BC": "BBBC039",
     "HN": "HeLaNuc",
     "DSB": "DSB2018",
@@ -529,6 +532,7 @@ def find_selftraining_pred_paths(
     base_path: Path = Path(
         "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
     ),
+    abbrevs: Dict[str, str] = MODEL_ABBREVIATIONS_TO_DATASET,
 ) -> List[Path]:
     paths: List[Path] = []
     for model in model_names:
@@ -536,7 +540,9 @@ def find_selftraining_pred_paths(
         source = transfer.split("to")[0]
         target = transfer.split("to")[1]
         path = list(
-            base_path.glob(f"{source}*_to_{target}*_gap/{approach}/predictions/{model}")
+            base_path.glob(
+                f"{abbrevs[source]}_to_{abbrevs[target]}_gap/{approach}/predictions/{model}"
+            )
         )
         assert len(path) == 1, f"Found {len(path)} paths for {model} in {base_path}"
         paths.append(path[0])

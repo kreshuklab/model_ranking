@@ -165,7 +165,7 @@ def get_model_path(
     return model_path
 
 
-DATASET_TO_MODEL_ABBREVIATIONS = {
+DATASET_TO_MODEL_ABBREVIATIONS: Dict[str, str] = {
     #### Nuclei
     "BBBC039": "BC",
     "DSB2018": "DSB",
@@ -187,7 +187,7 @@ DATASET_TO_MODEL_ABBREVIATIONS = {
     "VNC": "V",
 }
 
-MODEL_ABBREVIATIONS_TO_DATASET = {
+MODEL_ABBREVIATIONS_TO_DATASET: Dict[str, str] = {
     #### Mitochondria
     "E": "EPFL",
     "Hm": "Hmito",
@@ -196,8 +196,11 @@ MODEL_ABBREVIATIONS_TO_DATASET = {
     "H": "Hmito",
     "R": "Rmito",
     "fw": "FlyWing",
+    "Fw": "FlyWing",
     "ov": "Ovules",
+    "Ov": "Ovules",
     "p": "PNAS",
+    "P": "PNAS",
     "BC": "BBBC039",
     "HN": "HeLaNuc",
     "DSB": "DSB2018",
