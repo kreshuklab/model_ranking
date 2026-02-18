@@ -8,7 +8,6 @@ checks/
 *.npy
 /tests
 */SLURM
-*.sh
 *.svg
 *.out
 *.DS_Store
