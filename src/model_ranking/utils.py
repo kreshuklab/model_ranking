@@ -610,12 +610,12 @@ def find_batchnorm_pred_path(
         / model_name
         / "predictions"
         / perturbation
-        / "predictions"
+        # / "predictions"
     )
     if return_summary:
-        pred_path = list(pred_dir_path.glob(f"*metric_summary_{summary_postfix}.h5"))
+        pred_path = list(pred_dir_path.rglob(f"*metric_summary_{summary_postfix}.h5"))
     else:
-        pred_path = list(pred_dir_path.glob("*predictions.h5"))
+        pred_path = list(pred_dir_path.rglob("*predictions.h5"))
     assert (
         len(pred_path) == 1
     ), f"Found {len(pred_path)} prediction files for {model_name} at {pred_dir_path}"
