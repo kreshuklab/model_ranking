@@ -7,8 +7,12 @@ if __name__ == "__main__":
         [
             "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Cells/Ovules_to_FlyWing_gap/default_selftraining/predictions/OvtoFw_def_ov_model_NA1/epoch-3/predictions/per03_predictions.h5"
         ]
-        * 2,
-        keys=["predictions", "segmentation"],
+        * 2
+        + ["/scratch/talks/data/FlyWing/GT/test/per03.h5"] * 2,
+        keys=[
+            "predictions",
+            "segmentation",
+        ],
         names=["pred", "seg"],
         are_labels=[False, True],
         rois=[np.s_[50:55, :, :]] * 2,  # pyright: ignore
