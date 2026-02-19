@@ -3,7 +3,30 @@
 # Script to submit batch jobs for all config files in directory
 
 # Define the config directory
-CONFIG_DIR="/g/kreshuk/talks/consistency_results/patch_segmentation/nuclei/configs/input_EI"
+CONFIG_PATH="$1"
+PATTERN="${2:-*.yaml}"
+
+if [[ -z "$CONFIG_PATH" ]]; then
+    echo "Usage: $0 /path/to/config_dir_or_yaml [pattern]"
+    exit 1
+fi
+
+if [[ -f "$CONFIG_PATH" ]]; then
+    config_files=("$CONFIG_PATH")
+elif [[ -d "$CONFIG_PATH" ]]; then
+    shopt -s nullglob
+    config_files=("$CONFIG_PATH"/$PATTERN)
+    shopt -u nullglob
+else
+    echo "Usage: $0 /path/to/config_dir_or_yaml [pattern]"
+    echo "Error: '$CONFIG_PATH' is not a valid file or directory."
+    exit 1
+fi
+
+if [[ ${#config_files[@]} -eq 0 ]]; then
+    echo "No config files found for pattern '$PATTERN' in '$CONFIG_PATH'"
+    exit 1
+fi
 
 # Define the base directory for SLURM outputs
 SLURM_BASE_DIR="../SLURM"
@@ -12,12 +35,7 @@ SLURM_BASE_DIR="../SLURM"
 mkdir -p "$SLURM_BASE_DIR"
 
 # Loop through all meta_config_*.yaml files in the config directory
-for config_file in "$CONFIG_DIR"/*meta_config*.yaml; do
-    # Check if file exists (in case no files match the pattern)
-    if [[ ! -f "$config_file" ]]; then
-        echo "No config files found matching pattern *meta_config*.yaml"
-        continue
-    fi
+for config_file in "${config_files[@]}"; do
     
     # Extract the filename without path
     filename=$(basename "$config_file")
@@ -46,7 +64,7 @@ for config_file in "$CONFIG_DIR"/*meta_config*.yaml; do
 #SBATCH --job-name=$substring                   # specify the name of the job
 #SBATCH -N 1				                    # specify the number of cluster nodes for the job
 #SBATCH -n 8				                    # specify the number of cores per node for the job
-#SBATCH --mem 10G			                    # specify the amount of memory per node
+#SBATCH --mem 60G			                    # specify the amount of memory per node
 #SBATCH -t 1-00:00:00                           # specify the runtime of the job IMPORTANT: your job will get killed if it exceeds this runtime (the format is d-h:mm-ss)
 #SBATCH -o $slurm_dir/outfile.out		        # specify the file to write the command line output to
 #SBATCH -e $slurm_dir/errfile.err			    # specify the file to write the error output to
