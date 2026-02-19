@@ -1,6 +1,6 @@
 import napari
 import numpy as np
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
 from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
     open_file,  # pyright: ignore[reportUnknownVariableType]
@@ -10,7 +10,7 @@ from elf.io import (  # pyright: ignore[reportMissingTypeStubs]
 def h5_napari(
     paths: Union[str, List[str]],
     keys: Union[str, List[str]],
-    rois: Optional[List[slice]] = None,
+    rois: Optional[Union[List[slice], Tuple[slice, ...]]] = None,
     names: Optional[Union[List[str], List[None]]] = None,
     are_labels: Optional[List[bool]] = None,
 ):
