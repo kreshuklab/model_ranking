@@ -12,6 +12,7 @@ import h5py  # pyright: ignore[reportMissingTypeStubs]
 from h5py import File  # pyright: ignore[reportMissingTypeStubs]
 import numpy as np
 import re
+import random
 import torch
 from skimage.transform import resize  # pyright: ignore[reportUnknownVariableType]
 
@@ -714,3 +715,83 @@ def find_dataset_object_sizes(data: NDArray[Any], ignore_indexes: List[int] = [-
     max_object_size = np.max(all_object_counts)
 
     return median_object_size, max_object_size, all_object_counts
+
+
+def subsample_data_split(
+    input_path: str,
+    proportion: Optional[float] = None,
+    n_samples: Optional[int] = None,
+    output_path: Optional[str] = None,
+    random_seed: Optional[int] = None,
+) -> List[str]:
+    """
+    Randomly subsample filenames from a data split .txt file.
+
+    Parameters:
+    -----------
+    input_path : str
+        Path to the .txt file containing filenames (one per line)
+    proportion : float, optional
+        Proportion of files to sample (e.g., 0.5 for 50%)
+    n_samples : int, optional
+        Absolute number of files to sample
+    output_path : str, optional
+        If provided, write the selected filenames to this path
+    random_seed : int, optional
+        Random seed for reproducibility
+
+    Returns:
+    --------
+    List[str]
+        List of selected filenames
+
+    Raises:
+    -------
+    ValueError
+        If neither proportion nor n_samples is provided, or if both are provided
+    """
+    # Validate parameters
+    if proportion is None and n_samples is None:
+        raise ValueError("At least one of 'proportion' or 'n_samples' must be provided")
+
+    if proportion is not None and n_samples is not None:
+        raise ValueError(
+            "Only one of 'proportion' or 'n_samples' should be provided, not both"
+        )
+
+    # Set random seed if provided
+    if random_seed is not None:
+        random.seed(random_seed)
+
+    # Read all filenames
+    with open(input_path, "r") as f:
+        all_filenames = [line.strip() for line in f if line.strip()]
+
+    total_files = len(all_filenames)
+
+    # Determine number of samples
+    if proportion is not None:
+        if not 0 < proportion <= 1:
+            raise ValueError(f"Proportion must be between 0 and 1, got {proportion}")
+        n_to_sample = int(total_files * proportion)
+    else:  # n_samples is not None
+        assert n_samples is not None  # for type checker
+        if n_samples <= 0:
+            raise ValueError(f"n_samples must be positive, got {n_samples}")
+        if n_samples > total_files:
+            raise ValueError(
+                f"n_samples ({n_samples}) cannot exceed total files ({total_files})"
+            )
+        n_to_sample = n_samples
+
+    # Random sample
+    selected_filenames = random.sample(all_filenames, n_to_sample)
+
+    # Write to output file if path is provided
+    if output_path is not None:
+        with open(output_path, "w") as f:
+            for filename in selected_filenames:
+                _ = f.write(f"{filename}\n")
+        print(f"Written {len(selected_filenames)} filenames to {output_path}")
+
+    return selected_filenames
