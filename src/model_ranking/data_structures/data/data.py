@@ -661,6 +661,8 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
         percentiles=(5, 98),
         image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Raw",),
         mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+        # image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Raw",),
+        # mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Masks",),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -677,6 +679,8 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
         percentiles=(5, 98),
         image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Raw",),
         mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+        # image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Raw",),
+        # mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Masks",),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -717,6 +721,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=None,
             zero_large_instances=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            # mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Masks",),
             mask_key=None,
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -740,6 +745,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
             min_object_size=50,
             zero_large_instances=False,
             mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
+            # mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Masks",),
             mask_key=None,
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
