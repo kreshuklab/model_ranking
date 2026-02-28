@@ -11,3 +11,4 @@ from .dispersion import *
 from .nuclear_norm import *
 from .utils import *
 from .MaNo import *
+from .SEG import *
