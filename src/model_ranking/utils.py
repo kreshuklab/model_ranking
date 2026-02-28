@@ -75,6 +75,37 @@ def load_h5(
     return data
 
 
+def get_h5_dataset_size(
+    filepath: Union[str, Path], key: str
+) -> Tuple[Tuple[int, ...], int]:
+    """
+    Get the size of a dataset in an HDF5 file without loading the data.
+
+    This function is memory-efficient as it only reads the dataset metadata,
+    not the actual data.
+
+    Args:
+        filepath: Path to the HDF5 file
+        key: Key/path to the dataset within the HDF5 file
+
+    Returns:
+        A tuple containing:
+        - shape: The shape of the dataset (as a tuple of integers)
+        - size: The total number of elements in the dataset
+
+    Example:
+        shape, size = get_h5_dataset_size('data.h5', 'predictions')
+        # shape might be (100, 512, 512) for 100 images of 512x512
+        # size would be 26214400
+    """
+    with h5py.File(filepath, "r") as f:
+        dataset = f[key]
+        assert isinstance(dataset, h5py.Dataset)
+        shape = dataset.shape  # pyright: ignore[reportUnknownVariableType]
+        size = dataset.size  # pyright: ignore[reportUnknownVariableType]
+    return shape, size  # pyright: ignore
+
+
 def save_h5(
     save_path: Union[str, Path],
     out_key: str,
