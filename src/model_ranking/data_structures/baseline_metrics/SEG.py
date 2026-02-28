@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 
 
 class SEGConfig(BaseModel):
@@ -11,3 +11,4 @@ class SEGConfig(BaseModel):
     agree_ratios: List[float]
     radii: List[int]
     output_name: str
+    task: Literal["nuclei", "cells"]

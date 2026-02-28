@@ -2,7 +2,7 @@
 import os
 import pickle
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 import numpy as np
 from numpy.typing import NDArray
 from scipy.special import softmax  # pyright: ignore
@@ -15,14 +15,18 @@ from model_ranking.data_structures import SEGConfig
 
 def get_mask(
     datapaths: Dict[str, Path],
-    sid: str,
+    sid: Union[str, int],
     method: str,
     file_ext: str = ".h5",
     seg_key: str = "segmentation",
 ):
     datapath = datapaths[method]
-    mask_path = datapath / f"{sid}{file_ext}"
-    return load_h5(mask_path, seg_key)
+    if isinstance(sid, int):
+        mask = load_h5(datapath, seg_key, select_index=sid).squeeze()
+    else:
+        mask_path = datapath / f"{sid}{file_ext}"
+        mask = load_h5(mask_path, seg_key)
+    return mask
 
 
 def create_pmask(seg_mask: NDArray[Any], r: int) -> NDArray[Any]:
@@ -110,7 +114,7 @@ def f1_score(gt, m):
 
 def get_pseudo_ground_truths(
     pmasks: Dict[str, Dict[str, NDArray[Any]]],
-    sample_ids: List[str],
+    sample_ids: Union[List[str], List[int]],
     methods: List[str],
     weights: NDArray[Any],
     agree_ratio: float,
@@ -118,25 +122,25 @@ def get_pseudo_ground_truths(
 ):
     pseudo_gts: Dict[str, Dict[str, NDArray[Any]]] = {}
     for s, sid in enumerate(sample_ids):
-        pseudo_gts[sid] = {}
+        pseudo_gts[str(sid)] = {}
         for method_out in methods:
             if filtered:
                 pmasks_ = pmasks[method_out][
-                    sid
+                    str(sid)
                 ]  # filtered with resepect to method-left-out
             else:
-                pmasks_ = pmasks[sid]
+                pmasks_ = pmasks[str(sid)]
             methods_in = [m for m in methods if m != method_out]
             gt = sum(
                 [pmasks_[method] * weights[s][m] for m, method in enumerate(methods_in)]
             )
-            pseudo_gts[sid][method_out] = (gt >= agree_ratio).astype("int")
+            pseudo_gts[str(sid)][method_out] = (gt >= agree_ratio).astype("int")
     return pseudo_gts
 
 
 def get_weights(
     datapaths: Dict[str, Path],
-    sample_ids: List[str],
+    sample_ids: Union[List[str], List[int]],
     methods: List[str],
     radius: int,
     agree_ratio: float,
@@ -144,10 +148,10 @@ def get_weights(
     # get probability masks
     pmasks: Dict[str, Dict[str, NDArray[Any]]] = {}
     for sid in sample_ids:
-        pmasks[sid] = {}
+        pmasks[str(sid)] = {}
         for method in methods:
             method_mask = get_mask(datapaths, sid, method)
-            pmasks[sid][method] = create_pmask(method_mask, radius)
+            pmasks[str(sid)][method] = create_pmask(method_mask, radius)
 
     # get pseudo-ground-truths for each method-left-out
     weights = np.ones((len(sample_ids), len(methods) - 1)) * (1 / (len(methods) - 1))
@@ -165,9 +169,9 @@ def get_weights(
                 if method_in == method_out:
                     continue
                 f_pmasks_[method_in] = filter_pmask(
-                    pmasks[sid][method_in], label(pseudo_gts[sid][method_out])
+                    pmasks[str(sid)][method_in], label(pseudo_gts[str(sid)][method_out])
                 )
-            f_pmasks[method_out][sid] = f_pmasks_
+            f_pmasks[method_out][str(sid)] = f_pmasks_
 
     # regenerate pseudo-ground-truths
     f_pseudo_gts = get_pseudo_ground_truths(
@@ -182,8 +186,10 @@ def get_weights(
                 if method_out == method_in:
                     f1_table[s][i][j] = -999
                     continue
-                method_mask = label(f_pmasks[method_out][sid][method_in])
-                f1_table[s][i][j] = f1_score(f_pseudo_gts[sid][method_out], method_mask)
+                method_mask = label(f_pmasks[method_out][str(sid)][method_in])
+                f1_table[s][i][j] = f1_score(
+                    f_pseudo_gts[str(sid)][method_out], method_mask
+                )
 
     weights = np.zeros((len(sample_ids), len(methods)))
     for s, sid in enumerate(sample_ids):
@@ -202,21 +208,31 @@ def get_pseudo_ground_truths2(pmasks, sample_ids, methods, weights, agree_ratio)
 
     for s, sid in enumerate(sample_ids):
         gt = sum(
-            [pmasks[sid][method] * weights[s][m] for m, method in enumerate(methods)]
+            [
+                pmasks[str(sid)][method] * weights[s][m]
+                for m, method in enumerate(methods)
+            ]
         )
-        pseudo_gts[sid] = (gt >= agree_ratio).astype("int")
+        pseudo_gts[str(sid)] = (gt >= agree_ratio).astype("int")
 
     return pseudo_gts
 
 
-def get_f1_scores(datapath, sample_ids, methods, weights, agree_ratio, radius):
+def get_f1_scores(
+    datapath: Dict[str, Path],
+    sample_ids: Union[List[str], List[int]],
+    methods: List[str],
+    weights: NDArray[Any],
+    agree_ratio: float,
+    radius: int,
+):
     # get probability masks
     pmasks = {}
     for sid in sample_ids:
-        pmasks[sid] = {}
+        pmasks[str(sid)] = {}
         for method in methods:
             method_mask = get_mask(datapath, sid, method)
-            pmasks[sid][method] = create_pmask(method_mask, radius)
+            pmasks[str(sid)][method] = create_pmask(method_mask, radius)
 
     # get pseudo-ground-truths
     pseudo_gts = get_pseudo_ground_truths2(
@@ -226,10 +242,10 @@ def get_f1_scores(datapath, sample_ids, methods, weights, agree_ratio, radius):
     # filter probability masks
     f_pmasks = {}
     for sid in sample_ids:
-        f_pmasks[sid] = {}
+        f_pmasks[str(sid)] = {}
         for method in methods:
-            f_pmasks[sid][method] = filter_pmask(
-                pmasks[sid][method], label(pseudo_gts[sid])
+            f_pmasks[str(sid)][method] = filter_pmask(
+                pmasks[str(sid)][method], label(pseudo_gts[str(sid)])
             )
 
     # re-generate pseudo-ground-truths

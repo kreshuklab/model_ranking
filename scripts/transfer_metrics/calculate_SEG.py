@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 import os
 from pathlib import Path
 import typer
-from typing import Annotated, Any, Dict
+from typing import Annotated, Any, Dict, assert_never
 from tqdm import tqdm
 
 from pytorch3dunet.unet3d.config import (
@@ -11,10 +11,10 @@ from pytorch3dunet.unet3d.config import (
 )
 
 from model_ranking.data_structures import SEGConfig
-from model_ranking.utils import get_output_dir_paths
+from model_ranking.utils import get_output_dir_paths, get_h5_dataset_size
 from model_ranking.baseline_metrics._SEG import (
     get_weights,
-    get_f1_scores,  # pyright: ignore
+    get_f1_scores,
     save_SEG_results,
 )
 
@@ -38,15 +38,31 @@ def main(
         assert (
             len(paths) == 1
         ), f"Expected exactly one path for model {model}, found {len(paths)}"
+
+        if cfg.task == "cells":
+            paths = list(paths[0].glob("*_predictions.h5"))
+
+            assert (
+                len(paths) == 1
+            ), f"Expected exactly one path for model {model}, found {len(paths)}"
+
         model_pred_paths[model] = paths[0]
 
-    sample_ids = sorted(
-        [
-            Path(f).stem
-            for f in os.listdir(model_pred_paths[cfg.methods[0]])
-            if f.endswith(".h5")
-        ]
-    )
+    if cfg.task == "nuclei":
+        sample_ids = sorted(
+            [
+                Path(f).stem
+                for f in os.listdir(model_pred_paths[cfg.methods[0]])
+                if f.endswith(".h5")
+            ]
+        )
+    elif cfg.task == "cells":
+        ds_shape, _ = get_h5_dataset_size(
+            model_pred_paths[cfg.methods[0]], "segmentation"
+        )
+        sample_ids = list(range(ds_shape[0]))
+    else:
+        assert_never(cfg.task)
 
     equal_weights = np.ones((len(sample_ids), len(cfg.methods))) * (
         1 / len(cfg.methods)
