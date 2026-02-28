@@ -1,4 +1,6 @@
 # type: ignore
+import os
+import pickle
 from pathlib import Path
 from typing import Any, Dict, List
 import numpy as np
@@ -8,6 +10,7 @@ from skimage.measure import label, regionprops
 from skimage.segmentation import expand_labels
 
 from model_ranking.utils import load_h5
+from model_ranking.data_structures import SEGConfig
 
 
 def get_mask(
@@ -246,3 +249,26 @@ def get_f1_scores(datapath, sample_ids, methods, weights, agree_ratio, radius):
         f1_per_method.append(mean_method_f1s)
 
     return f1_per_method
+
+
+def save_SEG_results(
+    config: SEGConfig,
+    weights: Dict[int, Dict[float, NDArray[Any]]],
+    eq_f1s: Dict[int, Dict[float, float]],
+    uneq_f1s: Dict[int, Dict[float, float]],
+):
+    save_path = Path(config.save_dir) / f"to_{config.target}"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    with open(os.path.join(save_path, f"{config.output_name}.pkl"), "wb") as f:
+        results: Dict[str, Any] = {
+            "methods": config.methods,
+            "target": config.target,
+            "radii": config.radii,
+            "agree_ratios": config.agree_ratios,
+            "weights": weights,
+            "eq_f1s": eq_f1s,
+            "uneq_f1s": uneq_f1s,
+        }
+        pickle.dump(results, f)

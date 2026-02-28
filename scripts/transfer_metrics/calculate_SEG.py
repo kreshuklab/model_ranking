@@ -1,9 +1,10 @@
-import json
 import numpy as np
+from numpy.typing import NDArray
 import os
 from pathlib import Path
 import typer
 from typing import Annotated, Any, Dict
+from tqdm import tqdm
 
 from pytorch3dunet.unet3d.config import (
     load_config_direct,  # pyright: ignore[reportUnknownVariableType]
@@ -14,22 +15,8 @@ from model_ranking.utils import get_output_dir_paths
 from model_ranking.baseline_metrics._SEG import (
     get_weights,
     get_f1_scores,  # pyright: ignore
+    save_SEG_results,
 )
-
-# methods = [
-#     "BC_IN_model2",
-#     "HN_IN_model2",
-#     "Hst_IN_model3",
-#     "895_IN_model2",
-#     "1410_IN_model1",
-# ]
-# target = "Hoechst"
-# result_dir = "P1"
-# base_path = "/g/kreshuk/talks/consistency_results/Instance_segmentation/nuclei"
-# save_dir = ""
-
-# agree_ratios = [0.3]
-# radii = [30]
 
 
 def main(
@@ -65,11 +52,11 @@ def main(
         1 / len(cfg.methods)
     )
 
-    weights = {}
-    eq_wgt_f1s = {}
-    uneq_wgt_f1s = {}
+    weights: Dict[int, Dict[float, NDArray[Any]]] = {}
+    eq_wgt_f1s: Dict[int, Dict[float, float]] = {}
+    uneq_wgt_f1s: Dict[int, Dict[float, float]] = {}
 
-    for r in cfg.radii:
+    for r in tqdm(cfg.radii):
         per_AR_weights = {}
         per_AR_eq_f1s = {}
         per_AR_uneq_f1s = {}
@@ -95,22 +82,7 @@ def main(
         eq_wgt_f1s[r] = per_AR_eq_f1s
         uneq_wgt_f1s[r] = per_AR_uneq_f1s
 
-    save_path = Path(cfg.save_dir) / f"to_{cfg.target}"
-
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    with open(os.path.join(save_path, f"{cfg.output_name}.json"), "w") as f:
-        results: Dict[str, Any] = {
-            "methods": cfg.methods,
-            "target": cfg.target,
-            "radii": cfg.radii,
-            "agree_ratios": cfg.agree_ratios,
-            "weights": weights,
-            "eq_f1s": eq_wgt_f1s,
-            "uneq_f1s": uneq_wgt_f1s,
-        }
-        json.dump(results, f, indent=4)
+        save_SEG_results(cfg, weights, eq_wgt_f1s, uneq_wgt_f1s)
 
 
 if __name__ == "__main__":
