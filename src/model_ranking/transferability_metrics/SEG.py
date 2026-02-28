@@ -11,7 +11,7 @@ from skimage.measure import label, regionprops
 from skimage.morphology import disk, binary_dilation
 from skimage.segmentation import expand_labels
 
-from model_ranking import load_h5, get_output_dir_paths
+from model_ranking import load_h5
 
 
 def get_mask(
