@@ -479,6 +479,32 @@ def get_output_pred_paths(
     return output_paths
 
 
+def get_output_dir_paths(
+    target: str,
+    model_name: str,
+    run_id: str,
+    approach: str = "consistency",
+    base_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells",
+    output_dir_name: str = "predictions",
+    specfic_perturbation: Optional[str] = None,
+):
+    source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
+
+    initial_path = (
+        Path(base_path) / f"{source}_to_{target}_gap/{approach}/{run_id}/{model_name}"
+    )
+
+    if specfic_perturbation is not None:
+        output_paths = list(
+            initial_path.rglob(f"**/{specfic_perturbation}/{output_dir_name}")
+        )
+
+    else:
+        output_paths = list(initial_path.rglob(f"**/{output_dir_name}"))
+
+    return output_paths
+
+
 def add_device_to_config(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Add device to the config dictionary.
