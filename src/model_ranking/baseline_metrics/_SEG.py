@@ -85,6 +85,18 @@ def filter_pmask(mask: NDArray[Any], avg_labs: NDArray[Any]) -> NDArray[Any]:
 def f1_score(gt, m):
     """returns precision and recall for a pair of masks"""
     rps = regionprops(m)
+    gt_labs = label(gt)
+    gt_rps = regionprops(gt_labs)
+
+    # Handle edge cases: empty ground truth or empty predictions
+    if len(rps) == 0 and len(gt_rps) == 0:
+        # Both empty - perfect prediction
+        return 1.0
+    elif len(rps) == 0 or len(gt_rps) == 0:
+        # One is empty, the other is not - complete miss or false alarm
+        return 0.0
+
+    # Normal case: both have instances
     coords = list(map(lambda x: x.coords, rps))
     correct = 0
 
@@ -92,8 +104,6 @@ def f1_score(gt, m):
         correct += (gt[c[:, 0], c[:, 1]]).max()
     precision = correct / len(rps)
 
-    gt_labs = label(gt)
-    gt_rps = regionprops(gt_labs)
     coords = list(map(lambda x: x.coords, gt_rps))
     correct = 0
 
@@ -106,9 +116,13 @@ def f1_score(gt, m):
     assert recall <= 1
     assert recall >= 0
 
-    f1 = lambda p, r: 2 * (p * r) / (p + r)
+    # Handle case where both precision and recall are 0
+    if precision + recall == 0:
+        return 0.0
 
-    return f1(precision, recall)
+    f1 = 2 * (precision * recall) / (precision + recall)
+
+    return f1
 
 
 def get_pseudo_ground_truths(
