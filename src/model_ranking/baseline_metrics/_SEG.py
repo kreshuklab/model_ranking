@@ -35,16 +35,15 @@ def create_pmask(seg_mask: NDArray[Any], r: int) -> NDArray[Any]:
     mask = np.zeros_like(seg_mask)
     rps = regionprops(seg_mask)  # pyright: ignore
 
-    # get center of each cell and set the value to one
-    centroids = np.array(
-        list(map(lambda x: np.array(x.centroid).astype(int), rps))  # pyright: ignore
-    )
-    mask[centroids[:, 0], centroids[:, 1]] = 1
+    if len(rps) > 0:
+        # get center of each cell and set the value to one
+        centroids = np.array(list(map(lambda x: np.array(x.centroid).astype(int), rps)))
+        mask[centroids[:, 0], centroids[:, 1]] = 1
 
-    # dilate around the center of the cell with the radius size and binarize the mask
-    # mask = binary_dilation(mask, disk(r))
-    mask = expand_labels(label(mask), distance=r)  # pyright: ignore
-    mask = (mask > 0).astype("int")  # pyright: ignore
+        # dilate around the center of the cell with the radius size and binarize the mask
+        # mask = binary_dilation(mask, disk(r))
+        mask = expand_labels(label(mask), distance=r)  # pyright: ignore
+        mask = (mask > 0).astype("int")  # pyright: ignore
 
     return mask  # pyright: ignore
 
