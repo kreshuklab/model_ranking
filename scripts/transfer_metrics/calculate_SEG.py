@@ -48,21 +48,25 @@ def main(
 
         model_pred_paths[model] = paths[0]
 
-    if cfg.task == "nuclei":
-        sample_ids = sorted(
-            [
-                Path(f).stem
-                for f in os.listdir(model_pred_paths[cfg.methods[0]])
-                if f.endswith(".h5")
-            ]
-        )
-    elif cfg.task == "cells":
-        ds_shape, _ = get_h5_dataset_size(
-            model_pred_paths[cfg.methods[0]], "segmentation"
-        )
-        sample_ids = list(range(ds_shape[0]))
+    if cfg.sample_ids is not None:
+        sample_ids = cfg.sample_ids
+
     else:
-        assert_never(cfg.task)
+        if cfg.task == "nuclei":
+            sample_ids = sorted(
+                [
+                    Path(f).stem
+                    for f in os.listdir(model_pred_paths[cfg.methods[0]])
+                    if f.endswith(".h5")
+                ]
+            )
+        elif cfg.task == "cells":
+            ds_shape, _ = get_h5_dataset_size(
+                model_pred_paths[cfg.methods[0]], "segmentation"
+            )
+            sample_ids = list(range(ds_shape[0]))
+        else:
+            assert_never(cfg.task)
 
     equal_weights = np.ones((len(sample_ids), len(cfg.methods))) * (
         1 / len(cfg.methods)
@@ -98,7 +102,7 @@ def main(
         eq_wgt_f1s[r] = per_AR_eq_f1s
         uneq_wgt_f1s[r] = per_AR_uneq_f1s
 
-        save_SEG_results(cfg, weights, eq_wgt_f1s, uneq_wgt_f1s)
+        save_SEG_results(cfg, weights, eq_wgt_f1s, uneq_wgt_f1s, sample_ids)
 
 
 if __name__ == "__main__":

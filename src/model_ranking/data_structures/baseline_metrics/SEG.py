@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Optional, Union
 
 
 class SEGConfig(BaseModel):
@@ -12,3 +12,4 @@ class SEGConfig(BaseModel):
     radii: List[int]
     output_name: str
     task: Literal["nuclei", "cells"]
+    sample_ids: Optional[Union[List[int], List[str]]] = None

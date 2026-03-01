@@ -258,7 +258,7 @@ def get_f1_scores(
     for method in methods:
         mean_method_f1s = np.mean(
             [
-                f1_score(f_pseudo_gts[sid], label(f_pmasks[sid][method]))
+                f1_score(f_pseudo_gts[str(sid)], label(f_pmasks[str(sid)][method]))
                 for sid in sample_ids
             ]
         )
@@ -272,6 +272,7 @@ def save_SEG_results(
     weights: Dict[int, Dict[float, NDArray[Any]]],
     eq_f1s: Dict[int, Dict[float, float]],
     uneq_f1s: Dict[int, Dict[float, float]],
+    sample_ids: Union[List[str], List[int]],
 ):
     save_path = Path(config.save_dir) / f"to_{config.target}"
     if not os.path.exists(save_path):
@@ -283,6 +284,7 @@ def save_SEG_results(
             "target": config.target,
             "radii": config.radii,
             "agree_ratios": config.agree_ratios,
+            "sample_ids": sample_ids,
             "weights": weights,
             "eq_f1s": eq_f1s,
             "uneq_f1s": uneq_f1s,
