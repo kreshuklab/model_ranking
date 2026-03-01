@@ -67,7 +67,7 @@ def load_h5(
         assert isinstance(ds, h5py.Dataset)
         if roi is not None:
             data = ds[get_roi_slice(roi)]  # pyright: ignore[reportUnknownVariableType]
-        elif select_index:
+        elif select_index is not None:
             data = ds[select_index]  # pyright: ignore[reportUnknownVariableType]
         else:
             data = ds[...]  # pyright: ignore[reportUnknownVariableType]
