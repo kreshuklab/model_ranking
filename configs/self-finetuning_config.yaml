@@ -1,6 +1,6 @@
 training:
   name: &id1 EtoH_def_E_model5
-  output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/EPFL_to_Hmito_gap/default_selftraining
+  output_root_path: output directory to save checkpoint
 
   wandb_cfg:
     project: self-training_EPFL
@@ -15,8 +15,8 @@ training:
     scheduler_kwargs: {mode: max, factor: 0.5, patience: 10}
 
   data_cfg:
-    unsupervised_train_paths: ["/scratch/talks/data/Hmito/train_converted.h5"]
-    unsupervised_val_paths: ["/scratch/talks/data/Hmito/val_converted.h5"]
+    unsupervised_train_paths: ["<path_to_train_data>"]
+    unsupervised_val_paths: ["<path_to_val_data>"]
     patch_shape: [1, 256, 256]
     raw_key: "raw" 
     label_key: null
@@ -40,7 +40,7 @@ training:
       feature_return: false
       is_segmentation: false
       feature_perturbation: null
-    source_checkpoint: "/g/kreshuk/talks/segmentation_ModelSelection/experiments/EPFL/BatchNorm/E_model5/best_checkpoint.pytorch"
+    source_checkpoint: path to intial checkpoint
 
   pseudo_labeler_cfg:
     name: "default_pseudo_labeler"
@@ -79,7 +79,7 @@ prediction:
     segmentation_mode: semantic
     run_mode: pred_eval
     data_base_path: /scratch/talks/data
-    model_dir_path: "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+    model_dir_path: directory of finetuned model checkpoint
     summary_results:
       overwrite_scores: False
 
@@ -88,7 +88,7 @@ prediction:
       result_dir: predictions
       approach: default_selftraining
       output_folder: *id2
-      base_dir_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria
+      base_dir_path: output base directory
 
 
     ### Performance and Consistency evaluation settings

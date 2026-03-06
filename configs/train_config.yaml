@@ -13,7 +13,7 @@ model:
   final_sigmoid: true
   is_segmentation: true
 trainer:
-  checkpoint_dir: /g/kreshuk/talks/segmentation_ModelSelection/experiments/EPFL/BatchNorm/E_model5
+  checkpoint_dir: TODO
   resume: null
   pre_trained: null
   validate_after_iters_initial: 50
@@ -47,7 +47,7 @@ loaders:
 
   train:
     file_paths:
-      - "/scratch/talks/data/EPFL/train.h5"
+      - TODO
 
     slice_builder:
       name: SliceBuilder
@@ -98,7 +98,7 @@ loaders:
           expand_dims: true
   val:
     file_paths:
-      - "/scratch/talks/data/EPFL/val.h5"
+      - TODO
 
     slice_builder:
       name: SliceBuilder
