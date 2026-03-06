@@ -1,0 +1,101 @@
+training:
+  name: &id1 EtoH_def_E_model5
+  output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/EPFL_to_Hmito_gap/default_selftraining
+
+  wandb_cfg:
+    project: self-training_EPFL
+    mode: "online"
+    name: *id1
+
+  training_cfg:
+    lr: 1e-4
+    epochs: 5
+    n_iterations: null
+    save_ckpt_every_kth_epoch: 1
+    scheduler_kwargs: {mode: max, factor: 0.5, patience: 10}
+
+  data_cfg:
+    unsupervised_train_paths: ["/scratch/talks/data/Hmito/train_converted.h5"]
+    unsupervised_val_paths: ["/scratch/talks/data/Hmito/val_converted.h5"]
+    patch_shape: [1, 256, 256]
+    raw_key: "raw" 
+    label_key: null
+    batch_size: 32
+    num_workers: 32
+    n_samples_train: 2048
+    n_samples_val: 512
+    roi_train: null
+    roi_val: null
+    global_normalization: True
+    norm01: False
+
+  model_cfg:
+    model:
+      name: UNet2d_as3d
+      in_channels: 1
+      out_channels: 1
+      layer_order: bcr
+      f_maps: 32
+      final_sigmoid: false
+      feature_return: false
+      is_segmentation: false
+      feature_perturbation: null
+    source_checkpoint: "/g/kreshuk/talks/segmentation_ModelSelection/experiments/EPFL/BatchNorm/E_model5/best_checkpoint.pytorch"
+
+  pseudo_labeler_cfg:
+    name: "default_pseudo_labeler"
+    activation: null
+    confidence_threshold: null
+    threshold_from_both_sides: false
+    mask_channel: null
+
+
+prediction:
+  checkpoints: [epoch-1, epoch-2, epoch-3, epoch-4, epoch-5]
+
+  meta_config:
+    ### Target Datasets
+    target_datasets:
+      - name: Hmito
+
+    ### Source Models
+    source_models:
+      - source_name: EPFL
+        model_name: *id1
+        model_type: UNet2D
+        checkpoint_name: &id2 epoch-1
+
+    ### Perturbation Settings
+
+    # Feature perturbations
+    feature_perturbations: null
+
+    # Input Augmentations
+    input_augs:
+        none: []
+
+    ### General Run Settings
+    overwrite_yaml: True
+    segmentation_mode: semantic
+    run_mode: pred_eval
+    data_base_path: /scratch/talks/data
+    model_dir_path: "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+    summary_results:
+      overwrite_scores: False
+
+    # Output Settings
+    output_settings:
+      result_dir: predictions
+      approach: default_selftraining
+      output_folder: *id2
+      base_dir_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria
+
+
+    ### Performance and Consistency evaluation settings
+    eval_settings:
+      name: MultiClassF1
+      eval_save_key: F1_eval
+      overwrite_score: True
+
+    consistency_settings: null
+

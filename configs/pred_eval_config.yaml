@@ -1,0 +1,65 @@
+ ### Target Datasets
+target_datasets:
+  - name: EPFL
+
+### Source Models
+source_models:
+  # - source_name: EPFL
+  #   model_name: EtoE_model5
+  #   model_type: UNet2D
+  - source_name: EPFL
+    model_name: EtoE_model_NA2
+    model_type: UNet2D
+  # # - source_name: EPFL
+  # #   model_name: EtoE_model_Unetr2
+  # #   model_type: UnetrWrapper
+  - source_name: EPFL
+    model_name: EtoE_model_Res1
+    model_type: ResidualUNet2D
+
+### Perturbation Settings
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  #none: []
+  gauss: [[0.01,0.03], [0.03, 0.05], [0.05, 0.07], [0.1,0.12], [0.12,0.15], [0.15,0.2]]
+
+### General Run Settings
+overwrite_yaml: False
+segmentation_mode: semantic
+run_mode: full
+data_base_path: /scratch/talks/data
+model_dir_path: /g/kreshuk/talks/model_ranking_results/AdaptiveBatchNorm/Mitochondria/train_mode_stats
+
+summary_results:
+  overwrite_scores: False
+  filter_patches: False
+  eval_key: F1_eval
+  consis_key: EI_consis
+  save_name_postfix: _full
+
+# Output Settings
+output_settings:
+  result_dir: predictions
+  approach: null
+  output_folder: null
+  base_dir_path: /g/kreshuk/talks/model_ranking_results/AdaptiveBatchNorm/Mitochondria/train_mode_stats
+
+
+### Performance and Consistency evaluation settings
+eval_settings:
+  name: MultiClassF1
+  eval_save_key: F1_eval
+  overwrite_score: False
+
+consistency_settings:
+  name: "EI"
+  threshold: 0.5
+  save_key: EI_consis
+  save_mask: False
+  mask_threshold: 0.5
+  overwrite_score: False
+  bckg_consistency: False

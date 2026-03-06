@@ -1,0 +1,116 @@
+wandb:
+  # wandb project name
+  project: EPFL
+  # wandb run name
+  name: E_model5
+  mode: online
+model:
+  name: UNet2D
+  in_channels: 1
+  out_channels: 1
+  layer_order: bcr
+  f_maps: 32
+  final_sigmoid: true
+  is_segmentation: true
+trainer:
+  checkpoint_dir: /g/kreshuk/talks/segmentation_ModelSelection/experiments/EPFL/BatchNorm/E_model5
+  resume: null
+  pre_trained: null
+  validate_after_iters_initial: 50
+  validate_after_iters_final: 100
+  validate_switch_iteration: 250
+  log_after_iters: 10
+  max_num_epochs: 100
+  max_num_iterations: 6000
+  eval_score_higher_is_better: True
+optimizer:
+  learning_rate: 0.0002
+  weight_decay: 0.00001
+loss:
+  name: BCEDiceLoss
+  skip_last_target: false
+eval_metric:
+  name: F1Score
+  threshold: 0.5
+lr_scheduler:
+  name: ReduceLROnPlateau
+  mode: max
+  factor: 0.5
+  patience: 10
+loaders:
+  dataset: StandardHDF5Dataset
+  batch_size: 33
+  num_workers: 8
+  raw_internal_path: raw
+  label_internal_path: labels
+  global_normalization: True
+
+  train:
+    file_paths:
+      - "/scratch/talks/data/EPFL/train.h5"
+
+    slice_builder:
+      name: SliceBuilder
+      patch_shape: [1,256,256]
+      stride_shape: [1,128,128]
+      halo_shape: [0,32,32]
+    
+    transformer:
+      raw:
+        - name: Normalize
+        - name: RandomFlip
+        - name: RandomRotate90
+        - name: RandomRotate
+          axes: [[2, 1]]
+          angle_spectrum: 45
+          mode: reflect
+        - name: ElasticDeformation
+          spline_order: 3
+          execution_probability: 0.2
+        - name: RandomContrast
+          execution_probability: 0.3
+          alpha: [0.5, 2]
+          clip_kwargs: null
+        - name: RandomBrightness
+          execution_probability: 0.3
+          alpha: [0.0, 0.3]
+          clip_kwargs: null
+        - name: RandomGamma
+          execution_probability: 0.3
+          gamma: [0.2, 2]
+          clip_kwargs: null
+        - name: AdditiveGaussianNoise
+          execution_probability: 0.3
+          scale: [0.0,0.3]
+        - name: ToTensor
+          expand_dims: true
+      label:
+        - name: RandomFlip
+        - name: RandomRotate90
+        - name: RandomRotate
+          axes: [[2, 1]]
+          angle_spectrum: 45
+          mode: reflect
+        - name: ElasticDeformation
+          spline_order: 0
+          execution_probability: 0.2
+        - name: ToTensor
+          expand_dims: true
+  val:
+    file_paths:
+      - "/scratch/talks/data/EPFL/val.h5"
+
+    slice_builder:
+      name: SliceBuilder
+      patch_shape: [1,256,256]
+      stride_shape: [5,256,256]
+      halo_shape: [0,32,32]
+
+    transformer:
+      raw:
+        - name: Normalize
+        - name: ToTensor
+          expand_dims: true
+      label:
+        - name: ToTensor
+          expand_dims: true
