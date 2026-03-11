@@ -1,6 +1,5 @@
-# CRank - Consistency based Ranking
-### Ranking pre-trained segmentation models for zero-shot transferability 
-([link to paper](https://arxiv.org/abs/2503.00450))
+# Consistency based Model Ranking -- CMR
+### Unsupervised Source-Free Ranking of Biomedical Segmentation Models Under Distribution Shift
 
 ![Fig1](./figures/intro_figure.png)
 
