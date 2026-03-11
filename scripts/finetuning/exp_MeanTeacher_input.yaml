@@ -1,13 +1,13 @@
 name: HtoE_I_model1
-output_root_path: /g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria/Hmito_to_EPFL/input_perturbation/gauss_a0-005
+output_root_path: /path/to/model_ranking_results/Self-Finetuning/Mitochondria/Hmito_to_EPFL/input_perturbation/gauss_a0-005
 
 training_cfg:
   lr: 1e-4
   n_iterations: 250
 
 data_cfg:
-  unsupervised_train_paths: ["/scratch/talks/data/EPFL/train.h5"]
-  unsupervised_val_paths: ["/scratch/talks/data/EPFL/val.h5"]
+  unsupervised_train_paths: ["/path/to/data/EPFL/train.h5"]
+  unsupervised_val_paths: ["/path/to/data/EPFL/val.h5"]
   patch_shape: [1, 256, 256]
   supervised_train_paths: null
   supervised_val_paths: null
@@ -30,7 +30,7 @@ model_cfg:
     feature_return: false
     is_segmentation: true
     feature_perturbation: null
-  source_checkpoint: "/g/kreshuk/talks/segmentation_ModelSelection/experiments/Hmito/BatchNorm/Hm_model3/best_checkpoint.pytorch"
+  source_checkpoint: "/path/to/segmentation_ModelSelection/experiments/Hmito/BatchNorm/Hm_model3/best_checkpoint.pytorch"
 
 pseudo_labeler_cfg:
   name: "input_consistency"

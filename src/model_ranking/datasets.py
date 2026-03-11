@@ -67,7 +67,7 @@ def get_datasets(
     config: mito_dataset_type,
     phase: Literal["train", "test"],
     output_path: Optional[str] = None,
-    data_base_path: str = "/scratch/talks/data",
+    data_base_path: str = "/path/to/data",
 ):
 
     if phase == "train":
@@ -93,7 +93,7 @@ def get_loaders(
     phase: Literal["train", "test"],
     output_path: Optional[str],
     shuffle: bool = True,
-    data_base_path: str = "/scratch/talks/data",
+    data_base_path: str = "/path/to/data",
 ):
     datasets, loader_cfg = get_datasets(
         config=config,

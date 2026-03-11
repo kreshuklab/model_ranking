@@ -10,7 +10,7 @@
 Clone and navigate to this repository
 
 ```
-git clone https://github.com/kreshuklab/model_ranking.git
+git clone https://github.com/path/to/model_ranking.git
 cd model_ranking
 ```
 

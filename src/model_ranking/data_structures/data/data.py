@@ -1955,11 +1955,11 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
         ),
     )
     # feature_indices_path: Optional[str] = (
-    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
+    #     "/path/to/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
     # )
     feature_indices_path: Optional[str] = None
     # feature_indices_path: Optional[str] = (
-    #     "/g/kreshuk/talks/model_ranking/notebooks/checks/EPFL_to_EPFL/E_model5_to_EPFL_features.npz"
+    #     "/path/to/model_ranking/notebooks/checks/EPFL_to_EPFL/E_model5_to_EPFL_features.npz"
     # )
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
         Pytorch3DUnetPredictorMetaConfig(
@@ -2129,7 +2129,7 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         ),
     )
     # feature_indices_path: Optional[str] = (
-    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
+    #     "/path/to/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
     # )
     feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
@@ -2300,7 +2300,7 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         ),
     )
     # feature_indices_path: Optional[str] = (
-    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
+    #     "/path/to/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
     # )
     feature_indices_path: Optional[str] = None
     predictor_semantic: Pytorch3DUnetPredictorMetaConfig = (
@@ -2484,7 +2484,7 @@ class VNCTargetConfig(TargetDatasetConfigBase, frozen=True):
         ),
     )
     # feature_indices_path: Optional[str] = (
-    #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
+    #     "/path/to/sampled_features/semantic_segmentation/mitochondria/feature_indices/VNC_indices.npz"
     # )
     feature_indices_path: Optional[str] = None
     # feature_indices_path: Optional[str] = None
@@ -2574,8 +2574,8 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_norm=False,
         percentiles=None,
-        image_dir=("/g/kreshuk/talks/data/covid_if",),
-        mask_dir=("/g/kreshuk/talks/data/covid_if",),
+        image_dir=("/path/to/data/covid_if",),
+        mask_dir=("/path/to/data/covid_if",),
         transformer={
             "raw": [
                 {"name": "Normalize"},
@@ -2608,7 +2608,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             image_key="prediction",
             min_object_size=None,
             zero_large_instances=False,
-            mask_dir=("/g/kreshuk/talks/data/covid_if",),
+            mask_dir=("/path/to/data/covid_if",),
             mask_key="labels/cells/s0",
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -2632,7 +2632,7 @@ class CovidIFTargetConfig(TargetDatasetConfigBase, frozen=True):
             image_key="segmentation",
             min_object_size=50,
             zero_large_instances=False,
-            mask_dir=("/g/kreshuk/talks/data/covid_if",),
+            mask_dir=("/path/to/data/covid_if",),
             mask_key="labels/cells/s0",
             transformer={
                 "raw": [{"name": "ToTensor", "expand_dims": True}],

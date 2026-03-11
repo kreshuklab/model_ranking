@@ -60,7 +60,7 @@ for config_file in "${config_files[@]}"; do
 # this is an example batch script for submitting a gpu job on the cluster
 # first, we need to specify some variables for slurm, which is done via the SBATCH comments
 
-#SBATCH -A kreshuk                              # specify the group
+#SBATCH -A                              # specify the group
 #SBATCH --job-name=$substring                   # specify the name of the job
 #SBATCH -N 1				                    # specify the number of cluster nodes for the job
 #SBATCH -n 8				                    # specify the number of cores per node for the job
@@ -69,7 +69,7 @@ for config_file in "${config_files[@]}"; do
 #SBATCH -o $slurm_dir/outfile.out		        # specify the file to write the command line output to
 #SBATCH -e $slurm_dir/errfile.err			    # specify the file to write the error output to
 #SBATCH --mail-type=FAIL		            # specify mail notifications for your job 
-#SBATCH --mail-user=joshua.talks@embl.de        # specify the mail address for mail notifications 
+#SBATCH --mail-user=        # specify the mail address for mail notifications 
 #SBATCH -p gpu				                    # specify the queue you want to submit to; here we choose the gpu queue. If you want to submit a pure CPU job, just leave this out.
 #SBATCH --gres=gpu:1			                # specify the number of gpus per node
 
@@ -77,7 +77,7 @@ for config_file in "${config_files[@]}"; do
 # in this example, I just load cuDNN, which pulls in all necessary CUDA dependencies
 
 eval "\$(conda shell.bash hook)"
-conda activate /g/kreshuk/talks/miniforge3/envs/model-rank-local2
+conda activate /path/to/miniforge3/envs/model-rank-local2
 
 # finally, your script goes here
 python batch_prediction_evaluate.py --config $config_file

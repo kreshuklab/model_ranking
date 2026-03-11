@@ -384,7 +384,7 @@ def get_output_dir(
     output_folder: Optional[str] = "patchwise",
     approach: Optional[str] = "consistency",
     result_type: Optional[str] = "prediction",
-    base_seg_folder: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
+    base_seg_folder: str = "/path/to/domain_gap/experiments/patch_segmentation",
 ):
     assert Path(
         base_seg_folder
@@ -462,7 +462,7 @@ def get_output_paths(
     output: str = "metric_summary.h5",
     approach: str = "feature_perturbation_consistency",
     result_folder: str = "exp1",
-    base_dir_path: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation/",
+    base_dir_path: str = "/path/to/domain_gap/experiments/patch_segmentation/",
 ) -> List[str]:
     paths: List[str] = []
     for aug, alphas in selected_augmentations.items():
@@ -497,7 +497,7 @@ def get_output_pred_paths(
     model_name: str,
     run_id: str,
     approach: str = "consistency",
-    base_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells",
+    base_path: str = "/path/to/consistency_results/Instance_segmentation/Cells",
 ):
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_name.split("_")[0]]
 
@@ -515,7 +515,7 @@ def get_output_dir_paths(
     model_name: str,
     run_id: str,
     approach: str = "consistency",
-    base_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation/Cells",
+    base_path: str = "/path/to/consistency_results/Instance_segmentation/Cells",
     output_dir_name: str = "predictions",
     specfic_perturbation: Optional[str] = None,
 ):
@@ -556,7 +556,7 @@ def find_finetuning_result_paths(
     approach: str = "feature_perturbation",
     output_folder: str = "predictions",
     base_path: Path = Path(
-        "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+        "/path/to/model_ranking_results/Self-Finetuning/Mitochondria"
     ),
 ) -> List[Path]:
     paths: List[Path] = []
@@ -585,7 +585,7 @@ def find_selftraining_pred_paths(
     model_names: List[str],
     approach: str = "feature_perturbation",
     base_path: Path = Path(
-        "/g/kreshuk/talks/model_ranking_results/Self-Finetuning/Mitochondria"
+        "/path/to/model_ranking_results/Self-Finetuning/Mitochondria"
     ),
 ) -> List[Path]:
     paths: List[Path] = []

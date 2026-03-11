@@ -35,6 +35,6 @@ dependencies:
 
   - pip:
       - -e .
-      - git+https://github.com/Josh-Talks/pytorch-3dunet.git@1.8.7-model_ranking#egg=pytorch3dunet
-      - git+https://github.com/Josh-Talks/adabn-pytorch.git@v1.0-model-ranking#egg=adabn
+      - git+https://github.com/path/to/pytorch-3dunet.git@1.8.7-model_ranking#egg=pytorch3dunet
+      - git+https://github.com/path/to/adabn-pytorch.git@v1.0-model-ranking#egg=adabn
       - torcheval

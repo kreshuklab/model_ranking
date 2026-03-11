@@ -325,7 +325,7 @@ def get_summary_results(
     consis_postfix: Optional[str] = "mean",
     perf_postfix: Optional[str] = "mean",
     summary_results_postfix: str = "",
-    base_seg_dir: str = "/g/kreshuk/talks/domain_gap/experiments/patch_segmentation",
+    base_seg_dir: str = "/path/to/domain_gap/experiments/patch_segmentation",
 ):
     consis_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
     perf_PT_PA_strength: Dict[str, Dict[str, Dict[str, NDArray[Any]]]] = {}
@@ -963,7 +963,7 @@ def get_transformer_result(
     approach: str = "consistency",
     summary_results_postfix: str = "_full",
     output_folder: Optional[str] = None,
-    base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
+    base_dir_path: str = "/path/to/consistency_results/Instance_segmentation",
 ):
     dir_path = get_output_dir(
         source=source,
@@ -1012,7 +1012,7 @@ def get_transformer_results_aug_sweep(
     approach: str = "consistency",
     summary_results_postfix: str = "_full",
     output_folder: Optional[str] = None,
-    base_dir_path: str = "/g/kreshuk/talks/consistency_results/Instance_segmentation",
+    base_dir_path: str = "/path/to/consistency_results/Instance_segmentation",
 ):
 
     direct_eval_results: Dict[str, float] = {}
