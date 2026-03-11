@@ -10,7 +10,7 @@
 Clone and navigate to this repository
 
 ```
-git clone https://github.com/path/to/model_ranking.git
+git clone path/to/git_repo/anonymised
 cd model_ranking
 ```
 
@@ -27,7 +27,7 @@ conda activate model-rank
 
 #### Download Pre-trained models
 
-The model checkpoints and training configs are saved on zenodo and can be downloaded and unzipped https://doi.org/10.5281/zenodo.15211900
+The model checkpoints and training configs are saved on zenodo and can be downloaded and unzipped path/to/models/anonymised
 
 
 #### Download Data
