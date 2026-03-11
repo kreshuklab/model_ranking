@@ -1,0 +1,45 @@
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image1
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image14
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image17
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image21
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image29
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image34
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image37
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image44
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image48
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image51
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image55
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image59
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image64
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image67
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image68
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image7
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image75
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image79
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image82
+cell migration R1 - Position 0_XY1562686096_Z0_T00_C1-1-image86
+cell migration R1 - Position 1_XY1562686097_Z0_T00_C1-SubBackimage12
+cell migration R1 - Position 1_XY1562686097_Z0_T00_C1-SubBackimage47
+cell migration R1 - Position 1_XY1562686097_Z0_T00_C1-SubBackimage63
+cell migration R1 - Position 1_XY1562686097_Z0_T00_C1-SubBackimage74
+cell migration R1 - Position 1_XY1562686097_Z0_T00_C1_SubBackimage86
+cell migration R1 - Position 23_XY1562686119_Z0_T00_C1-1
+cell migration R1 - Position 26_XY1562686122_Z0_T00_C1-1
+cell migration R1 - Position 58_XY1562686154_Z0_T00_C1-image16
+cell migration R1 - Position 58_XY1562686154_Z0_T00_C1-image56
+cell migration R1 - Position 58_XY1562686154_Z0_T00_C1-image66
+migration - Position 27_XY1562944037_Z0_T00_C1-1
+migration - Position 34_XY1562944044_Z0_T00_C1-1
+migration - Position 36_XY1562944046_Z0_T00_C1-1
+migration - Position 47_XY1562944057_Z0_T00_C1-1
+migration - Position 52_XY1562944062_Z0_T00_C1-1
+migration - Position 53_XY1562944063_Z0_T00_C1-1
+migration - Position 72_XY1562944082_Z0_T00_C1-1
+migration r2 - Position 14_XY1562769071_Z0_T00_C1-1
+migration r2 - Position 25_XY1562769082_Z0_T00_C1-1
+migration r2 - Position 40_XY1562769097_Z0_T00_C1-1
+migration r2 - Position 42_XY1562769099_Z0_T00_C1-1
+migration r2 - Position 43_XY1562769100_Z0_T00_C1-1
+migration r2 - Position 47_XY1562769104_Z0_T00_C1-1
+migration r2 - Position 53_XY1562769110_Z0_T00_C1-1
+migration r2 - Position 61_XY1562769118_Z0_T00_C1-1
