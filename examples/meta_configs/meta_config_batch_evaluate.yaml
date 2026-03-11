@@ -1,0 +1,86 @@
+### Example Meta Config
+# Full Meta Config structure defined by MetaConfig(), `src/model_ranking/dataclass.py`
+
+### Target Datasets
+# Sequence of target dataset configs to which each source model will be transferred
+# this can be minimally specifed as a sequence target dataset name as illustrated
+# below, in which case default arguments (defined in `src/model_ranking/dataclass.py`)
+# will be used.
+target_datasets:
+  - name: BBBC039
+  - name: DSB2018
+  - name: Hoechst
+
+### Source Models
+# Sequence of source model configs to be transferred to each target dataset. Hence the
+# first two fields define a grid sweep, where each model will be transferred to every
+# dataset. Once again this can be minimally defined as a sequence of source model names. 
+source_models:
+  - source_name: BBBC039 
+    model_name: BC_IN_model
+  - source_name: S_BIAD895
+    model_name: 895_IN_model
+
+### Perturbation Settings
+# The following two fields define the perturbation settings that will be applied in
+# order to calculate the "consistency" of each transfer for eventual ranking of each
+# transfer. The perturbations can be applied either via feature space perturbations,
+# as defined by `feature_perturbations` or by input space perturbations, as defined
+# by `input_augs`.
+
+# Feature perturbations
+feature_perturbations:
+  random_seed: 42 # seeded pertubation for consistency
+  layers: [0] # model layers to apply perturbation (assumes UNET architecture, zero 
+  # defines the bottle neck layer and each sequential number defines paired encoder 
+  # and decoder layer moving away from the bottle neck). 
+  spatial_dropout: True # if dropout perturbation, boolean argument if full feature map dropped
+  perturbation_types: # Defining which feature space perturbations to apply, optionas listed 
+                      # FEATURE_PERTURBATION_TYPE: Literal["DropOutPerturbation", "FeatureDropPerturbation",
+                      # "FeatureNoisePerturbation", "None"]
+    - "None"
+    - "DropOutPerturbation"
+  dropOut_rates: # Sequence of strengths of dropout applied, "consistency" will be calculated
+  # for each strength.
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.3
+    - 0.4
+  featureDrop_thresholds: null # Sequence of strengths of feature dropout applied
+  featureNoise_ranges: null  #Sequence of strengths of feature noise applied
+
+# Input Augmentations
+# input perturbations to apply INPUT_PERTURBATION_TYPE: 
+# Literal["brt", "ctr", "gamma", "gauss", "none"]
+input_augs:
+    none: [] # List of input augmentation strengths to apply and calculate consistency with
+
+### General Run Settings
+overwrite_yaml: True # Overwrite individual transfer yamls if they exist
+segmentation_mode: instance # set segmentation mode "instance" or "semantic"
+run_mode: evaluation # set run mode "full", "evaluation" or "consistency", depending if want full or partial pipeline
+data_base_path: /path/to/data/directory # path to base directory contaitning target dataset directories
+model_dir_path: /path/to/model/directory # path to directory containing source models
+summary_results: # Summary results settings
+  overwrite_scores: False # Overwrite existing summary results
+
+# Output Settings
+output_settings:
+  result_dir: run_name # Directory name within which results will be solved, can be set to run name if want to seperate seperate runs
+  approach: feature_perturbation_consistency # consistency approach used "consistency" (For input perturbation), "feature_perturbation_consistency" (For feature space perturbation)
+  base_dir_path: /path/to/output/directory # path to base directory where you want output saved.
+
+
+### Performance and Consistency evaluation settings
+# Performance evaluation metric settings
+# Options: "AdaptedRandError", "MeanAvgPrecision", "MultiClassF1", "BinaryF1", "SoftF1"
+eval_settings:
+  name: MeanAvgPrecision # name of performance evaluation metric
+  eval_save_key: MAP_eval # save key for results dataset in h5 file
+  overwrite_score: False # Overwrite existing performance scores with same save_key
+
+# Optional performance evaluation setting, for run_mode="evaluation",
+# no consistency evaluation will be performed therefore set to None.
+consistency_settings: null
+

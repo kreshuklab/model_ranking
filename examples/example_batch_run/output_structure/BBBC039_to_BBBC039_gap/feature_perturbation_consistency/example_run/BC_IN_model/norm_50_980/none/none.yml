@@ -1,0 +1,128 @@
+wandb:
+  project: BBBC039_IN_predictions
+  name: BC_IN_model_BCtoBC_none
+  mode: online
+
+model_path: /path/to/Models/Instance/Nuclei/BBBC039/BC_IN_model/best_checkpoint.pytorch
+
+summary_results:
+  filter_patches: null
+  output_path: /path/to/CRank/examples/example_batch_run/output_structure/BBBC039_to_BBBC039_gap/feature_perturbation_consistency/example_run/BC_IN_model/norm_50_980/none/predictions
+  eval_key: MAP_eval
+  consis_key: ARE_consis
+  overwrite_scores: false
+
+model:
+  name: UNet2D
+  in_channels: 1
+  out_channels: 1
+  layer_order: bcr
+  f_maps: [32, 64, 128]
+  final_sigmoid: true
+  feature_return: false
+  is_segmentation: true
+  feature_perturbation: null
+
+predictor:
+  name: NucleiInstancePredictor
+  save_segmentation: true
+  min_size: 50
+  zero_largest_instance: false
+  no_adjust_background: false
+
+loaders:
+  dataset: TIF_txt_Dataset
+  output_dir: /path/to/CRank/examples/example_batch_run/output_structure/BBBC039_to_BBBC039_gap/feature_perturbation_consistency/example_run/BC_IN_model/norm_50_980/none/predictions
+  batch_size: 2
+  num_workers: 8
+  global_norm: true
+  percentiles: [5.0, 98.0]
+  test:
+    image_dir:
+    - /path/to/data/directory/BBBC039/images
+    mask_dir:
+    - /path/to/data/directory/BBBC039/instance_annotations/instance_labels
+    filenames_path: /path/to/data/directory/BBBC039/test.txt
+    transformer:
+      raw:
+      - name: PercentileNormalizer
+      - name: FixedClipping
+        min_value: null
+        max_value: 2
+      - name: CropToFixed
+        size: [512, 512]
+        centered: true
+      - name: ToTensor
+        expand_dims: true
+
+evaluation:
+  eval_dataloader:
+    eval_dataset:
+      name: TIF_txt_Dataset
+      eval:
+        image_dir: [/path/to/CRank/examples/example_batch_run/output_structure/BBBC039_to_BBBC039_gap/feature_perturbation_consistency/example_run/BC_IN_model/norm_50_980/none/predictions]
+        mask_dir:
+        - /path/to/data/directory/BBBC039/instance_annotations/instance_labels
+        filenames_path: /path/to/data/directory/BBBC039/test.txt
+        transformer:
+          raw:
+          - name: ToTensor
+            expand_dims: true
+          label:
+          - name: CropToFixed
+            size: [512, 512]
+            centered: true
+          - name: ToTensor
+            expand_dims: true
+      expand_dims: true
+      global_norm: false
+      percentiles: null
+      image_key: segmentation
+      mask_key: null
+      min_object_size: 50
+      instance_zero_background: false
+    batch_size: 1
+    num_workers: 8
+  eval_metric:
+    eval_save_key: MAP_eval
+    overwrite_score: false
+    name: MeanAvgPrecision
+    iou_range:
+    - 0.5
+    - 0.95
+    - 10
+    min_instance_size: null
+
+consistency:
+  consistency_dataloader:
+    eval_dataset:
+      name: TIF_txt_Dataset
+      eval:
+        image_dir: [/path/to/CRank/examples/example_batch_run/output_structure/BBBC039_to_BBBC039_gap/feature_perturbation_consistency/example_run/BC_IN_model/norm_50_980/none/predictions]
+        mask_dir: [/path/to/CRank/examples/example_batch_run/output_structure/BBBC039_to_BBBC039_gap/feature_perturbation_consistency/example_run/BC_IN_model/norm_50_980/none/predictions]
+        filenames_path: /path/to/data/directory/BBBC039/test.txt
+        transformer:
+          raw:
+          - name: ToTensor
+            expand_dims: true
+          label:
+          - name: ToTensor
+            expand_dims: true
+      expand_dims: true
+      global_norm: false
+      percentiles: null
+      image_key: segmentation
+      mask_key: segmentation
+      min_object_size: 50
+      instance_zero_background: false
+    batch_size: 1
+    num_workers: 8
+  consistency_metric:
+    save_key: ARE_consis
+    save_mask: true
+    mask_threshold: null
+    overwrite_score: false
+    name: AdaptedRandError
+    num_dilations: 1
+    num_erosions: 1
+

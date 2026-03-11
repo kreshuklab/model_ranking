@@ -1,0 +1,81 @@
+### Example Meta Config
+# Full Meta Config structure defined by MetaConfig(), `src/model_ranking/dataclass.py`
+
+### Target Datasets
+# Sequence of target dataset configs to which each source model will be transferred
+# this can be minimally specifed as a sequence target dataset name as illustrated
+# below, in which case default arguments (defined in `src/model_ranking/dataclass.py`)
+# will be used.
+target_datasets:
+  - name: EPFL
+  - name: Hmito
+  - name: Rmito
+
+### Source Models
+# Sequence of source model configs to be transferred to each target dataset. Hence the
+# first two fields define a grid sweep, where each model will be transferred to every
+# dataset. Once again this can be minimally defined as a sequence of source model names. 
+source_models:
+  - source_name: EPFL 
+    model_name: E_model
+  - source_name: Hmito
+    model_name: Hm_model
+
+### Perturbation Settings
+# The following two fields define the perturbation settings that will be applied in
+# order to calculate the "consistency" of each transfer for eventual ranking of each
+# transfer. The perturbations can be applied either via feature space perturbations,
+# as defined by `feature_perturbations` or by input space perturbations, as defined
+# by `input_augs`.
+
+# Feature perturbations
+# Feature Perturbation settings, in this example Input perturbation is being applied,
+# for examples of feature perturbation please read other example meta configs.
+feature_perturbations: null
+
+# Input Augmentations
+# input perturbations to apply INPUT_PERTURBATION_TYPE: 
+# Literal["brt", "ctr", "gamma", "gauss", "none"]
+# Input Augmentations
+input_augs:
+  none: []
+  gauss: # List of input augmentation strengths to apply and calculate consistency with
+    - [0.01,0.03]
+    - [0.03, 0.05]
+    - [0.05, 0.07]
+    - [0.07, 0.1]
+    - [0.1,0.2]
+
+### General Run Settings
+overwrite_yaml: True # Overwrite individual transfer yamls if they exist
+segmentation_mode: semantic # set segmentation mode "instance" or "semantic"
+run_mode: full # set run mode "full", "evaluation" or "consistency", depending if want full or partial pipeline
+data_base_path: /path/to/data/directory # path to base directory contaitning target dataset directories
+model_dir_path: /path/to/model/directory # path to directory containing source models
+summary_results: # Summary results settings
+  overwrite_scores: False # Overwrite existing summary results
+
+# Output Settings
+output_settings:
+  result_dir: run_name # Directory name within which results will be solved, can be set to run name if want to seperate seperate runs
+  approach: feature_perturbation_consistency # consistency approach used "consistency" (For input perturbation), "feature_perturbation_consistency" (For feature space perturbation)
+  base_dir_path: /path/to/output/directory # path to base directory where you want output saved.
+
+
+### Performance and Consistency evaluation settings
+# Performance evaluation metric settings.
+# Options: "AdaptedRandError", "MeanAvgPrecision", "MultiClassF1", "BinaryF1", "SoftF1"
+eval_settings:
+  name: MultiClassF1 # name of performance evaluation metric
+  eval_save_key: F1_eval # save key for results dataset in h5 file
+  overwrite_score: False # Overwrite existing performance scores with same save_key
+
+# Consistency metric settings
+# Options: "Diff", "EI", "Entropy", "KL-Divergence", "Cross-Entropy", "Hamming-Distance", "AdaptedRandError"
+consistency_settings: 
+  name: EI # name of consistency metric
+  threshold: 0.5 # threshold for EI consistency metric
+  save_key: EI_consis # save key for results dataset in h5 file
+  save_mask: True # flag to save pixel mask overwhich consistency calculated
+  mask_threshold: 0.5 # threshold for calculting foreground mask, required for some metrics
+  overwrite_score: False # Overwrite existing consistency scores with same save_key
