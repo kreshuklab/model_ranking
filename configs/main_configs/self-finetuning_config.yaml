@@ -1,6 +1,6 @@
 training:
-  name: &id1 EtoH_def_E_model5
-  output_root_path: output directory to save checkpoint
+  name: &id1 model_test_finetuning
+  output_root_path: /g/kreshuk/lage/models/EPFL/UNet2D/model_test_finetuning
 
   wandb_cfg:
     project: self-training_EPFL
@@ -9,14 +9,14 @@ training:
 
   training_cfg:
     lr: 1e-4
-    epochs: 5
+    epochs: 3
     n_iterations: null
     save_ckpt_every_kth_epoch: 1
     scheduler_kwargs: {mode: max, factor: 0.5, patience: 10}
 
   data_cfg:
-    unsupervised_train_paths: ["<path_to_train_data>"]
-    unsupervised_val_paths: ["<path_to_val_data>"]
+    unsupervised_train_paths: ["/scratch/lage/data/EPFL/train.h5"]
+    unsupervised_val_paths: ["/scratch/lage/data/EPFL/val.h5"]
     patch_shape: [1, 256, 256]
     raw_key: "raw" 
     label_key: null
@@ -40,7 +40,7 @@ training:
       feature_return: false
       is_segmentation: false
       feature_perturbation: null
-    source_checkpoint: path to intial checkpoint
+    source_checkpoint: /g/kreshuk/lage/models/EPFL/UNet2D/model_test/best_checkpoint.pytorch
 
   pseudo_labeler_cfg:
     name: "default_pseudo_labeler"
@@ -51,12 +51,12 @@ training:
 
 
 prediction:
-  checkpoints: [epoch-1, epoch-2, epoch-3, epoch-4, epoch-5]
+  checkpoints: [epoch-1, epoch-2, epoch-3]
 
   meta_config:
     ### Target Datasets
     target_datasets:
-      - name: Hmito
+      - name: EPFL
 
     ### Source Models
     source_models:
@@ -78,8 +78,8 @@ prediction:
     overwrite_yaml: True
     segmentation_mode: semantic
     run_mode: pred_eval
-    data_base_path: /scratch/talks/data
-    model_dir_path: directory of finetuned model checkpoint
+    data_base_path: /scratch/lage/data
+    model_dir_path: /g/kreshuk/lage/models/EPFL/UNet2D/model_test_finetuning
     summary_results:
       overwrite_scores: False
 
@@ -88,7 +88,7 @@ prediction:
       result_dir: predictions
       approach: default_selftraining
       output_folder: *id2
-      base_dir_path: output base directory
+      base_dir_path: /g/kreshuk/lage/models/EPFL/UNet2D/model_test_finetuning
 
 
     ### Performance and Consistency evaluation settings

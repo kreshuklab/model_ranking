@@ -1,9 +1,9 @@
 wandb:
-  project: TODO
-  name: TODO
+  project: EPFL
+  name: model_test
   mode: online
 
-model_path: TODO
+model_path: TODO 
 
 model_key: model_state
 

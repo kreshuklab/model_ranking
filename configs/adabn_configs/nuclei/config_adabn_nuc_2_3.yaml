@@ -1,0 +1,44 @@
+ ### Target Datasets
+target_datasets:
+  - name: Hoechst
+  - name: S_BIAD895
+  - name: S_BIAD1196
+  - name: S_BIAD1410
+
+### Source Models
+source_models:
+  - source_name: Hoechst
+    model_name: Hst_model5
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD895
+    model_name: 895_model1
+    model_type: UNet2d_as3d
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  none: []
+
+### General Run Settings
+overwrite_yaml: True
+segmentation_mode: semantic
+run_mode: adaptive_batchnorm
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model_checkpoints/nuclei
+
+summary_results:
+  overwrite_scores: False
+
+# Output Settings
+output_settings:
+  result_dir: checkpoints_adabn
+  approach: adabn
+  output_folder: null
+  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
+  
+### Performance and Consistency evaluation settings
+eval_settings: null
+
+consistency_settings: null

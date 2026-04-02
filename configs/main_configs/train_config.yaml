@@ -2,7 +2,7 @@ wandb:
   # wandb project name
   project: EPFL
   # wandb run name
-  name: E_model5
+  name: model_test
   mode: online
 model:
   name: UNet2D
@@ -13,15 +13,15 @@ model:
   final_sigmoid: true
   is_segmentation: true
 trainer:
-  checkpoint_dir: TODO
+  checkpoint_dir: /g/kreshuk/lage/models/EPFL/UNet2D/model_test
   resume: null
   pre_trained: null
-  validate_after_iters_initial: 50
-  validate_after_iters_final: 100
-  validate_switch_iteration: 250
-  log_after_iters: 10
-  max_num_epochs: 100
-  max_num_iterations: 6000
+  validate_after_iters_initial: 2 #validation after this many iterations at the beginning of training
+  validate_after_iters_final: 100 #validation after this many iterations at the end of training
+  validate_switch_iteration: 250 #iteration at which to switch from initial to final validation frequency
+  log_after_iters: 1 #log training metrics after this many iterations
+  max_num_epochs: 5 #maximum number of epochs to train for
+  max_num_iterations: 100 #limits the number of iterations -> should be high enough to not be hit before max_num_epochs
   eval_score_higher_is_better: True
 optimizer:
   learning_rate: 0.0002
@@ -47,7 +47,7 @@ loaders:
 
   train:
     file_paths:
-      - TODO
+      - /scratch/lage/data/EPFL/train.h5
 
     slice_builder:
       name: SliceBuilder
@@ -98,7 +98,7 @@ loaders:
           expand_dims: true
   val:
     file_paths:
-      - TODO
+      - /scratch/lage/data/EPFL/val.h5
 
     slice_builder:
       name: SliceBuilder

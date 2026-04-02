@@ -1,15 +1,28 @@
  ### Target Datasets
 target_datasets:
-  - name: EPFL
+  - name: BBBC039
+  - name: DSB2018
+  - name: Go-Nuclear
+  - name: HeLaCytoNuc
+  - name: Hoechst
+  - name: S_BIAD895
+  - name: S_BIAD1196
+  - name: S_BIAD1410
 
 ### Source Models
 source_models:
-  - source_name: EPFL
-    model_name: EtoE_model_NA2
-    model_type: UNet2D
-  - source_name: EPFL
-    model_name: EtoE_model_Res1
-    model_type: ResidualUNet2D
+  - source_name: BBBC039
+    model_name: BC_model4
+    model_type: UNet2d_as3d
+  - source_name: DSB2018
+    model_name: DSB_model4
+    model_type: UNet2d_as3d
+  - source_name: Go-Nuclear
+    model_name: GN_model5
+    model_type: UNet2d_as3d
+  - source_name: HeLaCytoNuc
+    model_name: HN_model1
+    model_type: UNet2d_as3d
 
 ### Perturbation Settings
 
@@ -24,8 +37,8 @@ input_augs:
 overwrite_yaml: False
 segmentation_mode: semantic
 run_mode: pred_eval
-data_base_path: /scratch/talks/data
-model_dir_path: Directory of models
+data_base_path: /scratch/lage/data
+model_dir_path: /g/kreshuk/lage/models
 
 summary_results:
   overwrite_scores: False
@@ -37,9 +50,9 @@ summary_results:
 # Output Settings
 output_settings:
   result_dir: predictions
-  approach: null
+  approach: default_training
   output_folder: null
-  base_dir_path: path of base directory where saving outputs
+  base_dir_path: /g/kreshuk/lage/results/pred_eval
 
 
 ### Performance and Consistency evaluation settings

@@ -1,0 +1,44 @@
+ ### Target Datasets
+target_datasets:
+  - name: BBBC039
+  - name: DSB2018
+  - name: Go-Nuclear
+  - name: HeLaCytoNuc
+
+### Source Models
+source_models:
+  - source_name: Go-Nuclear
+    model_name: GN_model5
+    model_type: UNet2d_as3d
+  - source_name: HeLaCytoNuc
+    model_name: HN_model1
+    model_type: UNet2d_as3d
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  none: []
+
+### General Run Settings
+overwrite_yaml: True
+segmentation_mode: semantic
+run_mode: adaptive_batchnorm
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model_checkpoints/nuclei
+
+summary_results:
+  overwrite_scores: False
+
+# Output Settings
+output_settings:
+  result_dir: checkpoints_adabn
+  approach: adabn
+  output_folder: null
+  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
+
+### Performance and Consistency evaluation settings
+eval_settings: null
+
+consistency_settings: null
