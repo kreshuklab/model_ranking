@@ -1,18 +1,20 @@
  ### Target Datasets
 target_datasets:
   - name: BBBC039
-  - name: DSB2018
-  - name: Go-Nuclear
-  - name: HeLaCytoNuc
+  - name: HeLaNuc
 
 ### Source Models
 source_models:
   - source_name: BBBC039
     model_name: BC_model4
     model_type: UNet2d_as3d
-  - source_name: DSB2018
-    model_name: DSB_model4
+  - source_name: Go-Nuclear
+    model_name: GN_model5
     model_type: UNet2d_as3d
+  - source_name: HeLaNuc
+    model_name: HN_model1
+    model_type: UNet2d_as3d
+
 # Feature perturbations
 feature_perturbations: null
 
@@ -25,7 +27,7 @@ overwrite_yaml: True
 segmentation_mode: semantic
 run_mode: adaptive_batchnorm
 data_base_path: /scratch/lage/data/nuclei
-model_dir_path: /scratch/lage/model_checkpoints/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei
 
 summary_results:
   overwrite_scores: False

@@ -1,17 +1,22 @@
  ### Target Datasets
 target_datasets:
-  - name: BBBC039
-  - name: DSB2018
-  - name: Go-Nuclear
-  - name: HeLaCytoNuc
+  - name: Hoechst
+  - name: S_BIAD895
+  - name: S_BIAD1410
 
 ### Source Models
 source_models:
-  - source_name: Go-Nuclear
-    model_name: GN_model5
+  - source_name: Hoechst
+    model_name: Hst_model5
     model_type: UNet2d_as3d
-  - source_name: HeLaCytoNuc
-    model_name: HN_model1
+  - source_name: S_BIAD895
+    model_name: 895_model2
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1196
+    model_name: 1196_model3
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1410
+    model_name: 1410_model2
     model_type: UNet2d_as3d
 
 # Feature perturbations
@@ -26,7 +31,7 @@ overwrite_yaml: True
 segmentation_mode: semantic
 run_mode: adaptive_batchnorm
 data_base_path: /scratch/lage/data/nuclei
-model_dir_path: /scratch/lage/model_checkpoints/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei
 
 summary_results:
   overwrite_scores: False
@@ -37,7 +42,7 @@ output_settings:
   approach: adabn
   output_folder: null
   base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
-
+  
 ### Performance and Consistency evaluation settings
 eval_settings: null
 

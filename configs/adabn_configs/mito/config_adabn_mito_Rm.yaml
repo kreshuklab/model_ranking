@@ -14,7 +14,7 @@ source_models:
     model_type: UNet2d_as3d
   - source_name: Rmito
     model_name: Rm_model_Res1
-    model_type: ResidualUNet2d_as3d
+    model_type: ResidualUNet2D_as_3D
 
 # Feature perturbations
 feature_perturbations: null
@@ -28,7 +28,7 @@ overwrite_yaml: True
 segmentation_mode: semantic
 run_mode: adaptive_batchnorm
 data_base_path: /scratch/lage/data/mitochondria
-model_dir_path: /g/kreshuk/lage/model_checkpoints/mitochondria
+model_dir_path: /scratch/lage/model-checkpoints/semantic/mitochondria/
 
 summary_results:
   overwrite_scores: False

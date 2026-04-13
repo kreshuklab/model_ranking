@@ -1,9 +1,7 @@
  ### Target Datasets
 target_datasets:
   - name: BBBC039
-  - name: DSB2018
-  - name: Go-Nuclear
-  - name: HeLaCytoNuc
+  - name: HeLaNuc
   - name: Hoechst
   - name: S_BIAD895
   - name: S_BIAD1196
@@ -12,16 +10,16 @@ target_datasets:
 ### Source Models
 source_models:
   - source_name: Hoechst
-    model_name: Hoechst_model1
+    model_name: Hst_model5
     model_type: UNet2d_as3d
   - source_name: S_BIAD895
-    model_name: 895_model1
+    model_name: 895_model2
     model_type: UNet2d_as3d
   - source_name: S_BIAD1196
-    model_name: 1196_model1
+    model_name: 1196_model3
     model_type: UNet2d_as3d
   - source_name: S_BIAD1410
-    model_name: 1410_model1
+    model_name: 1410_model2
     model_type: UNet2d_as3d
 
 
@@ -38,8 +36,8 @@ input_augs:
 overwrite_yaml: False
 segmentation_mode: semantic
 run_mode: pred_eval
-data_base_path: /scratch/lage/data
-model_dir_path: /g/kreshuk/lage/models
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei
 
 summary_results:
   overwrite_scores: False

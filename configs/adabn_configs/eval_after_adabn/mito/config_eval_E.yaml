@@ -1,25 +1,36 @@
  ### Target Datasets
 target_datasets:
   - name: EPFL
-  - name: Hmito
-  - name: Rmito
 
 ### Source Models
 source_models:
+  - source_name: EPFL
+    model_name: EtoE_model5
+    model_type: UNet2d_as3d
+  - source_name: EPFL
+    model_name: EtoE_model_NA2
+    model_type: UNet2d_as3d
+  - source_name: EPFL
+    model_name: EtoE_model_Res1
+    model_type: ResidualUNet2D_as_3D
   - source_name: Hmito
-    model_name: Hm_model_Res1
+    model_name: HmtoE_model4
+    model_type: UNet2d_as3d
+  - source_name: Hmito
+    model_name: HmtoE_model_NA2
+    model_type: UNet2d_as3d
+  - source_name: Hmito    
+    model_name: HmtoE_model_Res1
     model_type: ResidualUNet2D_as_3D
   - source_name: Rmito
-    model_name: Rm_model4
+    model_name: RmtoE_model4
     model_type: UNet2d_as3d
   - source_name: Rmito
-    model_name: Rm_model_NA2
+    model_name: RmtoE_model_NA2
     model_type: UNet2d_as3d
   - source_name: Rmito
-    model_name: Rm_model_Res1
+    model_name: RmtoE_model_Res1
     model_type: ResidualUNet2D_as_3D
-
-  
   
 ### Perturbation Settings
 
@@ -35,7 +46,8 @@ overwrite_yaml: False
 segmentation_mode: semantic
 run_mode: pred_eval
 data_base_path: /scratch/lage/data/mitochondria
-model_dir_path: /scratch/lage/model-checkpoints/semantic/mitochondria
+model_dir_path: /g/kreshuk/lage/model_checkpoints/mitochondria
+
 
 summary_results:
   overwrite_scores: False
@@ -47,7 +59,7 @@ summary_results:
 # Output Settings
 output_settings:
   result_dir: predictions
-  approach: default_training
+  approach: adabn
   output_folder: null
   base_dir_path: /g/kreshuk/lage/results/pred_eval
 

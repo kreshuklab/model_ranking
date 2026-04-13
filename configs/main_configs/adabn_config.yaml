@@ -1,14 +1,11 @@
  ### Target Datasets
 target_datasets:
-  - name: EPFL
-  - name: Hmito
-  - name: Rmito
-  - name: VNC
+  - name: Go-Nuclear
 
 ### Source Models
 source_models:
-  - source_name: EPFL
-    model_name: model_test
+  - source_name: BBBC039
+    model_name: BC_model4
     model_type: UNet2d_as3d
 
 # Feature perturbations
@@ -22,8 +19,8 @@ input_augs:
 overwrite_yaml: True
 segmentation_mode: semantic
 run_mode: adaptive_batchnorm
-data_base_path: /scratch/lage/data
-model_dir_path: /g/kreshuk/lage/models
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei
 
 summary_results:
   overwrite_scores: False
@@ -33,7 +30,7 @@ output_settings:
   result_dir: checkpoints_adabn
   approach: adabn
   output_folder: null
-  base_dir_path: /g/kreshuk/lage/models/EPFL/UNet2D/model_test
+  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei 
 
 ### Performance and Consistency evaluation settings
 eval_settings: null
