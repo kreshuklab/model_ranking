@@ -64,7 +64,7 @@ for config_file in "${config_files[@]}"; do
 #SBATCH --job-name=$substring                   # specify the name of the job
 #SBATCH -N 1				                    # specify the number of cluster nodes for the job
 #SBATCH --ntasks-per-node=8				        # specify the number of cores per node for the job
-#SBATCH --mem 10G			                    # specify the amount of memory per node
+#SBATCH --mem 30G			                    # specify the amount of memory per node
 #SBATCH -t 0-03:00:00                           # specify the runtime of the job IMPORTANT: your job will get killed if it exceeds this runtime (the format is d-h:mm-ss)
 #SBATCH -o $slurm_dir/outfile.out		        # specify the file to write the command line output to
 #SBATCH -e $slurm_dir/errfile.err			    # specify the file to write the error output to
@@ -80,7 +80,8 @@ eval "\$(conda shell.bash hook)"
 conda activate /g/kreshuk/lage/conda/envs/model-rank-2
 
 # finally, your script goes here
-python update_batch_norm.py --config $config_file
+python batch_prediction_evaluate.py --config $config_file
+
 EOF
     
     # Submit the job
