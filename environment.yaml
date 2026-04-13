@@ -1,4 +1,4 @@
-name: model-rank
+name: model-rank-2
 
 channels:
   - pytorch
@@ -7,6 +7,7 @@ channels:
   - nodefaults
 
 dependencies:
+  - python=3.11
   - h5py
   - imageio
   - ipykernel
@@ -24,10 +25,9 @@ dependencies:
   - scikit-image
   - scikit-learn
   - scipy
-  - setuptools
-  - tensorboard
+  - setuptools=80.9.0
+  - tensorboard=2.19.0
   - torchvision=0.20.1
-  - torch_em
   - tqdm
   - typer
   - typing
@@ -35,5 +35,7 @@ dependencies:
 
   - pip:
       - -e .
-      - -e /g/kreshuk/talks/pytorch-3dunet
+      - -e /g/kreshuk/lage/pytorch-3dunet
+      - -e /g/kreshuk/lage/adabn-pytorch
+      - -e /g/kreshuk/lage/torch_em
       - torcheval
