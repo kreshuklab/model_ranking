@@ -2,7 +2,6 @@
 target_datasets:
   - name: Hoechst
   - name: S_BIAD895
-  - name: S_BIAD1410
 
 ### Source Models
 source_models:

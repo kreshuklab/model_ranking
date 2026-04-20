@@ -1,0 +1,68 @@
+ ### Target Datasets
+target_datasets:
+  - name: S_BIAD1196
+
+
+### Source Models
+source_models:
+  - source_name: BBBC039
+    model_name: BCto1196_model4
+    model_type: UNet2d_as3d
+  - source_name: Go-Nuclear
+    model_name: GNto1196_model5
+    model_type: UNet2d_as3d
+  - source_name: HeLaNuc
+    model_name: HNto1196_model1
+    model_type: UNet2d_as3d
+  - source_name: Hoechst
+    model_name: Hstto1196_model5
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD895
+    model_name: 895to1196_model2
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1196
+    model_name: 1196to1196_model3
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1410
+    model_name: 1410to1196_model2
+    model_type: UNet2d_as3d
+  
+  
+### Perturbation Settings
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  none: []
+
+### General Run Settings
+overwrite_yaml: False
+segmentation_mode: semantic
+run_mode: pred_eval
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
+
+summary_results:
+  overwrite_scores: False
+  filter_patches: False
+  eval_key: F1_eval
+  consis_key: EI_consis
+  save_name_postfix: _full
+
+# Output Settings
+output_settings:
+  result_dir: predictions
+  approach: adabn
+  output_folder: null
+  base_dir_path: /g/kreshuk/lage/results/pred_eval
+
+
+### Performance and Consistency evaluation settings
+eval_settings:
+  name: MultiClassF1
+  eval_save_key: F1_eval
+  overwrite_score: False
+
+consistency_settings: null

@@ -1,11 +1,22 @@
  ### Target Datasets
 target_datasets:
   - name: Go-Nuclear
+  - name: S_BIAD1196
+  - name: S_BIAD1410
 
 ### Source Models
 source_models:
-  - source_name: BBBC039
-    model_name: BC_model4
+  - source_name: Hoechst
+    model_name: Hst_model5
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD895
+    model_name: 895_model2
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1196
+    model_name: 1196_model3
+    model_type: UNet2d_as3d
+  - source_name: S_BIAD1410
+    model_name: 1410_model2
     model_type: UNet2d_as3d
 
 # Feature perturbations
@@ -19,8 +30,8 @@ input_augs:
 overwrite_yaml: True
 segmentation_mode: semantic
 run_mode: adaptive_batchnorm
-data_base_path: /scratch/lage/data/nuclei/
-model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei/
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei
 
 summary_results:
   overwrite_scores: False
@@ -30,8 +41,8 @@ output_settings:
   result_dir: checkpoints_adabn
   approach: adabn
   output_folder: null
-  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei/ 
-
+  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
+  
 ### Performance and Consistency evaluation settings
 eval_settings: null
 
