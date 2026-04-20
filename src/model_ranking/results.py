@@ -1088,3 +1088,36 @@ def extract_values_at_index(
             print(f"Warning: {aug_key} not found in results for model {model_name}")
 
     return extracted
+
+
+###  lage specific functions
+
+def get_summary_metric(
+    target: str,
+    model_name: str,
+    eval_key: str = "F1_eval",
+    approach: str = "default_training",
+    base_path: str = "/g/kreshuk/lage/results/pred_eval",
+):
+    '''Get summary metric for a given model and target from the metric summary file.
+    Args:
+        target: Target dataset name (e.g., "EPFL")
+        model_name: Model name (e.g., "E_model4")
+        eval_key: Key for the evaluation metric in the summary file (default: "F1_eval")
+        approach: Training approach used (default: "default_training", "adabn")
+        base_path: Base path to the results directory (default: "/g/kreshuk/lage/results/pred_eval")
+    Returns:    eval_score: The evaluation score for the specified metric
+    '''
+
+    model_identifier = model_name.split("_")[0]
+    if "to" in model_identifier:
+        model_identifier = model_identifier.split("to")[0]
+    source = MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]
+
+    summary_path = str( Path(base_path) / f"{source}_to_{target}_gap"/ approach / "predictions"/ model_name /"metric_summary_full.h5")
+  
+    eval_score = load_h5(summary_path, eval_key)
+    eval_mean = load_h5(summary_path, f"{eval_key}_mean")
+    eval_median = load_h5(summary_path, f"{eval_key}_median")
+
+    return eval_score, eval_mean, eval_median
