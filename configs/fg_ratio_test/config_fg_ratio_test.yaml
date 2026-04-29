@@ -1,0 +1,44 @@
+ ### Target Datasets
+target_datasets:
+  - name: S_BIAD1196
+
+### Source Models
+source_models:
+  - source_name: Hoechst
+    model_name: Hst_model5
+    model_type: UNet2d_as3d
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  none: []
+
+### General Run Settings
+overwrite_yaml: True
+segmentation_mode: semantic
+run_mode: adaptive_batchnorm
+data_base_path: /scratch/lage/data/nuclei
+model_dir_path: /scratch/lage/model-checkpoints/semantic/nuclei/
+
+summary_results:
+  overwrite_scores: False
+
+# Output Settings
+output_settings:
+  result_dir: predictions
+  approach: adabn_fg_003
+  output_folder: null
+  base_dir_path: /g/kreshuk/lage/model_checkpoints/nuclei
+
+### Performance and Consistency evaluation settings
+eval_settings: null
+
+consistency_settings: null
+# Slice Builder Settings
+slice_builder_settings:
+  name: FilterSliceBuilder
+  threshold: 0.03
+  ignore_index: null
+  slack_acceptance: 0.0
