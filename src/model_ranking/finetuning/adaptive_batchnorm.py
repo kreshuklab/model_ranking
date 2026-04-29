@@ -85,9 +85,17 @@ def run_adaptive_batchnorm(config: AdaptiveBatchNormConfig):
     test_loader = test_loaders[0]
 
     print("Computing BatchNorm stats on test loader...")
-    bn_stats = compute_bn_stats(  # pyright: ignore[reportUnknownVariableType]
-        model, test_loader
-    )
+
+    data_fraction = config.data_fraction
+    if data_fraction is not None:
+        total_batches = len(test_loader)
+        n_batches = max(1, int(total_batches * data_fraction))
+        print(f'Using {n_batches}/{total_batches} batches ({data_fraction*100:.0f})...')
+        bn_stats = compute_bn_stats(model, test_loader, max_batches=n_batches) # pyright: ignore[reportUnknownVariableType]
+    else:
+        bn_stats = compute_bn_stats(  # pyright: ignore[reportUnknownVariableType]
+                    model, test_loader
+        )
     print("Replacing BatchNorm stats in the model...")
     replace_bn_stats(model, bn_stats)
 
