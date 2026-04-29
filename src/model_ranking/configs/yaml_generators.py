@@ -41,6 +41,7 @@ from model_ranking.data_structures import (
     InputPerturbationConfig,
     Pytorch3DUnetLoaderMetaConfig,
 )
+#from model_ranking.data_structures.data.slice_builders import Pytorch3DUnetFilterSliceBuilderConfig
 from model_ranking.utils import get_output_dir
 
 from pytorch3dunet.unet3d.config import load_config_direct  # type: ignore
@@ -131,6 +132,7 @@ def get_model_path(
     source_data: str,
     model_name: str,
     base_dir_path: str,
+    approach: Optional[str] = None,
     checkpoint_name: str = "best_checkpoint",
 ) -> str:
     """Find path to model checkpoint
@@ -147,11 +149,20 @@ def get_model_path(
 
     base_dir = Path(base_dir_path)
 
-    model_paths = list(
-        base_dir.glob(
-            f"**/{source_data}/**/" + f"{model_name}/{checkpoint_name}.pytorch"
+    if approach is None: 
+        model_paths = list(
+            base_dir.glob(
+                f"**/{source_data}/**/" + f"{model_name}/{checkpoint_name}.pytorch"
+            )
         )
-    )
+    else: 
+        approach_name = 'checkpoints_' + approach
+        model_paths = list(
+            base_dir.glob(
+                f"**/{model_name}/{approach_name}/**/{checkpoint_name}.pytorch"
+            )
+        )
+        
     if len(model_paths) == 0:
         model_paths = list(
             base_dir.glob(f"**/{model_name}/**/{checkpoint_name}.pytorch")
@@ -162,6 +173,7 @@ def get_model_path(
         len(model_paths) == 1
     ), f"number of path found = {len(model_paths)}, model ambiguous"
     model_path = str(model_paths[0])
+    
     return model_path
 
 
@@ -225,6 +237,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
             source_data=source_model.source_name,
             model_name=source_model.model_name,
             base_dir_path=meta_cfg.model_dir_path,
+            approach = meta_cfg.output_settings.approach,
             checkpoint_name=source_model.checkpoint_name,
         )
 
@@ -622,6 +635,21 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                     else:
                         pred_loader = target_cfg.loader
+                    
+                    # slice_builder override
+                    #if meta_cfg.slice_builder_settings is not None:
+                    #    current = pred_loader.slice_builder #doesnt work for TIF only H5
+                    #    pred_loader = pred_loader.model_copy(
+                    #        update={"slice_builder": Pytorch3DUnetFilterSliceBuilderConfig(
+                    #            name="FilterSliceBuilder",
+                    #            patch_shape=current.patch_shape,
+                    #            stride_shape=current.stride_shape,
+                    #            halo_shape=current.halo_shape,
+                    #            threshold=meta_cfg.slice_builder_settings.threshold,
+                    #            ignore_index=meta_cfg.slice_builder_settings.ignore_index,
+                    #            slack_acceptance=meta_cfg.slice_builder_settings.slack_acceptance,
+                    #        )}
+                    #    )
 
                     pred_loader_cfg = pred_loader.create_config(
                         output_dir=pred_dir_path,
@@ -815,6 +843,9 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         assert (
                             meta_cfg.output_settings.result_dir is not None
                         ), "result_dir cannot be None for adaptive_batchnorm run mode"
+                        assert (
+                            meta_cfg.output_settings.approach is not None
+                        ), "approach cannot be None for adaptive_batchnorm run mode"
                         yaml_save_path = (
                             Path(meta_cfg.output_settings.base_dir_path)
                             / f"{source_model.source_name}_to_{target_cfg.name}_gap"
@@ -824,6 +855,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                 + f"{'_'.join(source_model.model_name.split('_')[1:])}"
                             )
                             / meta_cfg.output_settings.result_dir
+                            / meta_cfg.output_settings.approach
                             / "model_update.yaml"
                         )
 
@@ -837,6 +869,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             {"model_cfg": model_config.model_dump()},
                             {"loaders": pred_loader_cfg.model_dump()},
                             {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
+                            {"data_fraction": meta_cfg.data_fraction},
                         ]
 
                     else:
