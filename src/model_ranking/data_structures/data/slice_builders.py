@@ -18,11 +18,11 @@ class Pytorch3DUnetSingleZSliceBuilderConfig(BaseModel):
 
 class Pytorch3DUnetFilterSliceBuilderConfig(BaseModel):
     name: Literal["FilterSliceBuilder"]
-    patch_shape: Tuple[int, int, int]
-    stride_shape: Tuple[int, int, int]
-    halo_shape: Tuple[int, int, int]
+    patch_shape: Optional[Tuple[int, int, int]] = None
+    stride_shape: Optional[Tuple[int, int, int]] = None
+    halo_shape: Optional[Tuple[int, int, int]] = None
     threshold: float
-    ignore_index: Optional[int]
+    ignore_index: Optional[Optional[int]] = None
     slack_acceptance: float
 
 
