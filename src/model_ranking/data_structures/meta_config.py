@@ -8,7 +8,7 @@ from .ranking.performance_metrics import eval_metric_type
 from .general.model import ModelSourceConfig, SourceModelConfigBase
 from .general.summary import SummaryResultsMetaConfig
 from .perturbation import FeaturePerturbationConfig
-
+from .data.slice_builders import slice_builder_type
 
 class EvaluateConfig(BaseModel, frozen=True):
     eval_dataloader: EvalDataloaderConfig
@@ -51,6 +51,9 @@ class MetaConfig(BaseModel):
     input_augs: Dict[str, List[Tuple[float, float]]]
     eval_settings: Optional[eval_metric_type]
     consistency_settings: Optional[consistency_metric_type]
+    slice_builder_settings: Optional[slice_builder_type] = None
+    data_fraction: Optional[float] = None
+    foreground_ratio_threshold: Optional[float] = 0.0
 
 
 class TransformerConsistencyMetaConfig(BaseModel):

@@ -870,6 +870,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             {"loaders": pred_loader_cfg.model_dump()},
                             {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
                             {"data_fraction": meta_cfg.data_fraction},
+                            {"foreground_ratio_threshold": meta_cfg.foreground_ratio_threshold},
                         ]
 
                     else:

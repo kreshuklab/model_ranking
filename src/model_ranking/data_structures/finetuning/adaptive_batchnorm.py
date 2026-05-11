@@ -11,4 +11,5 @@ class AdaptiveBatchNormConfig(BaseModel):
     loaders: test_loaders_type
     output_checkpoint_dir_path: str
     data_fraction: Optional[float] = None
+    foreground_ratio_threshold: Optional[float] = 0.0
 
