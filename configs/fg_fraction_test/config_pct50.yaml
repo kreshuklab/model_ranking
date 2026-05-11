@@ -44,4 +44,6 @@ eval_settings: null
 
 consistency_settings: null
 
+# Data fraction settings
 data_fraction: 0.5
+foreground_ratio_threshold: 0.0
