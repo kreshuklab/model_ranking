@@ -7,6 +7,8 @@ checks/
 *.npz
 *.npy
 /tests
+/configs
+/notebooks
 */SLURM
 *.svg
 *.out
