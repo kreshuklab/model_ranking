@@ -10,7 +10,7 @@ from adabn.utils import (  # pyright: ignore[reportMissingTypeStubs]
     sequential_bn_adaptation,  # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.datasets.utils import (
-    get_test_loaders,  # pyright: ignore[reportUnknownVariableType]
+    get_filtered_test_loaders,  # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.unet3d.model import (
     get_model,  # pyright: ignore[reportUnknownVariableType]
@@ -78,24 +78,15 @@ def run_adaptive_batchnorm(config: AdaptiveBatchNormConfig):
     model = model.to(device)
     model = model.eval()
 
-    test_loaders = list(get_test_loaders(config.model_dump()))
+    test_loaders = list(get_filtered_test_loaders(config.model_dump()))
     assert (
         len(test_loaders) == 1
     ), f"Expected exactly one test loader, got {len(test_loaders)}"
     test_loader = test_loaders[0]
 
     print("Computing BatchNorm stats on test loader...")
-
-    data_fraction = config.data_fraction
-    if data_fraction is not None:
-        total_batches = len(test_loader)
-        n_batches = max(1, int(total_batches * data_fraction))
-        print(f'Using {n_batches}/{total_batches} batches ({data_fraction*100:.0f})...')
-        bn_stats = compute_bn_stats(model, test_loader, max_batches=n_batches) # pyright: ignore[reportUnknownVariableType]
-    else:
-        bn_stats = compute_bn_stats(  # pyright: ignore[reportUnknownVariableType]
-                    model, test_loader
-        )
+    bn_stats = compute_bn_stats(model, test_loader) # pyright: ignore[reportUnknownVariableType]
+    
     print("Replacing BatchNorm stats in the model...")
     replace_bn_stats(model, bn_stats)
 
@@ -118,7 +109,7 @@ def run_sequential_adaptive_batchnorm(config: AdaptiveBatchNormConfig):
     model = model.to(device)
     model = model.eval()
 
-    test_loaders = list(get_test_loaders(config.model_dump()))
+    test_loaders = list(get_filtered_test_loaders(config))
     assert (
         len(test_loaders) == 1
     ), f"Expected exactly one test loader, got {len(test_loaders)}"
