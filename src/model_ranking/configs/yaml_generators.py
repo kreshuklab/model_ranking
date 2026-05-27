@@ -134,6 +134,9 @@ def get_model_path(
     base_dir_path: str,
     approach: Optional[str] = None,
     checkpoint_name: str = "best_checkpoint",
+    run_mode: Optional[str] = None,
+    n_patches: Optional[int] = None,
+    fg_threshold: Optional[float] = None,
 ) -> str:
     """Find path to model checkpoint
 
@@ -148,6 +151,8 @@ def get_model_path(
     """
 
     base_dir = Path(base_dir_path)
+    patches_str = f"patches_{n_patches if n_patches is not None else 'all'}"
+    fg_threshold_str = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
 
     if approach is None: 
         model_paths = list(
@@ -157,11 +162,18 @@ def get_model_path(
         )
     else: 
         approach_name = 'checkpoints_' + approach
-        model_paths = list(
-            base_dir.glob(
-                f"**/{model_name}/{approach_name}/**/{checkpoint_name}.pytorch"
+        if run_mode == "adabn_eval": # for adabn we save models in subfolder with amount of patches used for adabn, so we need to look into those folders to find the model path
+            model_paths = list(
+                base_dir.glob(
+                    f"**/{model_name}/{approach_name}/**/{patches_str}/{fg_threshold_str}/{checkpoint_name}.pytorch"
+                )
             )
-        )
+        else:
+            model_paths = list(
+                base_dir.glob(
+                    f"**/{model_name}/{approach_name}/**/{checkpoint_name}.pytorch"
+                )
+            )
         
     if len(model_paths) == 0:
         model_paths = list(
@@ -169,6 +181,7 @@ def get_model_path(
         )
     if len(model_paths) == 0:
         model_paths = list(base_dir.glob(f"**/{model_name}/**/{checkpoint_name}.pt"))
+    
     assert (
         len(model_paths) == 1
     ), f"number of path found = {len(model_paths)}, model ambiguous"
@@ -232,14 +245,20 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
     # config, _ = load_config_direct(config_path)
     meta_cfg = MetaConfig.model_validate(config)
     yaml_paths: Dict[str, List[Path]] = {}
+    source_model_path: Optional[str] = None
+
     for source_model in meta_cfg.source_models:
-        source_model_path = get_model_path(
-            source_data=source_model.source_name,
-            model_name=source_model.model_name,
-            base_dir_path=meta_cfg.model_dir_path,
-            approach = meta_cfg.output_settings.approach,
-            checkpoint_name=source_model.checkpoint_name,
-        )
+        if meta_cfg.run_mode != "adabn_eval": # skip for adabn_eval since we get the path inside the loop
+            source_model_path = get_model_path(
+                source_data=source_model.source_name,
+                model_name=source_model.model_name,
+                base_dir_path=meta_cfg.model_dir_path,
+                approach = meta_cfg.output_settings.approach,
+                checkpoint_name=source_model.checkpoint_name,
+            )
+
+            assert source_model_path is not None, \
+                f"source_model_path was not set for {source_model.model_name}"
 
         # Set Unetr Img size 256 + 2(halo 32) = 320
         img_size: int = 256
@@ -429,7 +448,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         save_name = f"feat_{feature_perturbation_name}_aug_{aug_name}"
 
-                    if meta_cfg.run_mode == "pred_eval":
+                    if meta_cfg.run_mode in ["pred_eval", "adabn_eval"]:
                         if Path(output_folder_path).stem == "predictions":
                             pred_dir_path = output_folder_path
                         else:
@@ -473,7 +492,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             target_cfg.eval_dataloader_semantic is not None
                         ), f"Eval dataloader semantic is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_predictions"
-                        predictor_cfg = target_cfg.predictor_semantic
+                        predictor_cfg = target_cfg.predictor_semantic 
                         if (
                             target_cfg.eval_dataloader_semantic.name
                             == "StandardEvalDataset"
@@ -546,7 +565,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             target_cfg.eval_dataloader_instance is not None
                         ), f"Eval dataloader instance is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_IN_predictions"
-                        predictor_cfg = target_cfg.predictor_instance
+                        predictor_cfg = target_cfg.predictor_instance 
                         if (
                             target_cfg.eval_dataloader_instance.name
                             == "StandardEvalDataset"
@@ -615,7 +634,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         assert_never(meta_cfg.segmentation_mode)
 
-                    if meta_cfg.run_mode == "pred_eval":
+                    if meta_cfg.run_mode in ["pred_eval", "adabn_eval"]:
                         wandb_name = source_model.model_name
                     else:
                         wandb_name = f"{source_model.model_name}_{transfer_title_abbrev}_{save_name}"
@@ -653,7 +672,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                     pred_loader_cfg = pred_loader.create_config(
                         output_dir=pred_dir_path,
-                        data_base_path=meta_cfg.data_base_path,
+                        data_base_path=meta_cfg.data_base_path, 
                     )
 
                     yaml_dir_path = "/".join(pred_dir_path.split("/")[:-1])
@@ -664,7 +683,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         ), "Filter results cannot be None for run mode {meta_cfg.run_mode}"
 
                         filter_patches_cfg = target_cfg.filter_results.create_config(
-                            data_base_path=meta_cfg.data_base_path,
+                            data_base_path=meta_cfg.data_base_path,  
                         )
                     else:
                         filter_patches_cfg = None
@@ -701,6 +720,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         )
                         # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = Path(yaml_dir_path) / f"{save_name}.yml"
+
+                        assert source_model_path is not None, "source_model_path was not set for full run mode"
 
                         if source_model_path.endswith(".pt"):
                             model_key = "model_state"
@@ -742,6 +763,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         # Path(yaml_dir_path).mkdir(parents=True, exist_ok=True)
                         yaml_save_path = Path(yaml_dir_path) / "pred.yml"
 
+                        assert source_model_path is not None, "source_model_path was not set for pred_eval"
+
                         if source_model_path.endswith(".pt"):
                             model_key = "model_state"
                         else:
@@ -757,6 +780,110 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             {"loaders": pred_loader_cfg.model_dump()},
                             {"evaluation": eval_cfg.model_dump()},
                         ]
+
+                    elif meta_cfg.run_mode == "adabn_eval":
+                        assert (
+                            meta_cfg.eval_settings is not None
+                        ), "Eval settings cannot be None for run mode {meta_cfg.run_mode}"
+                        eval_metric_cfg = meta_cfg.eval_settings
+
+                        eval_cfg = EvaluateConfig(
+                            eval_dataloader=eval_loader_cfg,
+                            eval_metric=eval_metric_cfg,
+                        )
+                        
+                        # run eval for different patch numbers and fg ratio used for adabn 
+                        n_patches_list = meta_cfg.n_patches if meta_cfg.n_patches else [None]
+                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [None]
+                        
+                        pred_dir_path_base = pred_dir_path  # save original before loop
+
+                        for n in n_patches_list:
+                            for fg_threshold in fg_threshold_list:
+                                # get model path for the amount of patches n and fg_ratio used for adbn
+                                source_model_path = get_model_path(
+                                    source_data=source_model.source_name,
+                                    model_name=source_model.model_name,
+                                    base_dir_path=meta_cfg.model_dir_path,
+                                    approach = meta_cfg.output_settings.approach,
+                                    checkpoint_name=source_model.checkpoint_name,
+                                    run_mode=meta_cfg.run_mode,
+                                    n_patches=n,
+                                    fg_threshold=fg_threshold,
+                                )
+
+                                assert source_model_path is not None, \
+                                    f"source_model_path was not set for {source_model.model_name} with n_patches = {n}"
+
+                                if source_model_path.endswith(".pt"):
+                                    model_key = "model_state"
+                                else:
+                                    model_key = "model_state_dict"
+
+                                # pred_dir_path depends on n_patches for adabn run mode
+                                patches_str = f"patches_{n if n is not None else 'all'}"
+                                fg_threshold_str = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
+                                pred_dir_path_n = str(Path(pred_dir_path_base).parent / patches_str / fg_threshold_str /"predictions")
+                                Path(pred_dir_path_n).mkdir(parents=True, exist_ok=True) 
+                                
+                                ####TO DO: Create Function for eval_loader_config!
+                                # change pred_path in eval_loader_cfg to new pred_dir_path with n_patches subfolder for adabn
+                                if eval_loader_cfg.eval_dataset.name == "StandardEvalDataset":  
+                                    eval_loader_cfg = eval_loader_cfg.model_copy(
+                                        update={"eval_dataset": eval_loader_cfg.eval_dataset.model_copy(  
+                                            update={"pred_path": (pred_dir_path_n,)}
+                                        )}
+                                    )
+                                else:
+                                    eval_loader_cfg = eval_loader_cfg.model_copy(
+                                        update={"eval_dataset": eval_loader_cfg.eval_dataset.model_copy( 
+                                            update={"eval": eval_loader_cfg.eval_dataset.eval.model_copy( 
+                                                update={"image_dir": (pred_dir_path_n,)}
+                                            )}
+                                        )}
+                                    )
+
+                                eval_cfg = EvaluateConfig(
+                                    eval_dataloader=eval_loader_cfg,
+                                    eval_metric=eval_metric_cfg,
+                                )
+
+                                pred_loader_n_cfg = pred_loader.create_config(
+                                    output_dir=pred_dir_path_n,
+                                    data_base_path=meta_cfg.data_base_path, 
+                                )
+
+                                summary_results_cfg = SummaryResultsConfig(
+                                    filter_patches=filter_patches_cfg,
+                                    output_path=pred_dir_path_n,
+                                    eval_key=eval_cfg.eval_metric.eval_save_key,
+                                    consis_key=None,
+                                    overwrite_scores=meta_cfg.summary_results.overwrite_scores,
+                                    save_name_postfix=meta_cfg.summary_results.save_name_postfix,
+                                    # save_select_patches=meta_cfg.save_results.save_select_patches,
+                                )
+
+                                yaml_save_path = Path(pred_dir_path_n).parent / "pred.yml"
+
+                                yaml_dict_order = [
+                                    {"wandb": wandb_cfg.model_dump()},
+                                    {"model_path": source_model_path},
+                                    {"model_key": model_key},
+                                    {"summary_results": summary_results_cfg.model_dump()},
+                                    {"model": model_cfg.model_dump()},
+                                    {"predictor": predictor_cfg.model_dump()},
+                                    {"loaders": pred_loader_n_cfg.model_dump()},
+                                    {"evaluation": eval_cfg.model_dump()},
+                                    {"n_patches": n},
+                                    {"foreground_ratio_threshold": fg_threshold},
+                                ]
+
+                                yaml_paths.setdefault(transfer_title, []).append(yaml_save_path) 
+                                save_yaml(
+                                    yaml_order=yaml_dict_order, 
+                                    yaml_path=yaml_save_path, 
+                                    overwrite=meta_cfg.overwrite_yaml,
+                                )
 
                     elif meta_cfg.run_mode == "consistency":
                         assert (
@@ -839,6 +966,13 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         ]
 
                     elif meta_cfg.run_mode == "adaptive_batchnorm":
+                        # override loader with feature_loader for val phase (needs labels for FG filtering)
+                        pred_loader_cfg = target_cfg.feature_loader.create_config( #type: ignore
+                            output_dir=pred_dir_path,
+                            data_base_path=meta_cfg.data_base_path, #type: ignore
+                            phase='val'
+                        )
+    
                         # yaml_save_path = Path(yaml_dir_path) / "pred.yml"
                         assert (
                             meta_cfg.output_settings.result_dir is not None
@@ -846,42 +980,64 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         assert (
                             meta_cfg.output_settings.approach is not None
                         ), "approach cannot be None for adaptive_batchnorm run mode"
-                        yaml_save_path = (
-                            Path(meta_cfg.output_settings.base_dir_path)
-                            / f"{source_model.source_name}_to_{target_cfg.name}_gap"
-                            / (
-                                f"{DATASET_TO_MODEL_ABBREVIATIONS[source_model.source_name]}to"
-                                + f"{DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]}_"
-                                + f"{'_'.join(source_model.model_name.split('_')[1:])}"
-                            )
-                            / meta_cfg.output_settings.result_dir
-                            / meta_cfg.output_settings.approach
-                            / "model_update.yaml"
-                        )
-
-                        # yaml_save_path = Path(output_folder_path)
 
                         model_config = SelfTrainingModelConfig(
-                            model=model_cfg, source_checkpoint=source_model_path
-                        )
+                                model=model_cfg, source_checkpoint=source_model_path
+                            )
 
-                        yaml_dict_order = [
-                            {"model_cfg": model_config.model_dump()},
-                            {"loaders": pred_loader_cfg.model_dump()},
-                            {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
-                            {"data_fraction": meta_cfg.data_fraction},
-                            {"foreground_ratio_threshold": meta_cfg.foreground_ratio_threshold},
-                        ]
+                        # loop over n_patches for adaptive batchnorm if provided, otherwise run with n_patches = None
+                        n_patches_list = meta_cfg.n_patches if meta_cfg.n_patches else [None]
+                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [None]
+
+                        for n in n_patches_list:
+                            for fg_threshold in fg_threshold_list:
+                                fg_folder_name = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
+                                yaml_save_path = (
+                                    Path(meta_cfg.output_settings.base_dir_path)
+                                    / f"{source_model.source_name}_to_{target_cfg.name}_gap"
+                                    / (
+                                        f"{DATASET_TO_MODEL_ABBREVIATIONS[source_model.source_name]}to"
+                                        + f"{DATASET_TO_MODEL_ABBREVIATIONS[target_cfg.name]}_"
+                                        + f"{'_'.join(source_model.model_name.split('_')[1:])}"
+                                    )
+                                    / meta_cfg.output_settings.result_dir
+                                    / meta_cfg.output_settings.approach
+                                    / f"patches_{n if n is not None else 'all'}"
+                                    / fg_folder_name
+                                    / "model_update.yaml"
+                                )
+
+                                yaml_dict_order = [
+                                    {"model_cfg": model_config.model_dump()},
+                                    {"loaders": pred_loader_cfg.model_dump()},
+                                    {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
+                                    {"n_patches": n},
+                                    {"foreground_ratio_threshold": fg_threshold},
+                                ]
+
+                                # mark that this branch handled saves in-loop
+                                yaml_paths.setdefault(transfer_title, []).append(yaml_save_path)
+                                save_yaml(
+                                    yaml_order=yaml_dict_order,
+                                    yaml_path=yaml_save_path,
+                                    overwrite=meta_cfg.overwrite_yaml,
+                                )
+                        
+                    
 
                     else:
                         assert_never(meta_cfg.run_mode)
 
-                    yaml_paths.setdefault(transfer_title, []).append(yaml_save_path)
-                    save_yaml(
-                        yaml_order=yaml_dict_order,
-                        yaml_path=yaml_save_path,
-                        overwrite=meta_cfg.overwrite_yaml,
-                    )
+                    if meta_cfg.run_mode not in ["adaptive_batchnorm", "adabn_eval"]:
+                        assert (
+                            yaml_save_path is not None and yaml_dict_order is not None # type: ignore
+                        ), f"run_mode {meta_cfg.run_mode} did not set yaml_save_path/yaml_dict_order"
+                        yaml_paths.setdefault(transfer_title, []).append(yaml_save_path) #type: ignore
+                        save_yaml(
+                            yaml_order=yaml_dict_order, #type: ignore
+                            yaml_path=yaml_save_path, #type: ignore
+                            overwrite=meta_cfg.overwrite_yaml,
+                        )
             # for yaml_paths at key transfer_title if path contains "none" then ensure it is at index zero
             yaml_paths[transfer_title].sort(key=lambda x: 0 if "none" in str(x) else 1)
     return yaml_paths
