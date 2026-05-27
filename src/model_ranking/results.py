@@ -1098,6 +1098,8 @@ def get_summary_metric(
     eval_key: str = "F1_eval",
     approach: str = "default_training",
     base_path: str = "/g/kreshuk/lage/results/pred_eval",
+    n_patches: Optional[int] = None,
+    fg_threshold: Optional[float] = None,
 ):
     '''Get summary metric for a given model and target from the metric summary file.
     Args:
@@ -1114,7 +1116,20 @@ def get_summary_metric(
         model_identifier = model_identifier.split("to")[0]
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]
 
-    summary_path = str( Path(base_path) / f"{source}_to_{target}_gap"/ approach / "predictions"/ model_name /"metric_summary_full.h5")
+    if approach in ["adabn_n_patches", "adabn_foreground"]:
+        patch_folder = f"patches_{n_patches if n_patches is not None else 'all'}"
+        fg_folder = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
+        
+        summary_paths = list(Path(base_path).glob(
+            f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/{patch_folder}/{fg_folder}/metric_summary_full.h5"
+        ))
+        path_name = f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/{patch_folder}/{fg_folder}/metric_summary_full.h5"
+
+        assert len(summary_paths) == 1, f"Found {len(summary_paths)} summary paths, expected 1: {summary_paths}, {path_name}"
+        summary_path = str(summary_paths[0])
+        
+    else:
+        summary_path = str( Path(base_path) / f"{source}_to_{target}_gap"/ approach / "predictions"/ model_name /"metric_summary_full.h5")
   
     eval_score = load_h5(summary_path, eval_key)
     eval_mean = load_h5(summary_path, f"{eval_key}_mean")
