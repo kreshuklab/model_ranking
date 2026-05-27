@@ -29,9 +29,8 @@ def main(
     config: Annotated[str, typer.Option(help="Path to the config file", exists=True)],
 ):
     meta_cfg, _ = load_config_direct(config)
-    assert (meta_cfg["run_mode"] == "full") or (
-        meta_cfg["run_mode"] == "pred_eval"
-    ), f"Current Run mode = {meta_cfg['run_mode']}, should be 'full', or 'pred_eval'"
+    assert meta_cfg["run_mode"] in ["full", "pred_eval", "adabn_eval"], \
+        f"Current Run mode = {meta_cfg['run_mode']}, should be 'full', 'pred_eval', or 'adabn_eval'"
     run_config_paths = generate_run_yamls(meta_cfg)
 
     for transfer_title, config_paths in run_config_paths.items():
@@ -43,7 +42,7 @@ def main(
             _ = run_performance_evaluation(eval_config)
 
             if ("none" in str(config_path.stem)) or (
-                meta_cfg["run_mode"] == "pred_eval"
+                meta_cfg["run_mode"] in ["pred_eval", "adabn_eval"]
             ):
                 print(f"Skipping consistency evaluation for {config_path.stem}")
             else:

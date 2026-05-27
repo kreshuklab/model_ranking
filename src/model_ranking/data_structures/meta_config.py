@@ -34,6 +34,7 @@ run_mode_type = Literal[
     "pred_eval",
     "summary_results",
     "adaptive_batchnorm",
+    "adabn_eval",
 ]
 
 
@@ -52,8 +53,8 @@ class MetaConfig(BaseModel):
     eval_settings: Optional[eval_metric_type]
     consistency_settings: Optional[consistency_metric_type]
     slice_builder_settings: Optional[slice_builder_type] = None
-    data_fraction: Optional[float] = None
-    foreground_ratio_threshold: Optional[float] = 0.0
+    n_patches: Optional[List[Optional[int]]] = None 
+    foreground_ratio_threshold: Optional[List[Optional[float]]] = None 
 
 
 class TransformerConsistencyMetaConfig(BaseModel):
