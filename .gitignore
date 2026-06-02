@@ -14,3 +14,4 @@ checks/
 *.out
 *.DS_Store
 *.png
+*.sh
