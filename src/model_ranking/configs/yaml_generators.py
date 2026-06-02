@@ -165,7 +165,7 @@ def get_model_path(
         if run_mode == "adabn_eval": # for adabn we save models in subfolder with amount of patches used for adabn, so we need to look into those folders to find the model path
             model_paths = list(
                 base_dir.glob(
-                    f"**/{model_name}/{approach_name}/**/{patches_str}/{fg_threshold_str}/{checkpoint_name}.pytorch"
+                    f"**/{model_name}/{approach_name}/{approach}/{patches_str}/{fg_threshold_str}/{checkpoint_name}.pytorch"
                 )
             )
         else:
@@ -969,7 +969,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         # override loader with feature_loader for val phase (needs labels for FG filtering)
                         pred_loader_cfg = target_cfg.feature_loader.create_config( #type: ignore
                             output_dir=pred_dir_path,
-                            data_base_path=meta_cfg.data_base_path, #type: ignore
+                            data_base_path=meta_cfg.data_base_path,
                             phase='val'
                         )
     
@@ -1013,6 +1013,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                     {"output_checkpoint_dir_path": str(yaml_save_path.parent)},
                                     {"n_patches": n},
                                     {"foreground_ratio_threshold": fg_threshold},
+                                    {"patch_centroid": meta_cfg.patch_centroid},
+                                    {"allow_overlap": meta_cfg.allow_overlap},
                                 ]
 
                                 # mark that this branch handled saves in-loop

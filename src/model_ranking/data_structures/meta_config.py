@@ -55,6 +55,8 @@ class MetaConfig(BaseModel):
     slice_builder_settings: Optional[slice_builder_type] = None
     n_patches: Optional[List[Optional[int]]] = None 
     foreground_ratio_threshold: Optional[List[Optional[float]]] = None 
+    patch_centroid: Optional[bool] = False
+    allow_overlap: Optional[bool] = True
 
 
 class TransformerConsistencyMetaConfig(BaseModel):

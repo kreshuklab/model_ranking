@@ -12,4 +12,8 @@ class AdaptiveBatchNormConfig(BaseModel):
     output_checkpoint_dir_path: str
     n_patches: Optional[int] = None
     foreground_ratio_threshold: Optional[float] = 0.0
+    patch_centroid: Optional[bool] = False
+    allow_overlap: Optional[bool] = True
+
+
 
