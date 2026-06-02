@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Discriminator
-from typing import Annotated, assert_never, List, Literal, Optional, Sequence, Union
+from typing import Annotated, assert_never, List, Literal, Optional, Sequence, Union, Tuple
 
 from .datasets import (
     Pytorch3DUnetDatasetConfig,
@@ -222,6 +222,7 @@ class TIFLoadersConfig(BaseModel, frozen=True):
     num_workers: int
     global_norm: bool
     percentiles: Optional[Sequence[Union[float, int]]]
+    patch_shape: Optional[Tuple[int, int, int]] = None
 
 
 class TIFPredictionLoadersConfig(TIFLoadersConfig, frozen=True):
@@ -242,6 +243,7 @@ class LoaderMetaConfig(BaseModel):
     num_workers: int
     global_norm: bool
     percentiles: Optional[Sequence[float]]
+    patch_shape: Optional[Tuple[int, int, int]] = None
     image_dir: Sequence[str]
     mask_dir: Sequence[str]
     transformer: transforms_type
@@ -270,6 +272,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 test=TIFPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -283,6 +286,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 train=TIFPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -296,6 +300,7 @@ class TIFLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 val=TIFPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -331,6 +336,7 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 test=TIFtxtPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -345,6 +351,7 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 train=TIFtxtPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -359,6 +366,7 @@ class TIFtxtLoaderMetaConfig(LoaderMetaConfig):
                 num_workers=self.num_workers,
                 global_norm=self.global_norm,
                 percentiles=self.percentiles,
+                patch_shape=self.patch_shape,
                 val=TIFtxtPhaseConfig(
                     image_dir=image_dir,
                     mask_dir=mask_dir,
@@ -396,6 +404,15 @@ test_loaders_type = Annotated[
         Pytorch3DUnetTestLoaderConfig,
         SBIAD1410LoaderTestConfig,
         TIFPredictionLoadersConfig,
+    ],
+    Discriminator("dataset"),
+]
+
+val_loaders_type = Annotated[
+    Union[
+        Pytorch3DUnetValLoaderConfig,
+        SBIAD1410LoaderValConfig,
+        TIFValLoadersConfig,
     ],
     Discriminator("dataset"),
 ]

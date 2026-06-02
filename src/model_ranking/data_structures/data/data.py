@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Dict, Literal, Optional, Union
 
 from pydantic import BaseModel, Discriminator
 
@@ -76,6 +76,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         image_dir=("/BBBC039/images",),
         mask_dir=("/BBBC039/instance_annotations/instance_labels",),
         filenames_path="/BBBC039/test.txt",
+        patch_shape = (1, 256, 256),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -227,6 +228,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
             ]
         },
     )
+    
     feature_loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="HeLaNuc_Dataset",
         batch_size=2,
@@ -235,10 +237,12 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
         percentiles=(5, 99.6),
         image_dir=("/HeLaCytoNuc/test/images",),
         mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
+        patch_shape = (1, 128, 128),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
                 {"name": "FixedClipping", "min_value": None, "max_value": 2},
+                #{"name": "CropToFixed", "size": (256, 256), "centered": True},
                 {"name": "ToTensor", "expand_dims": True},
             ],
             "label": [
@@ -379,6 +383,7 @@ class HoechstTargetConfig(TargetDatasetConfigBase, frozen=True):
         percentiles=(5, 98),
         image_dir=("/Hoechst/test_nuclei/images/png",),
         mask_dir=("/Hoechst/test_nuclei/annotations",),
+        patch_shape=(1, 128, 128),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -527,6 +532,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
         image_dir=("/S-BIAD634/dataset/rawimages",),
         mask_dir=("/S-BIAD634/dataset/groundtruth",),
         filenames_path="/S-BIAD634/dataset/test.txt",
+        patch_shape = (1, 256, 256),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -681,6 +687,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
         mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Train/Masks",),
         # image_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Raw",),
         # mask_dir=("/S-BIAD895/ZeroCostDL4Mic/Stardist_v2/Stardist/Test/Masks",),
+        patch_shape = (1, 256, 256),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -812,7 +819,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         label_internal_path="label",
         global_normalization=True,
         global_percentiles=(5, 98),
-        file_paths=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        file_paths=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/patchvolume_009.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -822,9 +829,9 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 200, 200),
-            stride_shape=(1, 200, 200),
-            halo_shape=(0, 32, 32),
+            patch_shape=(1, 128, 128),
+            stride_shape=(1, 128, 128),
+            halo_shape=(0, 0, 0),
         ),
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -835,7 +842,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         label_internal_path="label",
         global_normalization=True,
         global_percentiles=(5, 98),
-        file_paths=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        file_paths=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/patchvolume_009.h5",),
         roi=None,
         transformer={
             "raw": [
@@ -848,8 +855,8 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 200, 200),
-            stride_shape=(1, 200, 200),
+            patch_shape=(1, 128, 128),
+            stride_shape=(1, 128, 128),
             halo_shape=(0, 0, 0),
         ),
     )
@@ -882,7 +889,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     eval_dataloader_semantic: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
-        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/patchvolume_009.h5",),
         pred_key="predictions",
         gt_key="label",
         patch_key="patch_index",
@@ -905,7 +912,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
-        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test",),
+        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/patchvolume_009.h5",),
         pred_key="segmentation",
         gt_key="label",
         patch_key="patch_index",
@@ -991,8 +998,8 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_normalization=True,
         global_percentiles=(5, 98),
-        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
-        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
         roi=None,
         transformer={
             "raw": [
@@ -1013,8 +1020,8 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_normalization=True,
         global_percentiles=(5, 98),
-        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
-        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
         roi=None,
         transformer={
             "raw": [
@@ -1029,8 +1036,8 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
+            patch_shape=(1, 128, 128),
+            stride_shape=(1, 128, 128),
             halo_shape=(0, 0, 0),
         ),
     )
@@ -1065,7 +1072,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1095,7 +1102,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1151,7 +1158,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1210,6 +1217,7 @@ class DSB2018TargetConfig(TargetDatasetConfigBase, frozen=True):
         dataset="Standard_TIF_Dataset",
         image_dir=("/dsb2018_fluorescence/test/images",),
         mask_dir=("/dsb2018_fluorescence/test/masks",),
+        patch_shape = (1, 128, 128),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -1357,8 +1365,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
+            patch_shape=(1, 128, 128),
+            stride_shape=(1, 128, 128),
             halo_shape=(0, 32, 32),
         ),
     )
@@ -1371,7 +1379,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         global_normalization=True,
         global_percentiles=(0, 99.8),
         file_paths=("/Go-Nuclear/3d_all_in_one/1170.h5",),
-        roi=[[50, 170]],
+        roi=[[100, 132]],
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -1385,8 +1393,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
+            patch_shape=(1, 64, 64),
+            stride_shape=(1, 64, 64),
             halo_shape=(0, 0, 0),
         ),
     )
@@ -1938,21 +1946,21 @@ class EPFLTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
-        #     name="SliceBuilder",
-        #     patch_shape=(1, 256, 256),
-        #     stride_shape=(1, 256, 256),
-        #     halo_shape=(0, 0, 0),
-        # ),
-        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
-            name="FilterSliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 0, 0),
-            threshold=0.02,
-            slack_acceptance=0,
-            ignore_index=None,
-        ),
+         slice_builder=Pytorch3DUnetSliceBuilderConfig(
+             name="SliceBuilder",
+             patch_shape=(1, 256, 256),
+             stride_shape=(1, 256, 256),
+             halo_shape=(0, 0, 0),
+         ),
+        #slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+        #    name="FilterSliceBuilder",
+        #    patch_shape=(1, 256, 256),
+        #    stride_shape=(1, 256, 256),
+        #    halo_shape=(0, 0, 0),
+        #    threshold=0.02,
+        #    slack_acceptance=0,
+        #    ignore_index=None,
+        #),
     )
     # feature_indices_path: Optional[str] = (
     #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/EPFL_indices.npz"
@@ -2056,13 +2064,13 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 1280, 1280),
-            stride_shape=(1, 1280, 1280),
-            halo_shape=(0, 96, 96),
-            # patch_shape=(1, 256, 256),
-            # stride_shape=(1, 256, 256),
+            #patch_shape=(1, 1280, 1280),
+            #stride_shape=(1, 1280, 1280),
+            #halo_shape=(0, 96, 96),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
             # halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -2112,21 +2120,21 @@ class HmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
-        #     name="SliceBuilder",
-        #     patch_shape=(1, 256, 256),
-        #     stride_shape=(1, 256, 256),
-        #     halo_shape=(0, 0, 0),
-        # ),
-        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
-            name="FilterSliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 0, 0),
-            threshold=0.1,
-            slack_acceptance=0,
-            ignore_index=None,
-        ),
+         slice_builder=Pytorch3DUnetSliceBuilderConfig(
+             name="SliceBuilder",
+             patch_shape=(1, 256, 256),
+             stride_shape=(1, 256, 256),
+             halo_shape=(0, 0, 0),
+         ),
+        #slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+        #    name="FilterSliceBuilder",
+        #    patch_shape=(1, 256, 256),
+        #    stride_shape=(1, 256, 256),
+        #    halo_shape=(0, 0, 0),
+        #    threshold=0.1,
+        #    slack_acceptance=0,
+        #    ignore_index=None,
+        #),
     )
     # feature_indices_path: Optional[str] = (
     #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Hmito_indices.npz"
@@ -2227,13 +2235,13 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 1280, 1280),
-            stride_shape=(1, 1280, 1280),
-            halo_shape=(0, 96, 96),
-            # patch_shape=(1, 256, 256),
-            # stride_shape=(1, 256, 256),
+            #patch_shape=(1, 1280, 1280),
+            #stride_shape=(1, 1280, 1280),
+            #halo_shape=(0, 96, 96),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
             # # halo_shape=(0, 32, 32),
-            # halo_shape=(0, 0, 0),
+            halo_shape=(0, 0, 0),
         ),
     )
     train_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
@@ -2283,21 +2291,21 @@ class RmitoTargetConfig(TargetDatasetConfigBase, frozen=True):
                 {"name": "ToTensor", "expand_dims": True},
             ],
         },
-        # slice_builder=Pytorch3DUnetSliceBuilderConfig(
-        #     name="SliceBuilder",
-        #     patch_shape=(1, 256, 256),
-        #     stride_shape=(1, 256, 256),
-        #     halo_shape=(0, 0, 0),
-        # ),
-        slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
-            name="FilterSliceBuilder",
-            patch_shape=(1, 256, 256),
-            stride_shape=(1, 256, 256),
-            halo_shape=(0, 0, 0),
-            threshold=0.1,
-            slack_acceptance=0,
-            ignore_index=None,
-        ),
+        slice_builder=Pytorch3DUnetSliceBuilderConfig(
+             name="SliceBuilder",
+             patch_shape=(1, 256, 256),
+             stride_shape=(1, 256, 256),
+             halo_shape=(0, 0, 0),
+         ),
+        #slice_builder=Pytorch3DUnetFilterSliceBuilderConfig(
+        #    name="FilterSliceBuilder",
+        #    patch_shape=(1, 256, 256),
+        #    stride_shape=(1, 256, 256),
+        #    halo_shape=(0, 0, 0),
+        #    threshold=0.1,
+        #    slack_acceptance=0,
+        #    ignore_index=None,
+        #),
     )
     # feature_indices_path: Optional[str] = (
     #     "/scratch/talks/sampled_features/semantic_segmentation/mitochondria/feature_indices/Rmito_indices.npz"
@@ -2742,3 +2750,23 @@ semantic_dataset_type = Annotated[
     ],
     Discriminator("name"),
 ]
+
+TARGET_CONFIGS: Dict[str, target_dataset_type] = {
+    "BBBC039": BBBC039TargetConfig(),
+    "DSB2018": DSB2018TargetConfig(),
+    "Go-Nuclear": GoNuclearTargetConfig(),
+    "HeLaNuc": HeLaNucTargetConfig(),
+    "Hoechst": HoechstTargetConfig(),
+    "S_BIAD634": SBIAD634TargetConfig(),
+    "S_BIAD895": SBIAD895TargetConfig(),
+    "S_BIAD1196": SBIAD1196TargetConfig(),
+    "S_BIAD1410": SBIAD1410TargetConfig(),
+    "FlyWing": FlyWingTargetConfig(),
+    "Ovules": OvulesTargetConfig(),
+    "PNAS": PNASTargetConfig(),
+    "EPFL": EPFLTargetConfig(),
+    "Hmito": HmitoTargetConfig(),
+    "Rmito": RmitoTargetConfig(),
+    "VNC": VNCTargetConfig(),
+    "Covid_IF": CovidIFTargetConfig(),
+}
