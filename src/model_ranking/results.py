@@ -1116,7 +1116,7 @@ def get_summary_metric(
         model_identifier = model_identifier.split("to")[0]
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]
 
-    if approach in ["adabn_n_patches", "adabn_foreground"]:
+    if approach in ["adabn_n_patches", "adabn_foreground", "adabn_patch_size"]:
         patch_folder = f"patches_{n_patches if n_patches is not None else 'all'}"
         fg_folder = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
         
