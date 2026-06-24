@@ -64,13 +64,14 @@ for config_file in "${config_files[@]}"; do
 #SBATCH --job-name=$substring                   # specify the name of the job
 #SBATCH -N 1				                    # specify the number of cluster nodes for the job
 #SBATCH --ntasks-per-node=8				        # specify the number of cores per node for the job
-#SBATCH --mem 10G			                    # specify the amount of memory per node
+#SBATCH --mem 20G			                    # specify the amount of memory per node
 #SBATCH -t 0-03:00:00                           # specify the runtime of the job IMPORTANT: your job will get killed if it exceeds this runtime (the format is d-h:mm-ss)
 #SBATCH -o $slurm_dir/outfile.out		        # specify the file to write the command line output to
 #SBATCH -e $slurm_dir/errfile.err			    # specify the file to write the error output to
 #SBATCH --mail-type=FAIL		            # specify mail notifications for your job 
 #SBATCH --mail-user=lea.zur_lage@embl.de        # specify the mail address for mail notifications 
 #SBATCH -p gpu				                    # specify the queue you want to submit to; here we choose the gpu queue. If you want to submit a pure CPU job, just leave this out.
+#SBATCH --exclude=gpu[50-53],bgx1                # exclude Blackwell GPUs
 #SBATCH --gres=gpu:1			                # specify the number of gpus per node
 
 # next we should load all the modules we need to run the job.
