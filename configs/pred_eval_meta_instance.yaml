@@ -1,0 +1,49 @@
+ ### Target Datasets
+target_datasets:
+  - name: FlyWing
+
+### Source Models
+source_models:
+  - source_name: Ovules
+    model_name: ov_model_UNet1
+    model_type: UNet2D
+
+### Perturbation Settings
+
+# Feature perturbations
+feature_perturbations: null
+
+# Input Augmentations
+input_augs:
+  none: []
+
+### General Run Settings
+overwrite_yaml: True
+segmentation_mode: instance
+run_mode: pred_eval
+data_base_path: /scratch/talks/data
+model_dir_path: /path/to/model/checkpoint/directory
+
+summary_results:
+  overwrite_scores: False
+  filter_patches: False
+  save_name_postfix: ""
+
+# Output Settings
+output_settings:
+  result_dir: P1
+  approach: prediction_evaluation
+  base_dir_path: /output/path
+
+
+### Performance and Consistency evaluation settings
+eval_settings:
+  name: MeanAvgPrecision
+  threshold: null
+  iou_range: [0.5, 0.95, 10]
+  min_instance_size: 50
+  eval_save_key: MAP_05_095
+  overwrite_score: False
+
+
+consistency_settings: null
