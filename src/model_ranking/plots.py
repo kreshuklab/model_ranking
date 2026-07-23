@@ -1308,6 +1308,7 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
     legend_fontsize: int = 18,
     x_label: str = "CMR-EI",
     save_bbox_inches: Optional[str] = "tight",
+    show_legend: bool = True,
 ):
     """
     Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
@@ -1559,49 +1560,47 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
     if y_tick_values is not None:
         _ = ax.set_yticks(list(y_tick_values))
 
-    # Add legend with matching colors and shapes
-    legend_handles: List[Any] = []
-    for i, (model, label) in enumerate(zip(sorted(common_models), labels)):
-        # Determine source abbreviation
-        model_source = None
-        for abbr in source_abbreviations:
-            if model.startswith(abbr + "_"):
-                model_source = abbr
-                break
+    if show_legend:
+        legend_handles: List[Any] = []
+        for i, (model, label) in enumerate(zip(sorted(common_models), labels)):
+            model_source = None
+            for abbr in source_abbreviations:
+                if model.startswith(abbr + "_"):
+                    model_source = abbr
+                    break
 
-        # Get color and marker
-        color = source_colors.get(model_source, "gray") if model_source else "gray"
-        marker = get_marker_shape(model)
+            color = source_colors.get(model_source, "gray") if model_source else "gray"
+            marker = get_marker_shape(model)
 
-        # Create handle for legend
-        handle = ax.scatter(
-            [],
-            [],
-            c=color,
-            s=marker_size,
-            alpha=alpha,
-            marker=marker,
-            label=label,
-            edgecolors="black",
-            linewidths=0.5,
-        )
-        legend_handles.append(handle)
+            handle = ax.scatter(
+                [],
+                [],
+                c=color,
+                s=marker_size,
+                alpha=alpha,
+                marker=marker,
+                label=label,
+                edgecolors="black",
+                linewidths=0.5,
+            )
+            legend_handles.append(handle)
 
-    # Configure legend position
-    if legend_loc is not None:
-        # Place legend inside the plot
-        _ = ax.legend(handles=legend_handles, loc=legend_loc, fontsize=legend_fontsize)
-    else:
-        # Place legend outside the plot (default behavior)
-        if legend_bbox_to_anchor is None:
-            legend_bbox_to_anchor = (1.05, 1)
+        if legend_loc is not None:
+            _ = ax.legend(
+                handles=legend_handles,
+                loc=legend_loc,
+                fontsize=legend_fontsize,
+            )
+        else:
+            if legend_bbox_to_anchor is None:
+                legend_bbox_to_anchor = (1.05, 1)
 
-        _ = ax.legend(
-            handles=legend_handles,
-            bbox_to_anchor=legend_bbox_to_anchor,
-            loc="upper left",
-            fontsize=legend_fontsize,
-        )
+            _ = ax.legend(
+                handles=legend_handles,
+                bbox_to_anchor=legend_bbox_to_anchor,
+                loc="upper left",
+                fontsize=legend_fontsize,
+            )
 
     # Format correlation scores text with Greek symbols and abbreviations
     corr_text = "Correlation Scores:\n"
