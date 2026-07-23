@@ -951,8 +951,13 @@ def plot_single_consistency_vs_performance_CVPR(
     legend_bbox_to_anchor: Optional[Tuple[float, float]] = (1.05, 1),
     corr_box_loc: Tuple[float, float] = (0.05, 0.05),
     tick_fontsize: Optional[int] = None,
+    x_axis_limits: Optional[Tuple[float, float]] = None,
+    x_tick_values: Optional[Sequence[float]] = None,
+    y_axis_limits: Optional[Tuple[float, float]] = None,
+    y_tick_values: Optional[Sequence[float]] = None,
     corr_fontsize: int = 18,
     legend_fontsize: int = 18,
+    save_bbox_inches: Optional[str] = "tight",
 ):
     """
     Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
@@ -1008,6 +1013,14 @@ def plot_single_consistency_vs_performance_CVPR(
         Default is (0.05, 0.05) for lower left corner.
     tick_fontsize : Optional[int]
         Font size for x and y axis tick labels. If None, uses fontsize - 4.
+    x_axis_limits : Optional[Tuple[float, float]]
+        Explicit x-axis limits as (xmin, xmax). If None, matplotlib auto-scales.
+    x_tick_values : Optional[Sequence[float]]
+        Explicit x-axis tick values. If None, matplotlib chooses ticks automatically.
+    y_axis_limits : Optional[Tuple[float, float]]
+        Explicit y-axis limits as (ymin, ymax). If None, matplotlib auto-scales.
+    y_tick_values : Optional[Sequence[float]]
+        Explicit y-axis tick values. If None, matplotlib chooses ticks automatically.
 
     Returns:
     --------
@@ -1157,6 +1170,16 @@ def plot_single_consistency_vs_performance_CVPR(
     # Set tick label font sizes
     _ = ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
 
+    # Optionally enforce a fixed x-axis range and tick locations.
+    if x_axis_limits is not None:
+        _ = ax.set_xlim(x_axis_limits)
+    if x_tick_values is not None:
+        _ = ax.set_xticks(list(x_tick_values))
+    if y_axis_limits is not None:
+        _ = ax.set_ylim(y_axis_limits)
+    if y_tick_values is not None:
+        _ = ax.set_yticks(list(y_tick_values))
+
     # Add legend with matching colors
     legend_handles = []
     for i, label in enumerate(labels):
@@ -1232,7 +1255,12 @@ def plot_single_consistency_vs_performance_CVPR(
         # Save PNG version
         png_path = base_path.with_suffix(".png")
         try:
-            fig.savefig(png_path, dpi=300, bbox_inches="tight", format="png")
+            fig.savefig(
+                png_path,
+                dpi=300,
+                bbox_inches=save_bbox_inches,
+                format="png",
+            )
             print(f"Saved PNG figure to: {png_path}")
         except Exception as e:
             print(f"Error saving PNG: {e}")
@@ -1240,7 +1268,7 @@ def plot_single_consistency_vs_performance_CVPR(
         # Save SVG version
         svg_path = base_path.with_suffix(".svg")
         try:
-            fig.savefig(svg_path, bbox_inches="tight", format="svg")
+            fig.savefig(svg_path, bbox_inches=save_bbox_inches, format="svg")
             print(f"Saved SVG figure to: {svg_path}")
         except Exception as e:
             print(f"Error saving SVG: {e}")
@@ -1272,8 +1300,14 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
     legend_bbox_to_anchor: Optional[Tuple[float, float]] = (1.05, 1),
     corr_box_loc: Tuple[float, float] = (0.05, 0.05),
     tick_fontsize: Optional[int] = None,
+    x_axis_limits: Optional[Tuple[float, float]] = None,
+    x_tick_values: Optional[Sequence[float]] = None,
+    y_axis_limits: Optional[Tuple[float, float]] = None,
+    y_tick_values: Optional[Sequence[float]] = None,
     corr_fontsize: int = 18,
     legend_fontsize: int = 18,
+    x_label: str = "CMR-EI",
+    save_bbox_inches: Optional[str] = "tight",
 ):
     """
     Plot consistency scores vs performance scores for a single augmentation strength and target dataset.
@@ -1331,6 +1365,14 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
         Default is (0.05, 0.05) for lower left corner.
     tick_fontsize : Optional[int]
         Font size for x and y axis tick labels. If None, uses fontsize - 4.
+    x_axis_limits : Optional[Tuple[float, float]]
+        Explicit x-axis limits as (xmin, xmax). If None, matplotlib auto-scales.
+    x_tick_values : Optional[Sequence[float]]
+        Explicit x-axis tick values. If None, matplotlib chooses ticks automatically.
+    y_axis_limits : Optional[Tuple[float, float]]
+        Explicit y-axis limits as (ymin, ymax). If None, matplotlib auto-scales.
+    y_tick_values : Optional[Sequence[float]]
+        Explicit y-axis tick values. If None, matplotlib chooses ticks automatically.
 
     Returns:
     --------
@@ -1493,7 +1535,7 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
         pert_str = aug_name_to_sigma_tuple(augmentation_strength)
 
     # Add labels and title
-    _ = ax.set_xlabel(f"CTE", fontsize=fontsize)
+    _ = ax.set_xlabel(x_label, fontsize=fontsize)
     _ = ax.set_ylabel(f"Performance Score ({performance_score_key})", fontsize=fontsize)
 
     if title is None:
@@ -1506,6 +1548,16 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
 
     # Set tick label font sizes
     _ = ax.tick_params(axis="both", which="major", labelsize=tick_fontsize)
+
+    # Optionally enforce a fixed x-axis range and tick locations.
+    if x_axis_limits is not None:
+        _ = ax.set_xlim(x_axis_limits)
+    if x_tick_values is not None:
+        _ = ax.set_xticks(list(x_tick_values))
+    if y_axis_limits is not None:
+        _ = ax.set_ylim(y_axis_limits)
+    if y_tick_values is not None:
+        _ = ax.set_yticks(list(y_tick_values))
 
     # Add legend with matching colors and shapes
     legend_handles: List[Any] = []
@@ -1597,7 +1649,12 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
         # Save PNG version
         png_path = base_path.with_suffix(".png")
         try:
-            fig.savefig(png_path, dpi=300, bbox_inches="tight", format="png")
+            fig.savefig(
+                png_path,
+                dpi=300,
+                bbox_inches=save_bbox_inches,
+                format="png",
+            )
             print(f"Saved PNG figure to: {png_path}")
         except Exception as e:
             print(f"Error saving PNG: {e}")
@@ -1605,7 +1662,7 @@ def plot_single_consistency_vs_performance_CVPR_shapes(
         # Save SVG version
         svg_path = base_path.with_suffix(".svg")
         try:
-            fig.savefig(svg_path, bbox_inches="tight", format="svg")
+            fig.savefig(svg_path, bbox_inches=save_bbox_inches, format="svg")
             print(f"Saved SVG figure to: {svg_path}")
         except Exception as e:
             print(f"Error saving SVG: {e}")
