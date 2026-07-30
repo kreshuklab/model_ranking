@@ -1,13 +1,21 @@
 from pathlib import Path
-import torch
 from typing import Union
+
+#import pandas as pd
+#import os
+
+import torch
+#import torch.nn as nn
 
 from model_ranking.data_structures import AdaptiveBatchNormConfig
 
 from adabn.utils import (  # pyright: ignore[reportMissingTypeStubs]
+    collect_source_stats, # pyright: ignore[reportUnknownVariableType]
     compute_bn_stats,  # pyright: ignore[reportUnknownVariableType]
     replace_bn_stats,  # pyright: ignore[reportUnknownVariableType]
     sequential_bn_adaptation,  # pyright: ignore[reportUnknownVariableType]
+    collect_adapted_bn_stats, # pyright: ignore[reportUnknownVariableType]
+    online_adabn, # pyright: ignore[reportUnknownVariableType]
 )
 from pytorch3dunet.datasets.utils import (
     get_filtered_test_loaders,  # pyright: ignore[reportUnknownVariableType]
@@ -84,11 +92,76 @@ def run_adaptive_batchnorm(config: AdaptiveBatchNormConfig):
     ), f"Expected exactly one test loader, got {len(test_loaders)}"
     test_loader = test_loaders[0]
 
-    print("Computing BatchNorm stats on test loader...")
-    bn_stats = compute_bn_stats(model, test_loader) # pyright: ignore[reportUnknownVariableType]
+    # collect the per layer running mean and variance of the source model
+    source_rows = collect_source_stats(model) if config.save_bn_history else None # pyright: ignore[reportUnknownVariableType]
+
+    # compute the batch norm statistics on the test loader
+    print("Computing BatchNorm stats on test loader...") 
+    bn_stats = compute_bn_stats(model,  # pyright: ignore[reportUnknownVariableType]
+                                test_loader,
+                                save_bn_history=config.save_bn_history or False,
+                                history_path=config.output_checkpoint_dir_path,
+                                source_rows=source_rows, 
+                                ) 
     
+
+    # replace the batch norm statistics in the model with the computed ones (end momentum update possible)
     print("Replacing BatchNorm stats in the model...")
-    replace_bn_stats(model, bn_stats)
+    replace_bn_stats(model, bn_stats, alpha = config.bn_stats_alpha or 1.0) 
+
+    # save the adapted batch norm statistics if requested
+    if config.save_bn_history:
+        collect_adapted_bn_stats(model, 
+                                 history_path = config.output_checkpoint_dir_path,
+                                 )
+
+    return model
+
+
+def run_adaptive_batchnorm_momentum(config: AdaptiveBatchNormConfig):
+
+    model_cfg = config.model_cfg
+    model = get_model(model_cfg.model.model_dump())
+    print("Initialize from source model:", model_cfg.source_checkpoint)
+    src_ckpt_path = model_cfg.source_checkpoint
+    assert src_ckpt_path is not None, "Source checkpoint must be provided"
+    if Path(src_ckpt_path).suffix == ".pt":
+        model_key = "model_state"
+    else:
+        model_key = "model_state_dict"
+    _ = load_checkpoint(src_ckpt_path, model, model_key=model_key)
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    model = model.to(device)
+    model = model.eval()
+
+    test_loaders = list(get_filtered_test_loaders(config.model_dump()))
+    assert (
+        len(test_loaders) == 1
+    ), f"Expected exactly one test loader, got {len(test_loaders)}"
+    test_loader = test_loaders[0]
+
+    # collect the per layer running mean and variance of the source model
+    source_rows = collect_source_stats(model) if config.save_bn_history else None # pyright: ignore[reportUnknownVariableType]
+
+    # compute the batch norm statistics on the test loader
+    print("Computing BatchNorm stats on test loader...") 
+
+    online_adabn(model, 
+                test_loader, 
+                history_path = config.output_checkpoint_dir_path,
+                save_bn_history= config.save_bn_history or False, 
+                momentum= config.bn_stats_alpha or 0.1, 
+                source_rows= source_rows, 
+                n_patches=10000, 
+                n_bn_to_track=2)
+
+
+    # save the adapted batch norm statistics if requested
+    if config.save_bn_history:
+        collect_adapted_bn_stats(model, 
+                                 history_path = config.output_checkpoint_dir_path,
+                                 )
 
     return model
 
@@ -109,7 +182,7 @@ def run_sequential_adaptive_batchnorm(config: AdaptiveBatchNormConfig):
     model = model.to(device)
     model = model.eval()
 
-    test_loaders = list(get_filtered_test_loaders(config))
+    test_loaders = list(get_filtered_test_loaders(config.model_dump()))
     assert (
         len(test_loaders) == 1
     ), f"Expected exactly one test loader, got {len(test_loaders)}"
