@@ -14,6 +14,8 @@ class AdaptiveBatchNormConfig(BaseModel):
     foreground_ratio_threshold: Optional[float] = 0.0
     patch_centroid: Optional[bool] = False
     allow_overlap: Optional[bool] = True
+    save_bn_history: Optional[bool] = False
+    bn_stats_alpha: Optional[float] = 1.0
 
 
 
