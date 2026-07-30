@@ -171,7 +171,7 @@ def get_model_path(
         else:
             model_paths = list(
                 base_dir.glob(
-                    f"**/{model_name}/{approach_name}/**/{checkpoint_name}.pytorch"
+                    f"**/{model_name}/**/{approach}/**/{checkpoint_name}.pytorch"
                 )
             )
         
@@ -492,7 +492,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             target_cfg.eval_dataloader_semantic is not None
                         ), f"Eval dataloader semantic is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_predictions"
-                        predictor_cfg = target_cfg.predictor_semantic 
+                        predictor_cfg = target_cfg.predictor_semantic  # ignore[type: ignore]
                         if (
                             target_cfg.eval_dataloader_semantic.name
                             == "StandardEvalDataset"
@@ -565,7 +565,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                             target_cfg.eval_dataloader_instance is not None
                         ), f"Eval dataloader instance is None for for selected mode == {meta_cfg.segmentation_mode}"
                         project_name = f"{source_model.source_name}_IN_predictions"
-                        predictor_cfg = target_cfg.predictor_instance 
+                        predictor_cfg = target_cfg.predictor_instance  # ignore[type: ignore]
                         if (
                             target_cfg.eval_dataloader_instance.name
                             == "StandardEvalDataset"
@@ -794,7 +794,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                         
                         # run eval for different patch numbers and fg ratio used for adabn 
                         n_patches_list = meta_cfg.n_patches if meta_cfg.n_patches else [None]
-                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [None]
+                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [0.0]
                         
                         pred_dir_path_base = pred_dir_path  # save original before loop
 
@@ -987,7 +987,7 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                         # loop over n_patches for adaptive batchnorm if provided, otherwise run with n_patches = None
                         n_patches_list = meta_cfg.n_patches if meta_cfg.n_patches else [None]
-                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [None]
+                        fg_threshold_list = meta_cfg.foreground_ratio_threshold if meta_cfg.foreground_ratio_threshold else [0.0]
 
                         for n in n_patches_list:
                             for fg_threshold in fg_threshold_list:
@@ -1015,6 +1015,8 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                                     {"foreground_ratio_threshold": fg_threshold},
                                     {"patch_centroid": meta_cfg.patch_centroid},
                                     {"allow_overlap": meta_cfg.allow_overlap},
+                                    {"save_bn_history": meta_cfg.save_bn_history},
+                                    {"bn_stats_alpha": meta_cfg.bn_stats_alpha},
                                 ]
 
                                 # mark that this branch handled saves in-loop

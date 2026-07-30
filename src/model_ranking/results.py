@@ -1116,7 +1116,7 @@ def get_summary_metric(
         model_identifier = model_identifier.split("to")[0]
     source = MODEL_ABBREVIATIONS_TO_DATASET[model_identifier]
 
-    if approach in ["adabn_n_patches", "adabn_foreground", "adabn_patch_size"]:
+    if approach in ["adabn_n_patches", "adabn_foreground", "adabn_patch_size", "adabn_patched_32"]:
         patch_folder = f"patches_{n_patches if n_patches is not None else 'all'}"
         fg_folder = f"fg_threshold_{str(fg_threshold).replace('.', '')}" if fg_threshold is not None else "fg_threshold_none"
         
@@ -1124,6 +1124,12 @@ def get_summary_metric(
             f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/{patch_folder}/{fg_folder}/metric_summary_full.h5"
         ))
         path_name = f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/{patch_folder}/{fg_folder}/metric_summary_full.h5"
+
+        if len(summary_paths) == 0:
+            summary_paths = list(Path(base_path).glob(
+                f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/**/{patch_folder}/metric_summary_full.h5"
+            ))
+            path_name = f"{source}_to_{target}_gap/{approach}/predictions/{model_name}/predictions/{patch_folder}/metric_summary_full.h5"
 
         assert len(summary_paths) == 1, f"Found {len(summary_paths)} summary paths, expected 1: {summary_paths}, {path_name}"
         summary_path = str(summary_paths[0])
