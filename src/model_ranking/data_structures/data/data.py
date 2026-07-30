@@ -68,7 +68,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         },
     )
     feature_loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
-        batch_size=2,
+        batch_size=32,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 98),
@@ -76,7 +76,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         image_dir=("/BBBC039/images",),
         mask_dir=("/BBBC039/instance_annotations/instance_labels",),
         filenames_path="/BBBC039/test.txt",
-        patch_shape = (1, 256, 256),
+        patch_shape = (1, 128, 128),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -214,7 +214,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["HeLaNuc"] = "HeLaNuc"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="HeLaNuc_Dataset",
-        batch_size=2,
+        batch_size=64,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 99.6),
@@ -231,13 +231,13 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
     
     feature_loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="HeLaNuc_Dataset",
-        batch_size=2,
+        batch_size=64,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 99.6),
         image_dir=("/HeLaCytoNuc/test/images",),
         mask_dir=("/HeLaCytoNuc/test/nuclei_masks",),
-        patch_shape = (1, 128, 128),
+        patch_shape = (1, 256, 256),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -532,7 +532,7 @@ class SBIAD634TargetConfig(TargetDatasetConfigBase, frozen=True):
         image_dir=("/S-BIAD634/dataset/rawimages",),
         mask_dir=("/S-BIAD634/dataset/groundtruth",),
         filenames_path="/S-BIAD634/dataset/test.txt",
-        patch_shape = (1, 256, 256),
+        patch_shape = (1, 128, 128),
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -661,7 +661,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["S_BIAD895"] = "S_BIAD895"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="Standard_TIF_Dataset",
-        batch_size=5,
+        batch_size=32,
         num_workers=8,
         global_norm=False,
         percentiles=(5, 98),
@@ -679,7 +679,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="Standard_TIF_Dataset",
-        batch_size=5,
+        batch_size=2 ,
         num_workers=8,
         global_norm=False,
         percentiles=(5, 98),
@@ -813,7 +813,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["S_BIAD1196"] = "S_BIAD1196"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=64,
         num_workers=8,
         raw_internal_path="raw",
         label_internal_path="label",
@@ -912,7 +912,7 @@ class SBIAD1196TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
-        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/patchvolume_009.h5",),
+        gt_path=("/S-BIAD1196/SELMA3D_training_annotated/shannel_cells/h5/test/",),
         pred_key="segmentation",
         gt_key="label",
         patch_key="patch_index",
@@ -998,8 +998,8 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_normalization=True,
         global_percentiles=(5, 98),
-        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
-        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/",),
+        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/",),
         roi=None,
         transformer={
             "raw": [
@@ -1020,8 +1020,8 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         num_workers=8,
         global_normalization=True,
         global_percentiles=(5, 98),
-        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
-        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+        img_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
+        mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
         roi=None,
         transformer={
             "raw": [
@@ -1072,7 +1072,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1102,7 +1102,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1158,7 +1158,7 @@ class SBIAD1410TargetConfig(TargetDatasetConfigBase, frozen=True):
         EvalSB1410DataloaderMetaConfig(
             name="S_BIAD1410_Dataset",
             eval=SBIAD1410PhaseMetaConfig(
-                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/cardioblast_nuclei_20200121_e3",),
+                mask_paths=("/S-BIAD1410/cardioblast_nuclei/cardioblast_nuclei_test/",),
                 roi=None,
                 transformer={
                     "raw": [{"name": "ToTensor", "expand_dims": True}],
@@ -1365,8 +1365,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 128, 128),
-            stride_shape=(1, 128, 128),
+            patch_shape=(1, 256, 256),
+            stride_shape=(1, 256, 256),
             halo_shape=(0, 32, 32),
         ),
     )
@@ -1379,7 +1379,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         global_normalization=True,
         global_percentiles=(0, 99.8),
         file_paths=("/Go-Nuclear/3d_all_in_one/1170.h5",),
-        roi=[[100, 132]],
+        roi=[[50, 170]],
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -1393,8 +1393,8 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         },
         slice_builder=Pytorch3DUnetSliceBuilderConfig(
             name="SliceBuilder",
-            patch_shape=(1, 64, 64),
-            stride_shape=(1, 64, 64),
+            patch_shape=(1, 128, 128),
+            stride_shape=(1 ,128 ,128),
             halo_shape=(0, 0, 0),
         ),
     )
