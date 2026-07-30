@@ -94,7 +94,7 @@ class AbstractConsistencyPatchwisePseudoLabeler:
                 perturbed_pseudo_labels, pseudo_labels
             )
         elif isinstance(self.consistency_metric, InstanceAveragePrecision):
-            consis_score = self.consistency_metric(  # pyright: ignore
+            consis_score = self.consistency_metric(  
                 torch.tensor(perturbed_pseudo_labels), torch.tensor(pseudo_labels)
             ).numpy()
             assert is_ndarray(consis_score), "consis_score is not a numpy array."
