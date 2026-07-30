@@ -15,6 +15,7 @@ from model_ranking.configs import (
 from model_ranking.finetuning import (
     run_adaptive_batchnorm,
     run_sequential_adaptive_batchnorm,
+    run_adaptive_batchnorm_momentum,
     copy_checkpoint_with_updated_model,
 )
 
@@ -24,7 +25,11 @@ def main(
         str, typer.Option(help="Path to the meta configuration file", exists=True)
     ],
     sequential: bool = typer.Option(False, help="Use sequential BN adaptation"),
+    momentum: bool = typer.Option(False, help ="Use per batch momentum adaptation")
 ):
+    assert not (sequential and momentum), \
+        "Cannot use both --sequential and --momentum at the same time"
+    
     cfg, _ = load_config_direct(config)
 
     assert (
@@ -45,9 +50,14 @@ def main(
                 adabn_cfg.model_cfg.source_checkpoint is not None
             ), "Source checkpoint must be specified for adaptive batch norm"
 
-            if sequential == True:
+            if sequential:
                 print("Running sequential adaptive batch norm...")
                 updated_model = run_sequential_adaptive_batchnorm(adabn_cfg)
+
+            elif momentum:
+                print("Running per batch momentum adaptive batch norm...")
+                updated_model = run_adaptive_batchnorm_momentum(adabn_cfg)
+
             else:
                 print("Running standard adaptive batch norm...")
                 updated_model = run_adaptive_batchnorm(adabn_cfg)
