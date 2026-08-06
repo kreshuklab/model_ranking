@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
 import numpy as np
+import pandas as pd
 from pathlib import Path
 import random
 from numpy.typing import NDArray
@@ -685,9 +686,12 @@ def plot_model_performance_separate_figures(
             all_approaches.update(model_data.keys())
     approaches = sorted(list(all_approaches))
 
-    # Color palette for approaches
-    colors = plt.cm.Set3(range(len(approaches)))  # pyright: ignore
-    approach_colors = dict(zip(approaches, colors))  # pyright: ignore
+    # Requested colors and fill styles for the two series.
+    approach_colors = {approaches[0]: "#2ca02c"}
+    approach_hatches = {approaches[0]: ""}
+    if len(approaches) > 1:
+        approach_colors[approaches[1]] = "#ff7f00"
+        approach_hatches[approaches[1]] = "///"
 
     for target, target_data in per_target_perf_results.items():
         _, ax = plt.subplots(figsize=figsize)
@@ -703,7 +707,7 @@ def plot_model_performance_separate_figures(
 
         # Plot bars for each approach
         for approach_idx, approach in enumerate(approaches):
-            approach_scores = []
+            approach_scores: List[float] = []
             for model in models:
                 score = target_data[model].get(
                     approach, 0.0
@@ -719,12 +723,15 @@ def plot_model_performance_separate_figures(
             # Plot bars
             bars = ax.bar(
                 bar_positions,
-                approach_scores,  # pyright: ignore[reportUnknownArgumentType]
+                approach_scores,
                 bar_width,
                 label=approach,
                 color=approach_colors[
                     approach
-                ],  # pyright: ignore[reportUnknownArgumentType]
+                ],
+                hatch=approach_hatches.get(approach, ""),
+                edgecolor="black",
+                linewidth=0.8,
                 alpha=0.8,
             )
 
@@ -769,6 +776,163 @@ def plot_model_performance_separate_figures(
             print(f"Plot saved to {save_dir}/model_performance_{target}.png")
 
         plt.show()
+
+
+def plot_performance_heatmaps_for_approaches(
+    per_target_perf_results: Dict[str, Dict[str, Dict[str, float]]],
+    approaches: Sequence[str] = ("direct", "train_mode_stats"),
+    model_order: Optional[Sequence[str]] = None,
+    model_display_names: Optional[Mapping[str, str]] = None,
+    source_block_size: int = 3,
+    figsize: Tuple[int, int] = (16, 6),
+    cmap: str = "viridis",
+    vmin: Optional[float] = 0,
+    vmax: Optional[float] = 1,
+    annot: bool = True,
+    fmt: str = ".3f",
+    save_path: Optional[Union[str, Path]] = None,
+    title_prefix: str = "",
+) -> Tuple[Any, Any]:
+    """
+    Plot one heatmap per approach with source models on the y-axis and target
+    datasets on the x-axis.
+
+    Parameters:
+    -----------
+    per_target_perf_results : Dict[str, Dict[str, Dict[str, float]]]
+        Nested performance results structured as {target: {model: {approach: score}}}.
+    approaches : Sequence[str]
+        Approaches to plot. By default plots direct and train_mode_stats.
+    model_order : Optional[Sequence[str]]
+        Optional explicit y-axis ordering for canonical model names
+        (e.g., "E_model5", "Hm_model4"). If None, order is inferred.
+    model_display_names : Optional[Mapping[str, str]]
+        Optional mapping from canonical model names to display labels used on
+        the y-axis.
+    source_block_size : int
+        Number of consecutive models belonging to one source block. Thick
+        horizontal lines are drawn every `source_block_size` rows.
+    figsize : tuple
+        Figure size for the full figure.
+    cmap : str
+        Matplotlib colormap name.
+    vmin : Optional[float]
+        Minimum colormap value. Set to None for automatic scaling.
+    vmax : Optional[float]
+        Maximum colormap value. Set to None for automatic scaling.
+    annot : bool
+        Whether to annotate each cell with the numeric value.
+    fmt : str
+        Annotation format string.
+    save_path : Optional[Union[str, Path]]
+        Optional path prefix for saving the figure. If provided, the plot is
+        saved as both PNG and SVG.
+    title_prefix : str
+        Optional prefix added to each subplot title.
+
+    Returns:
+    --------
+    fig, axes : matplotlib figure and axes array
+    """
+    targets = sorted(per_target_perf_results.keys())
+
+    def _to_canonical_model_name(transfer_model_name: str) -> str:
+        """Convert transfer key (e.g. EtoE_model5) to canonical model name (E_model5)."""
+        if "to" in transfer_model_name and "_" in transfer_model_name:
+            src_abbr, remainder = transfer_model_name.split("to", 1)
+            if "_" in remainder:
+                _, architecture = remainder.split("_", 1)
+                return f"{src_abbr}_{architecture}"
+        return transfer_model_name
+
+    inferred_models: List[str] = sorted(
+        {
+            _to_canonical_model_name(transfer_model_name)
+            for target_data in per_target_perf_results.values()
+            for transfer_model_name in target_data.keys()
+        }
+    )
+    all_models = list(model_order) if model_order is not None else inferred_models
+    display_labels = [
+        model_display_names.get(model_name, model_name)
+        if model_display_names is not None
+        else model_name
+        for model_name in all_models
+    ]
+
+    n_approaches = len(approaches)
+    fig, axes = plt.subplots(  # pyright: ignore[reportUnknownVariableType]
+        1, n_approaches, figsize=figsize, squeeze=False
+    )
+
+    for idx, approach in enumerate(approaches):
+        heatmap_data = pd.DataFrame(index=all_models, columns=targets, dtype=float)
+        for target in targets:
+            target_data = per_target_perf_results[target]
+            for transfer_model_name, model_scores in target_data.items():
+                canonical_model_name = _to_canonical_model_name(transfer_model_name)
+                if canonical_model_name in heatmap_data.index:
+                    heatmap_data.loc[canonical_model_name, target] = model_scores.get(
+                        approach
+                    )
+
+        # Replace row labels for display while preserving the canonical order.
+        heatmap_data.index = display_labels
+
+        ax = axes[0, idx]
+        _ = sns.heatmap(
+            heatmap_data,
+            ax=ax,
+            cmap=cmap,
+            annot=annot,
+            fmt=fmt,
+            vmin=vmin,
+            vmax=vmax,
+            linewidths=0.5,
+            linecolor="white",
+            cbar=idx == n_approaches - 1,
+            cbar_kws={"label": "Performance score"} if idx == n_approaches - 1 else None,
+        )
+
+        # Draw thick separators between source-model blocks (e.g. every 3 rows).
+        if source_block_size > 0:
+            x_min, x_max = ax.get_xlim()
+            for y_boundary in range(0, len(all_models) + 1, source_block_size):
+                _ = ax.hlines(
+                    y_boundary,
+                    x_min,
+                    x_max,
+                    colors="black",
+                    linewidth=1.5,
+                )
+
+        # Draw thick separators between target datasets (column boundaries).
+        y_min, y_max = ax.get_ylim()
+        for x_boundary in range(0, len(targets) + 1):
+            _ = ax.vlines(
+                x_boundary,
+                y_min,
+                y_max,
+                colors="black",
+                linewidth=1.5,
+            )
+        _ = ax.set_title(f"{title_prefix}{approach}", fontsize=14)
+        _ = ax.set_xlabel("Target dataset")
+        _ = ax.set_ylabel("Source model")
+        _ = ax.tick_params(axis="x", rotation=45)
+        _ = ax.tick_params(axis="y", rotation=0)
+
+    plt.tight_layout()
+
+    if save_path is not None:
+        save_path_obj = Path(save_path)
+        save_path_obj.parent.mkdir(parents=True, exist_ok=True)
+        base_path = save_path_obj.with_suffix("") if save_path_obj.suffix else save_path_obj
+        fig.savefig(base_path.with_suffix(".png"), dpi=300, bbox_inches="tight", format="png")
+        fig.savefig(base_path.with_suffix(".svg"), bbox_inches="tight", format="svg")
+
+    plt.show()
+    return fig, axes  # pyright: ignore[reportUnknownVariableType]
 
 
 import matplotlib.pyplot as plt
