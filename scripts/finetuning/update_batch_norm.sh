@@ -70,8 +70,8 @@ for config_file in "${config_files[@]}"; do
 #SBATCH -e $slurm_dir/errfile.err			    # specify the file to write the error output to
 #SBATCH --mail-type=FAIL		            # specify mail notifications for your job 
 #SBATCH --mail-user=lea.zur_lage@embl.de    # specify the mail address for mail notifications 
-#SBATCH -p gpu				                    # specify the queue you want to submit to; here we choose the gpu queue. If you want to submit a pure CPU job, just leave this out.
-#SBATCH --exclude=gpu[50-53],bgx1               # exclude Blackwell GPUs
+#SBATCH -p gpu-el8			                    # specify the queue you want to submit to; here we choose the gpu queue. If you want to submit a pure CPU job, just leave this out.
+#SBATCH --exclude=gpu[50-53],gpu[60-68],bgx1               # exclude Blackwell GPUs
 #SBATCH --gres=gpu:1			                # specify the number of gpus per node
 
 # next we should load all the modules we need to run the job.
