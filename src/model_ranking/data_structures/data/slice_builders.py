@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Literal, Tuple, Optional, Union
+from typing import Literal, Tuple, Optional, Union, List
 
 
 class Pytorch3DUnetSliceBuilderConfig(BaseModel):
@@ -25,9 +25,23 @@ class Pytorch3DUnetFilterSliceBuilderConfig(BaseModel):
     ignore_index: Optional[Optional[int]] = None
     slack_acceptance: float
 
+class Pytorch3DUnetDistributionSliceBuilder(BaseModel):
+    name: Literal["DistributionSliceBuilder"]
+    patch_shape: Tuple[int, int, int]
+    stride_shape: Tuple[int, int, int]
+    halo_shape: Optional[Tuple[int, int, int]] = None
+    bin_edges: List[float]
+    target_distribution: List[float]
+    ignore_index: Optional[Union[int, List[int]]] = None
+    n_patches: Optional[int] = None 
+    seed: int = 47
+    save_dir: Optional[str] = None
+    phase: Optional[str] = None
+
 
 slice_builder_type = Union[
     Pytorch3DUnetSliceBuilderConfig,
     Pytorch3DUnetFilterSliceBuilderConfig,
     Pytorch3DUnetSingleZSliceBuilderConfig,
+    Pytorch3DUnetDistributionSliceBuilder,
 ]
