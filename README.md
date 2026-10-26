@@ -1,5 +1,5 @@
 # Consistency based Model Ranking -- CMR
-### Unsupervised Source-Free Ranking of Biomedical Segmentation Models Under Distribution Shift
+### [Unsupervised Source-Free Ranking of Biomedical Segmentation Models Under Distribution Shift](https://link.springer.com/chapter/10.1007/978-3-032-36839-3_23)
 
 ![Fig1](./figures/intro_figure.png)
 
@@ -109,10 +109,32 @@ For more specific information about how the target datasets are set up to be use
 #### Mitochondria (EM)
 - EPFL -- https://www.epfl.ch/labs/cvlab/data/data-em/ 
 - Hmito -- https://mitoem.grand-challenge.org/ 
-- Rmito -- https://mitoem.grand-challenge.org/ 
+- Rmito -- https://mitoem.grand-challenge.org/
 - VNC -- https://connectomics.hms.harvard.edu/adult-drosophila-vnc-tem-dataset-female-adult-nerve-cord-fanc
 
 #### Cells (Light Microscopy)
 - FlyWing -- https://elifesciences.org/articles/57613
 - Ovules -- https://elifesciences.org/articles/57613 
 - PNAS -- https://pubmed.ncbi.nlm.nih.gov/27930326/ 
+
+## Citation
+
+```
+@inproceedings{talks2026unsupervised,
+  title={Unsupervised Source-Free Ranking of Biomedical Segmentation Models Under Distribution Shift},
+  author={Talks, Joshua and Marchesini, Kevin and Lumetti, Luca and Bolelli, Federico and Kreshuk, Anna},
+  booktitle={Computer Vision -- ECCV 2026},
+  series={Lecture Notes in Computer Science},
+  volume={17010},
+  pages={413--436},
+  year={2026},
+  publisher={Springer},
+  doi={10.1007/978-3-032-36839-3_23},
+  url={https://doi.org/10.1007/978-3-032-36839-3_23}
+}
+```
+Arxiv -- [Unsupervised Source-Free Ranking of Biomedical Segmentation Models Under Distribution Shift](https://arxiv.org/abs/2503.00450)
+
+## Acknowledgements
+
+The research was carried out as part of the AI4Life consortium. AI4Life receives funding from the European Union’s Horizon Europe research and innovation programme under grant agreement number 101057970.
