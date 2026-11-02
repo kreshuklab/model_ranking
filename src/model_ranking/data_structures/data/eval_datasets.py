@@ -1,5 +1,8 @@
-from pydantic import BaseModel
-from typing import Literal, Sequence, Optional, Union
+from pydantic import BaseModel, Discriminator
+from typing import Annotated, Literal, Sequence, Optional, Union
+
+from .slice_builders import slice_builder_type
+
 
 from .datasets import (
     SBIAD1410PhaseConfig,
@@ -31,6 +34,10 @@ class EvalDatasetConfig(BaseModel):
     zero_largest_instance: bool
     largest_obj_multiplier: Optional[float]
     max_obj_size: Optional[int]
+    slice_builder: Optional[Annotated[
+            slice_builder_type,
+            Discriminator("name"),
+            ]]= None
 
 
 class TIFEvalDatasetConfig(BaseModel):

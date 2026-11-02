@@ -29,7 +29,7 @@ class Pytorch3DUnetDistributionSliceBuilder(BaseModel):
     name: Literal["DistributionSliceBuilder"]
     patch_shape: Tuple[int, int, int]
     stride_shape: Tuple[int, int, int]
-    halo_shape: Optional[Tuple[int, int, int]] = None
+    halo_shape: Tuple[int, int, int] = (0, 0, 0)
     bin_edges: List[float]
     target_distribution: List[float]
     ignore_index: Optional[Union[int, List[int]]] = None

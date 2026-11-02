@@ -16,6 +16,9 @@ from .eval_datasets import (
     SBIAD1410EvalDatasetConfig,
 )
 
+from .slice_builders import slice_builder_type
+
+
 
 class EvalDataloaderConfig(BaseModel):
     eval_dataset: Annotated[
@@ -48,6 +51,10 @@ class EvalDataloaderMetaConfig(BaseModel):
     max_obj_size: Optional[int]
     batch_size: int
     num_workers: int
+    slice_builder: Optional[Annotated[
+        slice_builder_type,
+        Discriminator("name"),
+    ]] = None
 
     def create_config(
         self, aug_name: str, pred_path: Sequence[str], data_base_path: str
@@ -83,6 +90,8 @@ class EvalDataloaderMetaConfig(BaseModel):
                 zero_largest_instance=self.zero_largest_instance,
                 largest_obj_multiplier=self.largest_obj_multiplier,
                 max_obj_size=self.max_obj_size,
+                slice_builder=self.slice_builder,
+
             ),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
