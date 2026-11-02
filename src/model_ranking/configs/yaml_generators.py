@@ -655,20 +655,23 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
                     else:
                         pred_loader = target_cfg.loader
                     
-                    # slice_builder override
-                    #if meta_cfg.slice_builder_settings is not None:
-                    #    current = pred_loader.slice_builder #doesnt work for TIF only H5
-                    #    pred_loader = pred_loader.model_copy(
-                    #        update={"slice_builder": Pytorch3DUnetFilterSliceBuilderConfig(
-                    #            name="FilterSliceBuilder",
-                    #            patch_shape=current.patch_shape,
-                    #            stride_shape=current.stride_shape,
-                    #            halo_shape=current.halo_shape,
-                    #            threshold=meta_cfg.slice_builder_settings.threshold,
-                    #            ignore_index=meta_cfg.slice_builder_settings.ignore_index,
-                    #            slack_acceptance=meta_cfg.slice_builder_settings.slack_acceptance,
-                    #        )}
-                    #    )
+                    if meta_cfg.slice_builder_settings is not None:
+                        assert isinstance(
+                            pred_loader, Pytorch3DUnetLoaderMetaConfig
+                        ), "slice_builder_settings can only override HDF5 loaders"
+                        pred_loader = pred_loader.model_copy(
+                            update={"slice_builder": meta_cfg.slice_builder_settings}
+                        )
+                        if eval_loader_cfg.eval_dataset.name == "StandardEvalDataset":
+                            eval_loader_cfg = eval_loader_cfg.model_copy(
+                                update={
+                                    "eval_dataset": eval_loader_cfg.eval_dataset.model_copy(
+                                        update={
+                                            "slice_builder": meta_cfg.slice_builder_settings
+                                        }
+                                    )
+                                }
+                            )
 
                     pred_loader_cfg = pred_loader.create_config(
                         output_dir=pred_dir_path,
@@ -967,7 +970,16 @@ def generate_run_yamls(config: Dict[str, Any]) -> Dict[str, List[Path]]:
 
                     elif meta_cfg.run_mode == "adaptive_batchnorm":
                         # override loader with feature_loader for val phase (needs labels for FG filtering)
-                        pred_loader_cfg = target_cfg.feature_loader.create_config( #type: ignore
+                        feature_loader = target_cfg.feature_loader
+                        if meta_cfg.slice_builder_settings is not None:
+                            assert isinstance(
+                                feature_loader, Pytorch3DUnetLoaderMetaConfig
+                            ), "slice_builder_settings can only override HDF5 loaders"
+                            feature_loader = feature_loader.model_copy(
+                                update={"slice_builder": meta_cfg.slice_builder_settings}
+                            )
+
+                        pred_loader_cfg = feature_loader.create_config( #type: ignore
                             output_dir=pred_dir_path,
                             data_base_path=meta_cfg.data_base_path,
                             phase='val'
