@@ -19,6 +19,7 @@ from .eval_dataloaders import (
     eval_dataloader_type,
 )
 from .slice_builders import (
+    Pytorch3DUnetDistributionSliceBuilder,
     Pytorch3DUnetFilterSliceBuilderConfig,
     Pytorch3DUnetSliceBuilderConfig,
 )
@@ -50,7 +51,7 @@ class TargetDatasetConfigBase(BaseModel, frozen=True):
 class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["BBBC039"] = "BBBC039"
     loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
-        batch_size=2,
+        batch_size=10,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 98),
@@ -68,7 +69,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         },
     )
     feature_loader: TIFtxtLoaderMetaConfig = TIFtxtLoaderMetaConfig(
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 98),
@@ -76,7 +77,7 @@ class BBBC039TargetConfig(TargetDatasetConfigBase, frozen=True):
         image_dir=("/BBBC039/images",),
         mask_dir=("/BBBC039/instance_annotations/instance_labels",),
         filenames_path="/BBBC039/test.txt",
-        patch_shape = (1, 128, 128),
+        patch_shape = (1, 128, 128), #only for centroid patches needed
         transformer={
             "raw": [
                 {"name": "PercentileNormalizer"},
@@ -214,7 +215,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["HeLaNuc"] = "HeLaNuc"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="HeLaNuc_Dataset",
-        batch_size=64,
+        batch_size=10,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 99.6),
@@ -231,7 +232,7 @@ class HeLaNucTargetConfig(TargetDatasetConfigBase, frozen=True):
     
     feature_loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="HeLaNuc_Dataset",
-        batch_size=64,
+        batch_size = 10,
         num_workers=8,
         global_norm=True,
         percentiles=(5, 99.6),
@@ -661,7 +662,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["S_BIAD895"] = "S_BIAD895"
     loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="Standard_TIF_Dataset",
-        batch_size=32,
+        batch_size=5,
         num_workers=8,
         global_norm=False,
         percentiles=(5, 98),
@@ -679,7 +680,7 @@ class SBIAD895TargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: TIFLoaderMetaConfig = TIFLoaderMetaConfig(
         dataset="Standard_TIF_Dataset",
-        batch_size=2 ,
+        batch_size=5 ,
         num_workers=8,
         global_norm=False,
         percentiles=(5, 98),
@@ -1349,7 +1350,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
     name: Literal["Go-Nuclear"] = "Go-Nuclear"
     loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="raw/clear",
         label_internal_path="label/gold",
@@ -1372,7 +1373,7 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
     )
     feature_loader: Pytorch3DUnetLoaderMetaConfig = Pytorch3DUnetLoaderMetaConfig(
         dataset="StandardHDF5Dataset",
-        batch_size=32,
+        batch_size=10,
         num_workers=8,
         raw_internal_path="raw/clear",
         label_internal_path="label/gold",
@@ -1448,6 +1449,16 @@ class GoNuclearTargetConfig(TargetDatasetConfigBase, frozen=True):
         max_obj_size=None,
         batch_size=1,
         num_workers=8,
+        slice_builder=Pytorch3DUnetDistributionSliceBuilder(
+                    name="DistributionSliceBuilder",
+                    patch_shape= (1,256,256),
+                    stride_shape=(1,256,256),
+                    halo_shape=(0,0,0),
+                    bin_edges= [0.0, 0.2, 0.4, 1.0],
+                    target_distribution = [0, 1],
+                    seed= 47,
+                    save_dir= "/scratch/lage/model-checkpoints/semantic/nuclei/Go-Nuclear/GN_model_to_GNlow/default_match_low_1/patches/"
+                ),
     )
     eval_dataloader_instance: EvalDataloaderMetaConfig = EvalDataloaderMetaConfig(
         name="StandardEvalDataset",
